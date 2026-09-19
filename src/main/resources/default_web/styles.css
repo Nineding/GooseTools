@@ -1,0 +1,951 @@
+body {
+  color: #294943;
+  background-color: #f1f8f5;
+  padding: 9px;
+}
+
+body, p, li, h1, h2, h3, summary, span, strong, a, button, input {
+  text-shadow: none;
+}
+
+p, li {
+  color: #506963;
+  line-height: 3px;
+}
+
+h1, h2, h3, strong {
+  color: #183f39;
+}
+
+.toolbar {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 7px;
+  margin-bottom: 9px;
+  background-color: #fbfffd;
+  border-width: 1px;
+  border-color: #b8d2c8;
+}
+
+.toolbar .brand {
+  width: 22%;
+  color: #226d63;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 6px 3px;
+  white-space: nowrap;
+}
+
+.toolbar a, .toolbar button {
+  color: #3e625b;
+  text-align: center;
+  background-color: #edf7f3;
+  border-width: 1px;
+  border-color: #c6ddd5;
+  padding: 5px;
+  white-space: nowrap;
+}
+
+.toolbar a {
+  width: 12%;
+}
+
+.toolbar .lang-short {
+  width: 5%;
+}
+
+.toolbar .theme-toggle {
+  display: flex;
+  flex-direction: row;
+  width: 28px;
+  height: 22px;
+  padding: 3px;
+}
+
+.theme-icon {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+}
+
+.theme-icon-sun {
+  display: none;
+}
+
+.toolbar a:hover, .toolbar button:hover {
+  color: #123d36;
+  background-color: #dff1eb;
+  border-color: #77b5a6;
+}
+
+.toolbar .nav-active, .filter-active {
+  color: #ffffff;
+  background-color: #2f8f83;
+  border-color: #24786e;
+}
+
+.hero, .page-hero {
+  padding: 13px;
+  margin-bottom: 9px;
+  background-color: #fbfffd;
+  border-width: 1px;
+  border-color: #abd0c3;
+}
+
+.home-hero, .gameplay-hero, .roles-hero, .features-hero {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.hero-copy {
+  width: 62%;
+}
+
+.hero-illustration, .hero-tip {
+  width: 33%;
+  padding: 9px;
+  background-color: #e4f3ee;
+  border-width: 1px;
+  border-color: #a9cfc2;
+}
+
+.eyebrow, .mini-label, .panel-kicker {
+  color: #2e897d;
+  font-size: 8px;
+  font-weight: bold;
+  margin: 0 0 4px 0;
+}
+
+h1 {
+  color: #183f39;
+  font-size: 20px;
+  margin: 2px 0 7px 0;
+}
+
+h2 {
+  font-size: 13px;
+  margin: 3px 0 5px 0;
+}
+
+h3 {
+  font-size: 11px;
+  margin: 2px 0 3px 0;
+}
+
+.lead {
+  color: #49665f;
+  font-size: 10px;
+}
+
+.role-trio {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.mini-role {
+  width: 31%;
+  padding: 5px 2px;
+  text-align: center;
+  border-width: 1px;
+}
+
+.mini-role img {
+  width: 30px;
+  height: 30px;
+  margin: 0 0 3px 0;
+}
+
+.mini-role span {
+  color: #294943;
+  font-size: 8px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.good-soft {
+  background-color: #e4f6ed;
+  border-color: #8fc8aa;
+}
+
+.evil-soft {
+  background-color: #fff0f1;
+  border-color: #dfa3aa;
+}
+
+.neutral-soft {
+  background-color: #fff8e4;
+  border-color: #d9bf78;
+}
+
+.hero-actions, .compact-actions, .stat-strip, .faction-panels, .filters, .role-grid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.compact-actions {
+  margin-top: 8px;
+}
+
+.primary-action, .secondary-action, .feature-action, .bottom-link {
+  width: 43%;
+  color: #ffffff;
+  font-weight: bold;
+  text-align: center;
+  padding: 7px;
+  border-width: 1px;
+}
+
+.compact-actions .primary-action,
+.compact-actions .secondary-action,
+.compact-actions .feature-action {
+  width: 29%;
+}
+
+.primary-action, .bottom-link {
+  background-color: #2f8f83;
+  border-color: #24786e;
+}
+
+.secondary-action {
+  color: #226d63;
+  background-color: #edf7f3;
+  border-color: #a9cfc2;
+}
+
+.feature-action {
+  color: #725d20;
+  background-color: #fff8e4;
+  border-color: #d9bf78;
+}
+
+.primary-action:hover, .bottom-link:hover {
+  background-color: #24786e;
+  border-color: #185e56;
+}
+
+.secondary-action:hover {
+  background-color: #dff1eb;
+  border-color: #77b5a6;
+}
+
+.feature-action:hover {
+  color: #53420e;
+  background-color: #fff1c8;
+  border-color: #b99b48;
+}
+
+.stat-strip {
+  margin: 0 0 10px 0;
+}
+
+.stat-card {
+  width: 31%;
+  padding: 7px;
+  text-align: center;
+  background-color: #e7f4f0;
+  border-width: 1px;
+  border-color: #bad8ce;
+}
+
+.stat-card strong {
+  color: #237d71;
+  font-size: 15px;
+}
+
+.stat-card span {
+  color: #4f6d66;
+  font-size: 8px;
+}
+
+.section-heading {
+  padding: 9px 10px;
+  margin: 8px 0 5px 0;
+  background-color: #f8fdfb;
+  border-width: 1px;
+  border-color: #c3ddd5;
+}
+
+.compact-heading {
+  margin-top: 10px;
+}
+
+.action-card {
+  display: flex;
+  flex-direction: row;
+  gap: 7px;
+  width: 31%;
+  padding: 9px;
+  margin: 3px 0;
+  background-color: #fbfffd;
+  border-width: 1px;
+  border-color: #b8d2c8;
+}
+
+.action-card img {
+  width: 42px;
+  height: 42px;
+}
+
+.action-card div {
+  width: 73%;
+}
+
+.action-card p {
+  color: #526d66;
+}
+
+.action-card:hover {
+  background-color: #edf8f4;
+  border-color: #6eaa9b;
+}
+
+.roles-entry {
+  border-color: #8fc8aa;
+}
+
+.gameplay-entry {
+  border-color: #93c4cd;
+}
+
+.features-entry {
+  border-color: #d9bf78;
+}
+
+.text-link {
+  color: #237d71;
+  font-size: 8px;
+  font-weight: bold;
+}
+
+.welcome-note {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  padding: 8px;
+  margin-top: 8px;
+  background-color: #fffbea;
+  border-width: 1px;
+  border-color: #ddc985;
+}
+
+.note-mark {
+  width: 5%;
+  color: #ffffff;
+  font-weight: bold;
+  text-align: center;
+  padding: 4px;
+  background-color: #b39333;
+  border-width: 1px;
+  border-color: #8e7424;
+}
+
+.welcome-note div {
+  width: 90%;
+}
+
+.welcome-note p {
+  color: #6e633f;
+}
+
+.tip-number {
+  color: #2f8f83;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.hero-tip p {
+  color: #3f655d;
+  font-size: 9px;
+}
+
+.panel {
+  padding: 9px;
+  margin: 4px 0;
+  background-color: #fbfffd;
+  border-width: 1px;
+  border-color: #b8d2c8;
+}
+
+.faction-panels .panel {
+  width: 31%;
+}
+
+.good-panel {
+  background-color: #edfaf3;
+  border-color: #83bea0;
+}
+
+.evil-panel {
+  background-color: #fff2f3;
+  border-color: #d99aa2;
+}
+
+.neutral-panel {
+  background-color: #fff9e9;
+  border-color: #d4b969;
+}
+
+.guide-panel summary {
+  color: #226d63;
+  padding: 4px;
+  background-color: #e8f5f1;
+  border-width: 1px;
+  border-color: #b8d8cf;
+}
+
+.guide-panel summary:hover {
+  color: #174f47;
+  background-color: #d8eee7;
+  border-color: #78b3a4;
+}
+
+.guide-panel li, .guide-panel p {
+  color: #455f59;
+}
+
+.bottom-link {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.search-panel {
+  padding: 8px;
+  margin-bottom: 7px;
+  background-color: #e7f4f0;
+  border-width: 1px;
+  border-color: #b4d4ca;
+}
+
+#role-search {
+  width: 100%;
+  height: 27px;
+  margin: 2px 0 7px 0;
+  color: #254a43;
+  background-color: #fbfffd;
+  border-width: 1px;
+  border-color: #84b8aa;
+}
+
+.filters button {
+  width: 23%;
+  color: #3d5f58;
+  background-color: #f8fdfb;
+  border-width: 1px;
+  border-color: #b8d2c8;
+  padding: 6px;
+}
+
+.filters button:hover {
+  color: #174f47;
+  background-color: #dff1eb;
+  border-color: #77b5a6;
+}
+
+.filters .filter-active {
+  color: #ffffff;
+  background-color: #2f8f83;
+  border-color: #24786e;
+}
+
+.results-row {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  padding: 6px 8px;
+  margin: 6px 0 3px 0;
+  background-color: #fbfffd;
+  border-width: 1px;
+  border-color: #c6ddd5;
+}
+
+.results-row span, .results-row strong {
+  color: #527068;
+  font-size: 8px;
+}
+
+.results-row strong {
+  width: 5%;
+  color: #237d71;
+  font-size: 10px;
+}
+
+.results-row .count-word {
+  width: 6%;
+}
+
+.results-row .results-hint {
+  width: 67%;
+  color: #5c7770;
+  text-align: right;
+}
+
+.faction-heading {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  padding: 7px 9px;
+  margin: 7px 0 1px 0;
+  background-color: #fbfffd;
+  border-width: 1px;
+  font-weight: bold;
+}
+
+.faction-heading span {
+  width: 49%;
+  color: #294943;
+}
+
+.faction-heading span:first-child {
+  text-align: left;
+}
+
+.faction-heading .faction-summary {
+  color: #617a74;
+  text-align: right;
+}
+
+.good-heading {
+  background-color: #e6f6ed;
+  border-color: #83bea0;
+}
+
+.evil-heading {
+  background-color: #fff0f1;
+  border-color: #d99aa2;
+}
+
+.neutral-heading {
+  background-color: #fff8e4;
+  border-color: #d4b969;
+}
+
+.role-card {
+  width: 48%;
+  padding: 7px;
+  margin: 2px 0;
+  background-color: #fbfffd;
+  border-width: 1px;
+  border-color: #b8d2c8;
+}
+
+.role-card summary {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  padding: 3px;
+}
+
+.role-card summary img {
+  width: 30px;
+  height: 30px;
+  margin: 1px 2px 2px 0;
+}
+
+.role-title {
+  width: 72%;
+}
+
+.role-title h3 {
+  color: #20483f;
+  font-size: 11px;
+  margin: 0 0 2px 0;
+}
+
+.role-subtitle {
+  color: #607871;
+  font-size: 8px;
+  margin: 0;
+}
+
+.role-description {
+  color: #415d56;
+  background-color: #f1f8f5;
+  border-width: 1px;
+  border-color: #c5dbd4;
+  padding: 7px;
+  margin-top: 5px;
+}
+
+.role-card.good {
+  border-color: #8fc8aa;
+}
+
+.role-card.evil {
+  border-color: #dfa3aa;
+}
+
+.role-card.neutral {
+  border-color: #d9bf78;
+}
+
+.role-card.good:hover {
+  background-color: #effaf4;
+  border-color: #5ea47f;
+}
+
+.role-card.evil:hover {
+  background-color: #fff4f5;
+  border-color: #bd747e;
+}
+
+.role-card.neutral:hover {
+  background-color: #fffaec;
+  border-color: #b6943d;
+}
+
+.role-card summary:hover, summary:hover {
+  color: #226d63;
+}
+
+.empty-state {
+  width: 100%;
+  padding: 15px;
+  text-align: center;
+  background-color: #fbfffd;
+  border-width: 1px;
+  border-color: #b8d2c8;
+}
+
+.empty-state h3 {
+  color: #2b6158;
+}
+
+.empty-state p {
+  color: #5a746e;
+}
+
+.task-grid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.task-card {
+  width: 31%;
+  padding: 9px;
+  margin: 3px 0;
+  background-color: #fbfffd;
+  border-width: 1px;
+  border-color: #b8d2c8;
+}
+
+.task-card h2 {
+  color: #244e46;
+}
+
+.task-card li {
+  color: #4c6861;
+  margin-bottom: 5px;
+}
+
+.task-badge {
+  color: #315f55;
+  font-size: 8px;
+  font-weight: bold;
+}
+
+.good-task {
+  background-color: #edfaf3;
+  border-color: #83bea0;
+}
+
+.evil-task {
+  background-color: #fff2f3;
+  border-color: #d99aa2;
+}
+
+.neutral-task {
+  background-color: #fff9e9;
+  border-color: #d4b969;
+}
+
+.progress-feature {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 11px;
+  margin-top: 9px;
+  background-color: #e8f3fb;
+  border-width: 1px;
+  border-color: #91b7d0;
+}
+
+.progress-copy {
+  width: 50%;
+}
+
+.progress-copy p {
+  color: #476372;
+}
+
+.task-progress-image {
+  width: 46%;
+  height: 32px;
+  margin: 12px 0 0 0;
+}
+
+.feature-note {
+  margin-bottom: 4px;
+}
+
+body.theme-dark {
+  color: #c9ddd7;
+  background-color: #10191b;
+}
+
+.theme-dark p, .theme-dark li {
+  color: #afc5bf;
+}
+
+.theme-dark h1, .theme-dark h2, .theme-dark h3, .theme-dark strong {
+  color: #edf8f4;
+}
+
+.theme-dark .toolbar {
+  background-color: #172427;
+  border-color: #35534d;
+}
+
+.theme-dark .toolbar .brand {
+  color: #8bd3c2;
+}
+
+.theme-dark .toolbar a, .theme-dark .toolbar button {
+  color: #c7dcd6;
+  background-color: #1d2e31;
+  border-color: #3b5b54;
+}
+
+.theme-dark .toolbar a:hover, .theme-dark .toolbar button:hover {
+  color: #ffffff;
+  background-color: #29433f;
+  border-color: #68a99a;
+}
+
+.theme-dark .toolbar .nav-active, .theme-dark .toolbar .theme-toggle,
+.theme-dark .filters .filter-active {
+  color: #ffffff;
+  background-color: #347c71;
+  border-color: #58a493;
+}
+
+.theme-dark .hero, .theme-dark .page-hero,
+.theme-dark .section-heading, .theme-dark .action-card,
+.theme-dark .panel, .theme-dark .results-row,
+.theme-dark .role-card, .theme-dark .empty-state {
+  background-color: #172427;
+  border-color: #35534d;
+}
+
+.theme-dark .hero-illustration, .theme-dark .hero-tip,
+.theme-dark .search-panel, .theme-dark .stat-card {
+  background-color: #1b2d2d;
+  border-color: #3f675e;
+}
+
+.theme-dark .eyebrow, .theme-dark .mini-label,
+.theme-dark .panel-kicker, .theme-dark .text-link,
+.theme-dark .stat-card strong, .theme-dark .tip-number {
+  color: #72c7b5;
+}
+
+.theme-dark .lead, .theme-dark .action-card p,
+.theme-dark .stat-card span, .theme-dark .hero-tip p,
+.theme-dark .results-row span, .theme-dark .results-row .results-hint,
+.theme-dark .role-subtitle, .theme-dark .empty-state p {
+  color: #a9c0ba;
+}
+
+.theme-dark .mini-role span, .theme-dark .faction-heading span,
+.theme-dark .role-title h3, .theme-dark .empty-state h3 {
+  color: #dcebe7;
+}
+
+.theme-dark .good-soft, .theme-dark .good-panel,
+.theme-dark .good-heading {
+  background-color: #183029;
+  border-color: #4f896d;
+}
+
+.theme-dark .evil-soft, .theme-dark .evil-panel,
+.theme-dark .evil-heading {
+  background-color: #342326;
+  border-color: #965d65;
+}
+
+.theme-dark .neutral-soft, .theme-dark .neutral-panel,
+.theme-dark .neutral-heading {
+  background-color: #302b1d;
+  border-color: #8f793d;
+}
+
+.theme-dark .primary-action, .theme-dark .bottom-link {
+  color: #ffffff;
+  background-color: #347c71;
+  border-color: #58a493;
+}
+
+.theme-dark .secondary-action {
+  color: #cce3dd;
+  background-color: #213634;
+  border-color: #4a766c;
+}
+
+.theme-dark .feature-action {
+  color: #e5d39b;
+  background-color: #302b1d;
+  border-color: #8f793d;
+}
+
+.theme-dark .primary-action:hover, .theme-dark .bottom-link:hover,
+.theme-dark .secondary-action:hover, .theme-dark .feature-action:hover,
+.theme-dark .action-card:hover {
+  color: #ffffff;
+  background-color: #29433f;
+  border-color: #68a99a;
+}
+
+.theme-dark .welcome-note {
+  background-color: #302b1d;
+  border-color: #8f793d;
+}
+
+.theme-dark .welcome-note p {
+  color: #c9bb8d;
+}
+
+.theme-dark .note-mark {
+  color: #ffffff;
+  background-color: #92772f;
+  border-color: #baa050;
+}
+
+.theme-dark .guide-panel summary {
+  color: #b9ddd4;
+  background-color: #1c302e;
+  border-color: #42675f;
+}
+
+.theme-dark .guide-panel summary:hover {
+  color: #ffffff;
+  background-color: #29433f;
+  border-color: #68a99a;
+}
+
+.theme-dark .guide-panel li, .theme-dark .guide-panel p {
+  color: #b3c8c2;
+}
+
+.theme-dark #role-search {
+  color: #e1efeb;
+  background-color: #101b1d;
+  border-color: #54877b;
+}
+
+.theme-dark .filters button {
+  color: #bfd4ce;
+  background-color: #1c2d2f;
+  border-color: #3b5b54;
+}
+
+.theme-dark .filters button:hover {
+  color: #ffffff;
+  background-color: #29433f;
+  border-color: #68a99a;
+}
+
+.theme-dark .results-row strong {
+  color: #7bcab8;
+}
+
+.theme-dark .faction-heading .faction-summary {
+  color: #abc0ba;
+}
+
+.theme-dark .role-description {
+  color: #b8ccc6;
+  background-color: #111d1f;
+  border-color: #304b46;
+}
+
+.theme-dark .role-card.good {
+  border-color: #4f896d;
+}
+
+.theme-dark .role-card.evil {
+  border-color: #965d65;
+}
+
+.theme-dark .role-card.neutral {
+  border-color: #8f793d;
+}
+
+.theme-dark .role-card.good:hover {
+  background-color: #183029;
+  border-color: #72b78f;
+}
+
+.theme-dark .role-card.evil:hover {
+  background-color: #342326;
+  border-color: #c47b85;
+}
+
+.theme-dark .role-card.neutral:hover {
+  background-color: #302b1d;
+  border-color: #bda253;
+}
+
+.theme-dark .theme-icon-moon {
+  display: none;
+}
+
+.theme-dark .theme-icon-sun {
+  display: block;
+}
+
+.theme-dark .task-card {
+  background-color: #172427;
+  border-color: #35534d;
+}
+
+.theme-dark .task-card h2, .theme-dark .task-badge {
+  color: #dcebe7;
+}
+
+.theme-dark .task-card li {
+  color: #b3c8c2;
+}
+
+.theme-dark .good-task {
+  background-color: #183029;
+  border-color: #4f896d;
+}
+
+.theme-dark .evil-task {
+  background-color: #342326;
+  border-color: #965d65;
+}
+
+.theme-dark .neutral-task {
+  background-color: #302b1d;
+  border-color: #8f793d;
+}
+
+.theme-dark .progress-feature {
+  background-color: #17262f;
+  border-color: #466f86;
+}
+
+.theme-dark .progress-copy p {
+  color: #b1c8d3;
+}

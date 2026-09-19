@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.goosethings.tools.client.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "DialogScreenCustomClickMixin",
+    "GuiGraphicsExtractorMarkerMixin",
+    "ScreenCustomClickMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.goosethings.tools.client.vision.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "FogRendererMixin",
+    "RenderSectionRegionMixin",
+    "SodiumLevelSliceMixin",
+    "VisionEntityRenderDispatcherMixin",
+    "VisionCameraMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

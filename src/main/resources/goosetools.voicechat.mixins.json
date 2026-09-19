@@ -1,0 +1,14 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "com.goosethings.tools.client.voice.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "plugin": "com.goosethings.tools.client.voice.GooseToolsVoiceMixinPlugin",
+  "client": [
+    "GgdVoiceGroupHudMixin",
+    "GgdVoiceGroupNametagMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

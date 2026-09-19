@@ -1,0 +1,30 @@
+# Gradle
+.gradle/
+build/
+out/
+
+# Minecraft development/runtime data
+/run/
+/logs/
+/config/
+/mods/
+/world/
+/worlds/
+/crash-reports/
+/server.properties
+/eula.txt
+
+# IDE and operating-system files
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Generated binaries and diagnostics
+*.class
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+*.log
+hs_err_pid*.log
+replay_pid*.log

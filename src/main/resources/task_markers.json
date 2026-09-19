@@ -1,0 +1,511 @@
+{
+  "schema_version": 1,
+  "colors": {
+    "normal": "#D02E7D32",
+    "duck": "#D09D3030",
+    "emergency": "#D0C2185B",
+    "gold": "#D0C9A227"
+  },
+  "tasks": {
+    "rhythmmaster": {
+      "translation_key": "item.task.rhythmmaster.available",
+      "category": "normal",
+      "fallback": "Rhythm Master"
+    },
+    "skyrunner": {
+      "translation_key": "item.task.skyrunner.available",
+      "category": "normal",
+      "fallback": "Sky Parkour"
+    },
+    "rps": {
+      "translation_key": "item.task.rps.available",
+      "category": "normal",
+      "fallback": "Rock-Paper-Scissors!"
+    },
+    "ttt": {
+      "translation_key": "item.task.ttt.available",
+      "category": "normal",
+      "fallback": "Tic-Tac-Toe"
+    },
+    "crazycoalminer": {
+      "translation_key": "item.task.crazycoalminer.available",
+      "category": "normal",
+      "fallback": "Crazy Coal Miner"
+    },
+    "speedboat": {
+      "translation_key": "item.task.speedboat.available",
+      "category": "normal",
+      "fallback": "Whitewater Rush"
+    },
+    "climbpeak": {
+      "translation_key": "item.task.climbpeak.available",
+      "category": "normal",
+      "fallback": "Ascent"
+    },
+    "fishing": {
+      "translation_key": "item.task.fishing.available",
+      "category": "normal",
+      "fallback": "A Fisher's Life"
+    },
+    "donkeytrans": {
+      "translation_key": "item.task.donkeytrans.available",
+      "category": "normal",
+      "fallback": "Flower Courier"
+    },
+    "ghosttalk": {
+      "translation_key": "item.task.ghosttalk.available",
+      "category": "normal",
+      "fallback": "Ghost Riddle"
+    },
+    "librarian": {
+      "translation_key": "item.task.librarian.available",
+      "category": "normal",
+      "fallback": "Librarian"
+    },
+    "targetcenter": {
+      "translation_key": "item.task.targetcenter.available",
+      "category": "normal",
+      "fallback": "Target Practice"
+    },
+    "findthekey": {
+      "translation_key": "item.task.findthekey.available",
+      "category": "normal",
+      "fallback": "Find the Key"
+    },
+    "processgarbage": {
+      "translation_key": "item.task.processgarbage.available",
+      "category": "normal",
+      "fallback": "Process Garbage"
+    },
+    "nautilushunter": {
+      "translation_key": "item.task.nautilushunter.available",
+      "category": "normal",
+      "fallback": "Nautilus Hunter"
+    },
+    "waterparkour": {
+      "translation_key": "item.task.waterparkour.available",
+      "category": "normal",
+      "fallback": "Water Parkour"
+    },
+    "slideexpert": {
+      "translation_key": "item.task.slideexpert.available",
+      "category": "normal",
+      "fallback": "Slide Expert"
+    },
+    "towngourmet": {
+      "translation_key": "item.task.towngourmet.available",
+      "category": "normal",
+      "fallback": "Town Gourmet"
+    },
+    "bartender": {
+      "translation_key": "item.task.bartender.available",
+      "category": "normal",
+      "fallback": "Bartender Assistant"
+    },
+    "checkinhotel": {
+      "translation_key": "item.task.checkinhotel.available",
+      "category": "normal",
+      "fallback": "Hotel Check-In"
+    },
+    "musician": {
+      "translation_key": "item.task.musician.available",
+      "category": "normal",
+      "fallback": "I Am a Musician"
+    },
+    "fixbroadcast": {
+      "translation_key": "item.task.fixbroadcast.available",
+      "category": "gold",
+      "fallback": "Repair Broadcast"
+    },
+    "sweeptrack": {
+      "translation_key": "item.task.sweeptrack.available",
+      "category": "normal",
+      "fallback": "Sweep the Tracks"
+    },
+    "leafcare": {
+      "translation_key": "item.task.leafcare.available",
+      "category": "normal",
+      "fallback": "Leaf Care"
+    },
+    "wish": {
+      "translation_key": "item.task.wish.available",
+      "category": "normal",
+      "fallback": "Make a Wish"
+    },
+    "sweepdust": {
+      "translation_key": "item.task.sweepdust.available",
+      "category": "normal",
+      "fallback": "Sweep the Dust"
+    },
+    "grade": {
+      "translation_key": "item.task.grade.available",
+      "category": "normal",
+      "fallback": "Grade Papers"
+    },
+    "listenprayer": {
+      "translation_key": "item.task.listenprayer.available",
+      "category": "normal",
+      "fallback": "Watch the Trial"
+    },
+    "piggod": {
+      "translation_key": "item.task.piggod.available",
+      "category": "normal",
+      "fallback": "Admire the Pig God"
+    },
+    "clearmice": {
+      "translation_key": "item.task.clearmice.available",
+      "category": "normal",
+      "fallback": "Clear the Mice"
+    },
+    "apprentice": {
+      "translation_key": "item.task.apprentice.available",
+      "category": "normal",
+      "fallback": "Survival Apprentice"
+    },
+    "wipebase": {
+      "translation_key": "item.task.wipebase.available",
+      "category": "normal",
+      "fallback": "Wipe the Statue Base"
+    },
+    "barber": {
+      "translation_key": "item.task.barber.available",
+      "category": "normal",
+      "fallback": "Little Barber"
+    },
+    "tidybooks": {
+      "translation_key": "item.task.tidybooks.available",
+      "category": "normal",
+      "fallback": "Tidy the Books"
+    },
+    "irontycoon": {
+      "translation_key": "item.task.irontycoon.available",
+      "category": "normal",
+      "fallback": "Iron Tycoon"
+    },
+    "collectwood": {
+      "translation_key": "item.task.collectwood.available",
+      "category": "normal",
+      "fallback": "Collect Wood"
+    },
+    "poop": {
+      "translation_key": "item.task.poop.available",
+      "category": "normal",
+      "fallback": "Take a Dump"
+    },
+    "cleanpoop": {
+      "translation_key": "item.task.cleanpoop.available",
+      "category": "normal",
+      "fallback": "Clean the Poop"
+    },
+    "captainstory": {
+      "translation_key": "item.task.captainstory.available",
+      "category": "normal",
+      "fallback": "The Old Captain's Tale"
+    },
+    "captainlib": {
+      "translation_key": "item.task.captainlib.available",
+      "category": "normal",
+      "fallback": "Librarian"
+    },
+    "lilypadparkour": {
+      "translation_key": "item.task.lilypadparkour.available",
+      "category": "normal",
+      "fallback": "Lily Pad Parkour"
+    },
+    "derust": {
+      "translation_key": "item.task.derust.available",
+      "category": "normal",
+      "fallback": "Derust"
+    },
+    "shiplog": {
+      "translation_key": "item.task.shiplog.available",
+      "category": "normal",
+      "fallback": "File Ship Log"
+    },
+    "openwindow": {
+      "translation_key": "item.task.openwindow.available",
+      "category": "normal",
+      "fallback": "Open Windows"
+    },
+    "speedmemo": {
+      "translation_key": "item.task.speedmemo.available",
+      "category": "normal",
+      "fallback": "Speed Memo"
+    },
+    "dontstepwhite": {
+      "translation_key": "item.task.dontstepwhite.available",
+      "category": "normal",
+      "fallback": "Don't Step White"
+    },
+    "watchtv": {
+      "translation_key": "item.task.watchtv.available",
+      "category": "normal",
+      "fallback": "Watch TV"
+    },
+    "epicarena": {
+      "translation_key": "item.task.epicarena.available",
+      "category": "normal",
+      "fallback": "Epic Arena"
+    },
+    "returnequip": {
+      "translation_key": "item.task.returnequip.available",
+      "category": "normal",
+      "fallback": "Stow Equipment"
+    },
+    "storagedust": {
+      "translation_key": "item.task.storagedust.available",
+      "category": "normal",
+      "fallback": "Wipe Storage Dust"
+    },
+    "porter": {
+      "translation_key": "item.task.porter.available",
+      "category": "normal",
+      "fallback": "Porter"
+    },
+    "controllights": {
+      "translation_key": "item.task.controllights.available",
+      "category": "normal",
+      "fallback": "Adjust Control Lights"
+    },
+    "trimleaves": {
+      "translation_key": "item.task.trimleaves.available",
+      "category": "normal",
+      "fallback": "Trim Leaves"
+    },
+    "enginespeed": {
+      "translation_key": "item.task.enginespeed.available",
+      "category": "normal",
+      "fallback": "Engine Throttle"
+    },
+    "rhythmjump": {
+      "translation_key": "item.task.rhythmjump.available",
+      "category": "normal",
+      "fallback": "Rhythm Jump"
+    },
+    "stonemason": {
+      "translation_key": "item.task.stonemason.available",
+      "category": "normal",
+      "fallback": "Stonemason"
+    },
+    "smeltingtycoon": {
+      "translation_key": "item.task.smeltingtycoon.available",
+      "category": "normal",
+      "fallback": "Smelting Tycoon"
+    },
+    "shower": {
+      "translation_key": "item.task.shower.available",
+      "category": "normal",
+      "fallback": "Shower"
+    },
+    "feedpolarbear": {
+      "translation_key": "item.task.feedpolarbear.available",
+      "category": "normal",
+      "fallback": "Feed the Polar Bear"
+    },
+    "broadcast_station": {
+      "translation_key": "item.task.broadcast_station.available",
+      "category": "gold",
+      "fallback": "Broadcast"
+    },
+    "deepdown": {
+      "translation_key": "item.task.deepdown.available",
+      "category": "normal",
+      "fallback": "Journey into the Abyss"
+    },
+    "dealDam": {
+      "translation_key": "item.task.emergency.dealdam.available",
+      "category": "emergency",
+      "fallback": "Flood Rescue"
+    },
+    "chapelpower": {
+      "translation_key": "item.task.emergency.chapelpower.available",
+      "category": "emergency",
+      "fallback": "Restore Power"
+    },
+    "gooseship_powercut": {
+      "translation_key": "item.task.emergency.chapelpower.available",
+      "category": "emergency",
+      "fallback": "Restore Power"
+    },
+    "prayers_sky": {
+      "translation_key": "item.task.emergency.prayers.available",
+      "category": "emergency",
+      "fallback": "Pray"
+    },
+    "prayers_earth": {
+      "translation_key": "item.task.emergency.prayers.available",
+      "category": "emergency",
+      "fallback": "Pray"
+    },
+    "sabotage": {
+      "translation_key": "item.task.evil.sabotage.available",
+      "category": "duck",
+      "fallback": "Kami Messenger"
+    },
+    "poolcore_nightmare": {
+      "translation_key": "item.task.poolcore.emergency.nightmare",
+      "category": "emergency",
+      "fallback": "Emergency: Pray"
+    },
+    "poolcore_stabilizer": {
+      "translation_key": "item.task.poolcore.emergency.stabilizer",
+      "category": "emergency",
+      "fallback": "Emergency: Repair Stabilizer"
+    },
+    "chapel_fire_police": {
+      "translation_key": "item.task.chapel.emergency.fire",
+      "category": "emergency",
+      "fallback": "Emergency: Put Out the Fires"
+    },
+    "chapel_fire_bank": {
+      "translation_key": "item.task.chapel.emergency.fire",
+      "category": "emergency",
+      "fallback": "Emergency: Put Out the Fires"
+    },
+    "chapel_fire_barber": {
+      "translation_key": "item.task.chapel.emergency.fire",
+      "category": "emergency",
+      "fallback": "Emergency: Put Out the Fires"
+    },
+    "findlighter": {
+      "translation_key": "item.task.findlighter.available",
+      "category": "duck",
+      "fallback": "Find the Lighter"
+    },
+    "poisoninsp": {
+      "translation_key": "item.task.poisoninsp.available",
+      "category": "duck",
+      "fallback": "Poison Inspiration"
+    },
+    "chapel_poison": {
+      "translation_key": "item.task.chapel.emergency.poison",
+      "category": "emergency",
+      "fallback": "Emergency: Everyone is Poisoned"
+    },
+    "poolcore_controller": {
+      "translation_key": "item.task.poolcore.controller.available",
+      "category": "duck",
+      "fallback": "Pair Controller"
+    },
+    "gooseship_controller": {
+      "translation_key": "item.task.poolcore.controller.available",
+      "category": "duck",
+      "fallback": "Pair Controller"
+    },
+    "invadepower": {
+      "translation_key": "item.task.invadepower.available",
+      "category": "duck",
+      "fallback": "Invade the Power System"
+    },
+    "poolcore_portalresearch_a": {
+      "translation_key": "item.task.poolcore.portalresearch",
+      "category": "duck",
+      "fallback": "Research Portals"
+    },
+    "poolcore_portalresearch_b": {
+      "translation_key": "item.task.poolcore.portalresearch",
+      "category": "duck",
+      "fallback": "Research Portals"
+    },
+    "poolcore_portalresearch_c": {
+      "translation_key": "item.task.poolcore.portalresearch",
+      "category": "duck",
+      "fallback": "Research Portals"
+    },
+    "goldcollect": {
+      "translation_key": "text.task.gold.collect",
+      "category": "gold",
+      "fallback": "Collect Gold Ingots — 10"
+    },
+    "chapel_fire": {
+      "translation_key": "item.task.chapel.emergency.fire",
+      "category": "emergency",
+      "fallback": "Emergency: Put Out the Fires"
+    },
+    "gooseship_invadepower": {
+      "translation_key": "item.task.invadepower.available",
+      "category": "duck",
+      "fallback": "Invade the Power System"
+    },
+    "gooseship_lifesupporthack": {
+      "translation_key": "item.task.gooseship.lifesupporthack",
+      "category": "duck",
+      "fallback": "Crack Life Support"
+    },
+    "gooseship_lifesupport": {
+      "translation_key": "item.task.gooseship.lifesupport",
+      "category": "emergency",
+      "fallback": "Repair Life Support"
+    },
+    "gooseship_findlighter": {
+      "translation_key": "item.task.gooseship.findlighter",
+      "category": "duck",
+      "fallback": "Find Flint"
+    },
+    "gooseship_fire_cafeteria": {
+      "translation_key": "item.task.gooseship.fire",
+      "category": "emergency",
+      "fallback": "Put Out the Fires"
+    },
+    "gooseship_fire_engine": {
+      "translation_key": "item.task.gooseship.fire",
+      "category": "emergency",
+      "fallback": "Put Out the Fires"
+    },
+    "gooseship_fire_electrical": {
+      "translation_key": "item.task.gooseship.fire",
+      "category": "emergency",
+      "fallback": "Put Out the Fires"
+    },
+    "sleeprest": {
+      "translation_key": "item.task.sleeprest.available",
+      "category": "normal",
+      "fallback": "Sleep and Rest"
+    },
+    "hotspring": {
+      "translation_key": "item.task.hotspring.available",
+      "category": "normal",
+      "fallback": "Hot Spring Bath"
+    },
+    "brewpotion": {
+      "translation_key": "item.task.brewpotion.available",
+      "category": "normal",
+      "fallback": "Brew Medicine"
+    },
+    "delivermedicine": {
+      "translation_key": "item.task.delivermedicine.available",
+      "category": "normal",
+      "fallback": "Deliver Medicine"
+    },
+    "restartmonitor": {
+      "translation_key": "item.task.restartmonitor.available",
+      "fallback": "Restart Surveillance",
+      "category": "gold"
+    },
+    "testairlock": {
+      "translation_key": "item.task.testairlock.available",
+      "category": "normal",
+      "fallback": "Test Airlock Door"
+    },
+    "dine": {
+      "translation_key": "item.task.dine.available",
+      "category": "normal",
+      "fallback": "Have a Meal"
+    },
+    "opencargodoor": {
+      "translation_key": "item.task.opencargodoor.available",
+      "category": "duck",
+      "fallback": "Open Cargo Door"
+    },
+    "sitrest": {
+      "translation_key": "item.task.sitrest.available",
+      "category": "normal",
+      "fallback": "Rest"
+    },
+    "adjustsample": {
+      "translation_key": "item.task.adjustsample.available",
+      "category": "normal",
+      "fallback": "Adjust Sample"
+    }
+  }
+}

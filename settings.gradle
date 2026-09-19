@@ -1,0 +1,28 @@
+pluginManagement {
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.id == "net.fabricmc.fabric-loom") {
+                useModule("net.fabricmc:fabric-loom:${requested.version}")
+            }
+        }
+    }
+
+    repositories {
+        maven { url = "https://maven.fabricmc.net/" }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    repositories {
+        maven { url = "https://maven.fabricmc.net/" }
+        maven {
+            name = "Xaero's Maven"
+            url = "https://chocolateminecraft.com/maven"
+        }
+        mavenCentral()
+    }
+}
+
+rootProject.name = "goosetools"

@@ -1,0 +1,9 @@
+{
+  "defaultPage": "home",
+  "pages": {
+    "home": "index.html",
+    "roles": "roles.html",
+    "gameplay": "gameplay.html",
+    "features": "features.html"
+  }
+}

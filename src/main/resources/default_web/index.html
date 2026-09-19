@@ -1,0 +1,109 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="toolbar">
+    <span class="brand" data-i18n="brand.name"></span>
+    <a class="nav-active" href="goose:home" data-i18n="nav.home"></a>
+    <a href="goose:roles" data-i18n="nav.roles"></a>
+    <a href="goose:gameplay" data-i18n="nav.gameplay"></a>
+    <a href="goose:features" data-i18n="nav.features"></a>
+    <button class="lang-short" data-language="zh_cn">简</button>
+    <button class="lang-short" data-language="en_us">EN</button>
+    <button class="theme-toggle" data-theme="toggle">
+      <img class="theme-icon theme-icon-moon" src="images/theme_moon.png">
+      <img class="theme-icon theme-icon-sun" src="images/theme_sun.png">
+    </button>
+  </nav>
+
+  <section class="hero home-hero">
+    <div class="hero-copy">
+      <p class="eyebrow" data-i18n="home.eyebrow"></p>
+      <h1 data-i18n="home.title"></h1>
+      <p class="lead" data-i18n="home.subtitle"></p>
+      <div class="hero-actions compact-actions">
+        <a class="primary-action" href="goose:roles" data-i18n="home.primary"></a>
+        <a class="secondary-action" href="goose:gameplay" data-i18n="home.secondary"></a>
+        <a class="feature-action" href="goose:features" data-i18n="home.features.primary"></a>
+      </div>
+    </div>
+    <div class="hero-illustration">
+      <p class="mini-label" data-i18n="home.factions.label"></p>
+      <div class="role-trio">
+        <div class="mini-role good-soft">
+          <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/goose.png">
+          <span data-mc-translate="text.faction.good"></span>
+        </div>
+        <div class="mini-role evil-soft">
+          <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/spy.png">
+          <span data-mc-translate="text.faction.evil"></span>
+        </div>
+        <div class="mini-role neutral-soft">
+          <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/dodo.png">
+          <span data-mc-translate="text.faction.neutral"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="stat-strip">
+    <div class="stat-card">
+      <strong>50</strong>
+      <span data-i18n="home.stats.roles"></span>
+    </div>
+    <div class="stat-card">
+      <strong>3</strong>
+      <span data-i18n="home.stats.factions"></span>
+    </div>
+    <div class="stat-card">
+      <strong>3</strong>
+      <span data-i18n="home.stats.languages"></span>
+    </div>
+  </div>
+
+  <section class="section-heading">
+    <p class="eyebrow" data-i18n="home.explore.eyebrow"></p>
+    <h2 data-i18n="home.explore.title"></h2>
+    <p data-i18n="home.explore.desc"></p>
+  </section>
+
+  <div class="hero-actions">
+    <a class="action-card roles-entry" href="goose:roles">
+      <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/fortuneteller.png">
+      <div>
+        <h2 data-i18n="home.roles.title"></h2>
+        <p data-i18n="home.roles.desc"></p>
+        <span class="text-link" data-i18n="home.roles.link"></span>
+      </div>
+    </a>
+    <a class="action-card gameplay-entry" href="goose:gameplay">
+      <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/detective.png">
+      <div>
+        <h2 data-i18n="home.gameplay.title"></h2>
+        <p data-i18n="home.gameplay.desc"></p>
+        <span class="text-link" data-i18n="home.gameplay.link"></span>
+      </div>
+    </a>
+    <a class="action-card features-entry" href="goose:features">
+      <img src="mc:minecraft:textures/item/game_guide.png">
+      <div>
+        <h2 data-i18n="home.features.title"></h2>
+        <p data-i18n="home.features.desc"></p>
+        <span class="text-link" data-i18n="home.features.link"></span>
+      </div>
+    </a>
+  </div>
+
+  <section class="welcome-note">
+    <span class="note-mark">i</span>
+    <div>
+      <h3 data-i18n="home.note.title"></h3>
+      <p data-i18n="home.note.body"></p>
+    </div>
+  </section>
+  <script src="app.js"></script>
+</body>
+</html>

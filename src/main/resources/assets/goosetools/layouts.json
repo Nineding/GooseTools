@@ -1,0 +1,114 @@
+{
+  "layouts": [
+    {
+      "id": "antique",
+      "minX": -352,
+      "maxX": -144,
+      "minZ": -192,
+      "maxZ": 0,
+      "rooms": [
+        {"key": "room.ggd_xaero_map.deep_abyss", "x": -272, "z": -159},
+        {"key": "room.ggd_xaero_map.brave_inn", "x": -227, "z": -178},
+        {"key": "room.ggd_xaero_map.outpost", "x": -321, "z": -78},
+        {"key": "room.ggd_xaero_map.clear_water", "x": -296, "z": -92},
+        {"key": "room.ggd_xaero_map.clear_temple", "x": -247, "z": -28},
+        {"key": "room.ggd_xaero_map.garden", "x": -217, "z": -143},
+        {"key": "room.ggd_xaero_map.front_court", "x": -206, "z": -58},
+        {"key": "room.ggd_xaero_map.heavenly_court", "x": -214, "z": -114},
+        {"key": "room.ggd_xaero_map.back_court", "x": -161, "z": -80},
+        {"key": "room.ggd_xaero_map.observatory", "x": -167, "z": -58},
+        {"key": "room.ggd_xaero_map.fountain", "x": -174, "z": -38},
+        {"key": "room.ggd_xaero_map.cherry_walk", "x": -203, "z": -26}
+      ]
+    },
+    {
+      "id": "poolcore",
+      "minX": 520,
+      "maxX": 640,
+      "minZ": 575,
+      "maxZ": 703,
+      "rooms": [
+        {"key": "room.ggd_xaero_map.waterpark", "x": 542, "z": 620, "areas": [{"minX": 527, "maxX": 556, "minY": 128, "maxY": 148, "minZ": 575, "maxZ": 665}]},
+        {"key": "room.ggd_xaero_map.deepwater", "x": 574, "z": 665, "areas": [{"minX": 558, "maxX": 590, "minY": 122, "maxY": 143, "minZ": 648, "maxZ": 681}]},
+        {"key": "room.ggd_xaero_map.cloud_path", "x": 574, "z": 633, "areas": [{"minX": 558, "maxX": 590, "minY": 133, "maxY": 147, "minZ": 625, "maxZ": 640}]},
+        {"key": "room.ggd_xaero_map.tianchi", "x": 600, "z": 657, "areas": [{"minX": 591, "maxX": 619, "minY": 114, "maxY": 143, "minZ": 641, "maxZ": 663}]},
+        {"key": "room.ggd_xaero_map.altar", "x": 605, "z": 628, "areas": [{"minX": 591, "maxX": 619, "minY": 144, "maxY": 147, "minZ": 616, "maxZ": 640}], "stackGroup": "altar_earth"},
+        {"key": "room.ggd_xaero_map.pool", "x": 605, "z": 683, "areas": [{"minX": 591, "maxX": 620, "minY": 138, "maxY": 152, "minZ": 664, "maxZ": 702}]},
+        {"key": "room.ggd_xaero_map.quiet_corridor", "x": 625, "z": 659, "areas": [{"minX": 621, "maxX": 630, "minY": 143, "maxY": 147, "minZ": 616, "maxZ": 702}]},
+        {"key": "room.ggd_xaero_map.maze", "x": 581, "z": 593, "areas": [{"minX": 557, "maxX": 605, "minY": 125, "maxY": 145, "minZ": 575, "maxZ": 611}]},
+        {"key": "room.ggd_xaero_map.earth", "x": 605, "z": 628, "areas": [{"minX": 591, "maxX": 619, "minY": 115, "maxY": 142, "minZ": 616, "maxZ": 640}], "advancedOnly": true, "stackGroup": "altar_earth"},
+        {"key": "room.ggd_xaero_map.arctic", "x": 625, "z": 629, "areas": [{"minX": 619, "maxX": 630, "minY": 131, "maxY": 142, "minZ": 617, "maxZ": 640}], "advancedOnly": true},
+        {"key": "room.ggd_xaero_map.south_station", "x": 543, "z": 676, "areas": [{"minX": 520, "maxX": 556, "minY": 128, "maxY": 142, "minZ": 666, "maxZ": 690}], "advancedOnly": true}
+      ]
+    },
+    {
+      "id": "goosechapel",
+      "minX": -1026,
+      "maxX": -825,
+      "minZ": -751,
+      "maxZ": -597,
+      "rooms": [
+        {"key": "room.ggd_xaero_map.chapel", "x": -867, "z": -723},
+        {"key": "room.ggd_xaero_map.court", "x": -898, "z": -719, "areas": [{"minX": -926, "maxX": -886, "minY": 114, "maxY": 128, "minZ": -728, "maxZ": -705}]},
+        {"key": "room.ggd_xaero_map.barbershop", "x": -934, "z": -721},
+        {"key": "room.ggd_xaero_map.mayor_office", "x": -963, "z": -719},
+        {"key": "room.ggd_xaero_map.old_tavern", "x": -991, "z": -724},
+        {"key": "room.ggd_xaero_map.fountain_square", "x": -890, "z": -687},
+        {"key": "room.ggd_xaero_map.bank", "x": -906, "z": -695},
+        {"key": "room.ggd_xaero_map.winery", "x": -969, "z": -707},
+        {"key": "room.ggd_xaero_map.city_square", "x": -935, "z": -673},
+        {"key": "room.ggd_xaero_map.police", "x": -956, "z": -662},
+        {"key": "room.ggd_xaero_map.factory", "x": -993, "z": -647},
+        {"key": "room.ggd_xaero_map.warehouse", "x": -969, "z": -637},
+        {"key": "room.ggd_xaero_map.gateway", "x": -937, "z": -641},
+        {"key": "room.ggd_xaero_map.harbor", "x": -914, "z": -639},
+        {"key": "room.ggd_xaero_map.survival_hut", "x": -881, "z": -660},
+        {"key": "room.ggd_xaero_map.redlight", "x": -870, "z": -679}
+      ]
+    },
+    {
+      "id": "gooseship",
+      "minX": -2485,
+      "maxX": -2229,
+      "minZ": -4,
+      "maxZ": 187,
+      "rooms": [
+        {"key": "room.ggd_xaero_map.recreation", "x": -2340, "z": 122, "areas": [{"minX": -2355, "maxX": -2317, "minZ": 111, "maxZ": 148}, {"minX": -2359, "maxX": -2356, "minZ": 103, "maxZ": 132}, {"minX": -2355, "maxX": -2332, "minZ": 103, "maxZ": 111}]},
+        {"key": "room.ggd_xaero_map.communications", "x": -2281, "z": 122, "areas": [{"minX": -2289, "maxX": -2270, "minZ": 104, "maxZ": 141}]},
+        {"key": "room.ggd_xaero_map.bridge", "x": -2254, "z": 122, "areas": [{"minX": -2269, "maxX": -2229, "minZ": 97, "maxZ": 146}, {"minX": -2274, "maxX": -2270, "minZ": 115, "maxZ": 129}]},
+        {"key": "room.ggd_xaero_map.storage", "x": -2332, "z": 151, "areas": [{"minX": -2335, "maxX": -2318, "minZ": 135, "maxZ": 159}, {"minX": -2357, "maxX": -2336, "minZ": 134, "maxZ": 165}]},
+        {"key": "room.ggd_xaero_map.cargo_bay", "x": -2333, "z": 168, "areas": [{"minX": -2340, "maxX": -2319, "minZ": 162, "maxZ": 171}], "excludeAreas": [{"minX": -2335, "maxX": -2318, "minZ": 135, "maxZ": 159}, {"minX": -2357, "maxX": -2336, "minZ": 134, "maxZ": 165}]},
+        {"key": "room.ggd_xaero_map.cafeteria", "x": -2385, "z": 145, "areas": [{"minX": -2387, "maxX": -2372, "minZ": 123, "maxZ": 165}, {"minX": -2371, "maxX": -2356, "minZ": 136, "maxZ": 156}, {"minX": -2411, "maxX": -2388, "minZ": 124, "maxZ": 155}]},
+        {"key": "room.ggd_xaero_map.hatchery", "x": -2410, "z": 172, "areas": [{"minX": -2430, "maxX": -2389, "minZ": 158, "maxZ": 187}, {"minX": -2431, "maxX": -2412, "minZ": 147, "maxZ": 157}], "excludeAreas": [{"minX": -2387, "maxX": -2372, "minZ": 123, "maxZ": 165}, {"minX": -2371, "maxX": -2356, "minZ": 136, "maxZ": 156}, {"minX": -2411, "maxX": -2388, "minZ": 124, "maxZ": 155}]},
+        {"key": "room.ggd_xaero_map.reactor", "x": -2428, "z": 117, "areas": [{"minX": -2434, "maxX": -2419, "minZ": 92, "maxZ": 140}, {"minX": -2451, "maxX": -2435, "minZ": 106, "maxZ": 129}]},
+        {"key": "room.ggd_xaero_map.engine", "x": -2467, "z": 117, "areas": [{"minX": -2485, "maxX": -2452, "minZ": 94, "maxZ": 141}], "excludeAreas": [{"minX": -2434, "maxX": -2419, "minZ": 92, "maxZ": 140}, {"minX": -2451, "maxX": -2435, "minZ": 106, "maxZ": 129}]},
+        {"key": "room.ggd_xaero_map.electrical", "x": -2398, "z": 68, "areas": [{"minX": -2412, "maxX": -2395, "minZ": 50, "maxZ": 88}, {"minX": -2393, "maxX": -2375, "minZ": 38, "maxZ": 67}], "excludeAreas": [{"minX": -2376, "maxX": -2373, "minZ": 31, "maxZ": 45}, {"minX": -2379, "maxX": -2377, "minZ": 32, "maxZ": 41}, {"minX": -2372, "maxX": -2346, "minZ": 33, "maxZ": 46}, {"minX": -2360, "maxX": -2346, "minZ": 47, "maxZ": 68}, {"minX": -2364, "maxX": -2348, "minZ": 22, "maxZ": 31}]},
+        {"key": "room.ggd_xaero_map.security", "x": -2397, "z": 101, "areas": [{"minX": -2407, "maxX": -2387, "minZ": 91, "maxZ": 114}]},
+        {"key": "room.ggd_xaero_map.prison", "x": -2400, "z": 121, "areas": [{"minX": -2413, "maxX": -2387, "minZ": 115, "maxZ": 128}]},
+        {"key": "room.ggd_xaero_map.medical", "x": -2367, "z": 100, "areas": [{"minX": -2378, "maxX": -2361, "minZ": 82, "maxZ": 120}, {"minX": -2360, "maxX": -2357, "minZ": 82, "maxZ": 99}]},
+        {"key": "room.ggd_xaero_map.crew_quarters", "x": -2358, "z": 42, "areas": [{"minX": -2376, "maxX": -2373, "minZ": 31, "maxZ": 45}, {"minX": -2379, "maxX": -2377, "minZ": 32, "maxZ": 41}, {"minX": -2372, "maxX": -2346, "minZ": 33, "maxZ": 46}, {"minX": -2360, "maxX": -2346, "minZ": 47, "maxZ": 68}, {"minX": -2364, "maxX": -2348, "minZ": 22, "maxZ": 31}]},
+        {"key": "room.ggd_xaero_map.pond_bathhouse", "x": -2356, "z": 7, "areas": [{"minX": -2368, "maxX": -2344, "minZ": -4, "maxZ": 19}]},
+        {"key": "room.ggd_xaero_map.armory", "x": -2330, "z": 82, "areas": [{"minX": -2342, "maxX": -2317, "minZ": 55, "maxZ": 109}], "excludeAreas": [{"minX": -2355, "maxX": -2317, "minZ": 111, "maxZ": 148}, {"minX": -2359, "maxX": -2356, "minZ": 103, "maxZ": 132}, {"minX": -2355, "maxX": -2332, "minZ": 103, "maxZ": 111}]}
+      ]
+    },
+    {
+      "id": "polus",
+      "minX": -905,
+      "maxX": -821,
+      "minZ": 779,
+      "maxZ": 909,
+      "rooms": [
+        {"key": "room.ggd_xaero_map.polus_office", "x": -886, "z": 854, "areas": [{"minX": -901, "maxX": -871, "minY": 102, "maxY": 105, "minZ": 837, "maxZ": 870}]},
+        {"key": "room.ggd_xaero_map.polus_specimens", "x": -885, "z": 894, "areas": [{"minX": -890, "maxX": -880, "minY": 102, "maxY": 105, "minZ": 888, "maxZ": 899}]},
+        {"key": "room.ggd_xaero_map.polus_lab", "x": -848, "z": 882, "areas": [{"minX": -858, "maxX": -838, "minY": 101, "maxY": 105, "minZ": 859, "maxZ": 905}]},
+        {"key": "room.ggd_xaero_map.polus_storage", "x": -860, "z": 843, "areas": [{"minX": -864, "maxX": -856, "minY": 101, "maxY": 105, "minZ": 837, "maxZ": 848}]},
+        {"key": "room.ggd_xaero_map.polus_communications", "x": -876, "z": 820, "areas": [{"minX": -882, "maxX": -870, "minY": 101, "maxY": 105, "minZ": 816, "maxZ": 824}]},
+        {"key": "room.ggd_xaero_map.polus_weapons", "x": -892, "z": 822, "areas": [{"minX": -896, "maxX": -888, "minY": 101, "maxY": 105, "minZ": 815, "maxZ": 828}]},
+        {"key": "room.ggd_xaero_map.polus_boiler", "x": -891, "z": 788, "areas": [{"minX": -895, "maxX": -887, "minY": 102, "maxY": 105, "minZ": 783, "maxZ": 792}]},
+        {"key": "room.ggd_xaero_map.polus_oxygen", "x": -874, "z": 789, "areas": [{"minX": -883, "maxX": -865, "minY": 101, "maxY": 105, "minZ": 783, "maxZ": 795}]},
+        {"key": "room.ggd_xaero_map.polus_security", "x": -858, "z": 790, "areas": [{"minX": -861, "maxX": -854, "minY": 102, "maxY": 105, "minZ": 783, "maxZ": 797}]},
+        {"key": "room.ggd_xaero_map.polus_dropship", "x": -832, "z": 834, "areas": [{"minX": -840, "maxX": -825, "minY": 101, "maxY": 111, "minZ": 828, "maxZ": 839}]}
+      ]
+    }
+  ]
+}

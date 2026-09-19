@@ -1,0 +1,94 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="toolbar">
+    <span class="brand" data-i18n="brand.name"></span>
+    <a href="goose:home" data-i18n="nav.home"></a>
+    <a href="goose:roles" data-i18n="nav.roles"></a>
+    <a href="goose:gameplay" data-i18n="nav.gameplay"></a>
+    <a class="nav-active" href="goose:features" data-i18n="nav.features"></a>
+    <button class="lang-short" data-language="zh_cn">简</button>
+    <button class="lang-short" data-language="en_us">EN</button>
+    <button class="theme-toggle" data-theme="toggle">
+      <img class="theme-icon theme-icon-moon" src="images/theme_moon.png">
+      <img class="theme-icon theme-icon-sun" src="images/theme_sun.png">
+    </button>
+  </nav>
+
+  <section class="page-hero features-hero">
+    <div class="hero-copy">
+      <p class="eyebrow" data-i18n="features.eyebrow"></p>
+      <h1 data-i18n="features.title"></h1>
+      <p class="lead" data-i18n="features.intro"></p>
+    </div>
+    <div class="hero-tip">
+      <span class="tip-number">3</span>
+      <p data-i18n="features.hero.tip"></p>
+    </div>
+  </section>
+
+  <section class="section-heading compact-heading">
+    <p class="eyebrow" data-i18n="features.tasks.eyebrow"></p>
+    <h2 data-i18n="features.tasks.title"></h2>
+    <p data-i18n="features.tasks.intro"></p>
+  </section>
+
+  <div class="task-grid">
+    <section class="task-card good-task">
+      <span class="task-badge" data-mc-translate="text.faction.good"></span>
+      <h2 data-i18n="features.tasks.good.title"></h2>
+      <ul>
+        <li data-i18n="features.tasks.good.active"></li>
+        <li data-i18n="features.tasks.good.complete"></li>
+        <li data-i18n="features.tasks.good.ghost"></li>
+        <li data-i18n="features.tasks.good.progress"></li>
+      </ul>
+    </section>
+
+    <section class="task-card evil-task">
+      <span class="task-badge" data-mc-translate="text.faction.evil"></span>
+      <h2 data-i18n="features.tasks.evil.title"></h2>
+      <ul>
+        <li data-i18n="features.tasks.evil.sabotage"></li>
+        <li data-i18n="features.tasks.evil.fake"></li>
+        <li data-i18n="features.tasks.evil.progress"></li>
+        <li data-i18n="features.tasks.evil.ghost"></li>
+      </ul>
+    </section>
+
+    <section class="task-card neutral-task">
+      <span class="task-badge" data-mc-translate="text.faction.neutral"></span>
+      <h2 data-i18n="features.tasks.neutral.title"></h2>
+      <ul>
+        <li data-i18n="features.tasks.neutral.count"></li>
+        <li data-i18n="features.tasks.neutral.refill"></li>
+        <li data-i18n="features.tasks.neutral.progress"></li>
+      </ul>
+    </section>
+  </div>
+
+  <section class="progress-feature">
+    <div class="progress-copy">
+      <p class="eyebrow" data-i18n="features.progress.eyebrow"></p>
+      <h2 data-i18n="features.progress.title"></h2>
+      <p data-i18n="features.progress.good"></p>
+      <p data-i18n="features.progress.observers"></p>
+      <p data-i18n="features.progress.moments"></p>
+    </div>
+    <img class="task-progress-image" src="images/task_progress.png" alt="Task progress bar">
+  </section>
+
+  <section class="welcome-note feature-note">
+    <span class="note-mark">i</span>
+    <div>
+      <h3 data-i18n="features.note.title"></h3>
+      <p data-i18n="features.note.body"></p>
+    </div>
+  </section>
+  <script src="app.js"></script>
+</body>
+</html>

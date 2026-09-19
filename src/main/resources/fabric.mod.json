@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "goosetools",
+  "version": "${version}",
+  "name": "GooseTools",
+  "description": "Required Goose Goose Duck client/server foundation: secure UI, map integration, and optional blackout visibility assistance.",
+  "authors": ["Nineding"],
+  "license": "GPL-3.0-or-later",
+  "icon": "assets/goosetools/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.goosethings.tools.GooseTools"
+    ],
+    "client": [
+      "com.goosethings.tools.client.GooseToolsClient"
+    ]
+  },
+  "mixins": [
+    "goosetools.aim.mixins.json",
+    "goosetools.client.mixins.json",
+    "goosetools.parasite.mixins.json",
+    "goosetools.screen.mixins.json",
+    "goosetools.vision.mixins.json",
+    "goosetools.xaero.mixins.json",
+    "goosetools.voicechat.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "26.3",
+    "fabric-api": "*",
+    "xaerominimap": "26.5.3",
+    "xaeroworldmap": "1.46.4"
+  }
+}

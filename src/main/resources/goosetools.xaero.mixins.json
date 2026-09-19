@@ -1,0 +1,21 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.goosethings.tools.xaero.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "GgdMapMarkerPacketMixin",
+    "GgdMinimapMeetingLockMixin",
+    "GgdMinimapWriterMeetingMixin",
+    "GgdMinimapSettingsMixin",
+    "GgdWorldMapLockMixin",
+    "GgdWorldMapProcessorMixin",
+    "GgdXaeroClientConfigLockMixin",
+    "GgdXaeroCoordinateLockMixin",
+    "GgdXaeroSettingsScreenLockMixin",
+    "GgdXaeroSingleConfigLockMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

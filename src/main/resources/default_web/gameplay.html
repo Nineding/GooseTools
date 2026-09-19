@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="toolbar">
+    <span class="brand" data-i18n="brand.name"></span>
+    <a href="goose:home" data-i18n="nav.home"></a>
+    <a href="goose:roles" data-i18n="nav.roles"></a>
+    <a class="nav-active" href="goose:gameplay" data-i18n="nav.gameplay"></a>
+    <a href="goose:features" data-i18n="nav.features"></a>
+    <button class="lang-short" data-language="zh_cn">简</button>
+    <button class="lang-short" data-language="en_us">EN</button>
+    <button class="theme-toggle" data-theme="toggle">
+      <img class="theme-icon theme-icon-moon" src="images/theme_moon.png">
+      <img class="theme-icon theme-icon-sun" src="images/theme_sun.png">
+    </button>
+  </nav>
+
+  <section class="page-hero gameplay-hero">
+    <div class="hero-copy">
+      <p class="eyebrow" data-i18n="gameplay.eyebrow"></p>
+      <h1 data-i18n="gameplay.title"></h1>
+      <p class="lead" data-i18n="gameplay.intro"></p>
+    </div>
+    <div class="hero-tip">
+      <span class="tip-number">01</span>
+      <p data-i18n="gameplay.hero.tip"></p>
+    </div>
+  </section>
+
+  <section class="section-heading compact-heading">
+    <p class="eyebrow" data-i18n="gameplay.factions.eyebrow"></p>
+    <h2 data-i18n="gameplay.factions.title"></h2>
+  </section>
+
+  <div class="faction-panels">
+    <section class="panel good-panel">
+      <span class="panel-kicker" data-mc-translate="text.faction.good"></span>
+      <h2 data-i18n="gameplay.good.title"></h2>
+      <p data-i18n="gameplay.good.body"></p>
+    </section>
+    <section class="panel evil-panel">
+      <span class="panel-kicker" data-mc-translate="text.faction.evil"></span>
+      <h2 data-i18n="gameplay.evil.title"></h2>
+      <p data-i18n="gameplay.evil.body"></p>
+    </section>
+    <section class="panel neutral-panel">
+      <span class="panel-kicker" data-mc-translate="text.faction.neutral"></span>
+      <h2 data-i18n="gameplay.neutral.title"></h2>
+      <p data-i18n="gameplay.neutral.body"></p>
+    </section>
+  </div>
+
+  <section class="section-heading compact-heading">
+    <p class="eyebrow" data-i18n="gameplay.guide.eyebrow"></p>
+    <h2 data-i18n="gameplay.guide.title"></h2>
+    <p data-i18n="gameplay.guide.desc"></p>
+  </section>
+
+  <details class="panel guide-panel" open>
+    <summary data-i18n="gameplay.flow.title"></summary>
+    <ol>
+      <li data-i18n="gameplay.flow.prepare"></li>
+      <li data-i18n="gameplay.flow.round"></li>
+      <li data-i18n="gameplay.flow.meeting"></li>
+      <li data-i18n="gameplay.flow.end"></li>
+    </ol>
+  </details>
+  <details class="panel guide-panel">
+    <summary data-i18n="gameplay.meeting.title"></summary>
+    <p data-i18n="gameplay.meeting.body"></p>
+  </details>
+  <details class="panel guide-panel">
+    <summary data-i18n="gameplay.tips.title"></summary>
+    <ul>
+      <li data-i18n="gameplay.tips.one"></li>
+      <li data-i18n="gameplay.tips.two"></li>
+      <li data-i18n="gameplay.tips.three"></li>
+    </ul>
+  </details>
+
+  <a class="bottom-link" href="goose:roles" data-i18n="gameplay.roles.link"></a>
+  <script src="app.js"></script>
+</body>
+</html>

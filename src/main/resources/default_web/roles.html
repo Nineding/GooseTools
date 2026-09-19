@@ -1,0 +1,593 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="toolbar">
+    <span class="brand" data-i18n="brand.name"></span>
+    <a href="goose:home" data-i18n="nav.home"></a>
+    <a class="nav-active" href="goose:roles" data-i18n="nav.roles"></a>
+    <a href="goose:gameplay" data-i18n="nav.gameplay"></a>
+    <a href="goose:features" data-i18n="nav.features"></a>
+    <button class="lang-short" data-language="zh_cn">简</button>
+    <button class="lang-short" data-language="en_us">EN</button>
+    <button class="theme-toggle" data-theme="toggle">
+      <img class="theme-icon theme-icon-moon" src="images/theme_moon.png">
+      <img class="theme-icon theme-icon-sun" src="images/theme_sun.png">
+    </button>
+  </nav>
+
+  <section class="page-hero roles-hero">
+    <div class="hero-copy">
+      <p class="eyebrow" data-i18n="roles.eyebrow"></p>
+      <h1 data-i18n="roles.title"></h1>
+      <p class="lead" data-i18n="roles.intro"></p>
+    </div>
+    <div class="hero-tip">
+      <span class="tip-number">50</span>
+      <p data-i18n="roles.hero.tip"></p>
+    </div>
+  </section>
+
+  <section class="search-panel">
+    <p class="mini-label" data-i18n="roles.search.label"></p>
+    <input id="role-search" maxlength="80" data-placeholder-i18n="roles.search">
+    <div class="filters">
+      <button class="filter-active" data-filter="all" data-i18n="roles.filter.all"></button>
+      <button data-filter="good" data-mc-translate="text.faction.good"></button>
+      <button data-filter="evil" data-mc-translate="text.faction.evil"></button>
+      <button data-filter="neutral" data-mc-translate="text.faction.neutral"></button>
+    </div>
+  </section>
+
+  <div class="results-row">
+    <strong id="role-count">50</strong>
+    <span class="count-word" data-i18n="roles.count.of"></span>
+    <strong id="role-total">50</strong>
+    <span class="count-word" data-i18n="roles.count.unit"></span>
+    <span class="results-hint" data-i18n="roles.hint"></span>
+  </div>
+
+  <div class="role-grid">
+    <div class="faction-heading good-heading" data-faction="good">
+      <span data-mc-translate="text.faction.good"></span>
+      <span class="faction-summary" data-i18n="roles.group.good"></span>
+    </div>
+    <details class="role-card good" data-faction="good" data-search="e goose">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/goose.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.good.goose"></h3>
+          <p class="role-subtitle" data-mc-translate="role.good.goose.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.good.goose.info"></p>
+    </details>
+    <details class="role-card good" data-faction="good" data-search="jianadae jnde canada canadian goose">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/canadian.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.good.canadian"></h3>
+          <p class="role-subtitle" data-mc-translate="role.good.canadian.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.good.canadian.info"></p>
+    </details>
+    <details class="role-card good" data-faction="good" data-search="jingzhang jz sheriff">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/sheriff.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.good.sheriff"></h3>
+          <p class="role-subtitle" data-mc-translate="role.good.sheriff.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.good.sheriff.info"></p>
+    </details>
+    <details class="role-card good" data-faction="good" data-search="mofangzhe mfz mimic">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/mimic.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.good.mimic"></h3>
+          <p class="role-subtitle" data-mc-translate="role.good.mimic.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.good.mimic.info"></p>
+    </details>
+    <details class="role-card good" data-faction="good" data-search="zhengyishizhe zysz vigilante">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/vigilante.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.good.vigilante"></h3>
+          <p class="role-subtitle" data-mc-translate="role.good.vigilante.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.good.vigilante.info"></p>
+    </details>
+    <details class="role-card good" data-faction="good" data-search="tonglingzhe tlz medium">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/medium.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.good.medium"></h3>
+          <p class="role-subtitle" data-mc-translate="role.good.medium.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.good.medium.info"></p>
+    </details>
+    <details class="role-card good" data-faction="good" data-search="zhentan zt detective">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/detective.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.good.detective"></h3>
+          <p class="role-subtitle" data-mc-translate="role.good.detective.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.good.detective.info"></p>
+    </details>
+    <details class="role-card good" data-faction="good" data-search="binyiyuan byy mortician">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/mortician.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.good.mortician"></h3>
+          <p class="role-subtitle" data-mc-translate="role.good.mortician.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.good.mortician.info"></p>
+    </details>
+    <details class="role-card good" data-faction="good" data-search="wanghong wh celebrity">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/celebrity.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.good.celebrity"></h3>
+          <p class="role-subtitle" data-mc-translate="role.good.celebrity.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.good.celebrity.info"></p>
+    </details>
+    <details class="role-card good" data-faction="good" data-search="fuchouzhe fcz avenger">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/avenger.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.good.avenger"></h3>
+          <p class="role-subtitle" data-mc-translate="role.good.avenger.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.good.avenger.info"></p>
+    </details>
+    <details class="role-card good" data-faction="good" data-search="xingjiexingzhe xjxz astral">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/astral.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.good.astral"></h3>
+          <p class="role-subtitle" data-mc-translate="role.good.astral.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.good.astral.info"></p>
+    </details>
+    <details class="role-card good" data-faction="good" data-search="baobiao bb bodyguard">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/bodyguard.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.good.bodyguard"></h3>
+          <p class="role-subtitle" data-mc-translate="role.good.bodyguard.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.good.bodyguard.info"></p>
+    </details>
+    <details class="role-card good" data-faction="good" data-search="gongchengshi gcs engineer">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/engineer.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.good.engineer"></h3>
+          <p class="role-subtitle" data-mc-translate="role.good.engineer.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.good.engineer.info"></p>
+    </details>
+    <details class="role-card good" data-faction="good" data-search="rouzhi rz gravy">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/gravy.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.good.gravy"></h3>
+          <p class="role-subtitle" data-mc-translate="role.good.gravy.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.good.gravy.info"></p>
+    </details>
+    <details class="role-card good" data-faction="good" data-search="lianren lr lover">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/lover.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.good.lover"></h3>
+          <p class="role-subtitle" data-mc-translate="role.good.lover.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.good.lover.info"></p>
+    </details>
+    <details class="role-card good" data-faction="good" data-search="shuike shuoke sk lobbyist">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/lobbyist.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.good.lobbyist"></h3>
+          <p class="role-subtitle" data-mc-translate="role.good.lobbyist.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.good.lobbyist.info"></p>
+    </details>
+    <details class="role-card good" data-faction="good" data-search="qingxingmengzhe qxmz lucid dreamer">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/luciddreamer.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.good.lucid_dreamer"></h3>
+          <p class="role-subtitle" data-mc-translate="role.good.lucid_dreamer.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.good.lucid_dreamer.info"></p>
+    </details>
+    <details class="role-card good" data-faction="good" data-search="haiwang hw neptune">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/neptune.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.good.neptune"></h3>
+          <p class="role-subtitle" data-mc-translate="role.good.neptune.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.good.neptune.info"></p>
+    </details>
+    <details class="role-card good" data-faction="good" data-search="tanceyuan tcy sensor">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/sensor.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.good.sensor"></h3>
+          <p class="role-subtitle" data-mc-translate="role.good.sensor.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.good.sensor.info"></p>
+    </details>
+    <details class="role-card good" data-faction="good" data-search="shibing sb soldier">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/soldier.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.good.soldier"></h3>
+          <p class="role-subtitle" data-mc-translate="role.good.soldier.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.good.soldier.info"></p>
+    </details>
+    <details class="role-card good" data-faction="good" data-search="genzongzhe gzz stalker">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/stalker.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.good.stalker"></h3>
+          <p class="role-subtitle" data-mc-translate="role.good.stalker.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.good.stalker.info"></p>
+    </details>
+    <details class="role-card good" data-faction="good" data-search="shengcunzhuyizhe sczyz survivalist">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/survivalist.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.good.survivalist"></h3>
+          <p class="role-subtitle" data-mc-translate="role.good.survivalist.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.good.survivalist.info"></p>
+    </details>
+    <details class="role-card good" data-faction="good" data-search="yuyanjia yyj fortune teller">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/fortuneteller.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.good.fortuneteller"></h3>
+          <p class="role-subtitle" data-mc-translate="role.good.fortuneteller.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.good.fortuneteller.info"></p>
+    </details>
+    <div class="faction-heading evil-heading" data-faction="evil">
+      <span data-mc-translate="text.faction.evil"></span>
+      <span class="faction-summary" data-i18n="roles.group.evil"></span>
+    </div>
+    <details class="role-card evil" data-faction="evil" data-search="yazi yz duck">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/random.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.evil.duck"></h3>
+          <p class="role-subtitle" data-mc-translate="role.evil.duck.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.evil.duck.info"></p>
+    </details>
+    <details class="role-card evil" data-faction="evil" data-search="suzhu sz carrier">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/carrier.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.evil.carrier"></h3>
+          <p class="role-subtitle" data-mc-translate="role.evil.carrier.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.evil.carrier.info"></p>
+    </details>
+    <details class="role-card evil" data-faction="evil" data-search="jishengzhe jsz parasite">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/parasite.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.evil.parasite"></h3>
+          <p class="role-subtitle" data-mc-translate="role.evil.parasite.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.evil.parasite.info"></p>
+    </details>
+    <details class="role-card evil" data-faction="evil" data-search="shiniaoya sny cannibal">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/cannibal.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.evil.cannibal"></h3>
+          <p class="role-subtitle" data-mc-translate="role.evil.cannibal.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.evil.cannibal.info"></p>
+    </details>
+    <details class="role-card evil" data-faction="evil" data-search="bianxingzhe bxz morphling">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/morphling.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.evil.morphling"></h3>
+          <p class="role-subtitle" data-mc-translate="role.evil.morphling.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.evil.morphling.info"></p>
+    </details>
+    <details class="role-card evil" data-faction="evil" data-search="zhuanyeshashou zyss professional">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/professional.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.evil.professional"></h3>
+          <p class="role-subtitle" data-mc-translate="role.evil.professional.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.evil.professional.info"></p>
+    </details>
+    <details class="role-card evil" data-faction="evil" data-search="jiandie jd spy">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/spy.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.evil.spy"></h3>
+          <p class="role-subtitle" data-mc-translate="role.evil.spy.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.evil.spy.info"></p>
+    </details>
+    <details class="role-card evil" data-faction="evil" data-search="cike ck assassin">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/assassin.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.evil.assassin"></h3>
+          <p class="role-subtitle" data-mc-translate="role.evil.assassin.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.evil.assassin.info"></p>
+    </details>
+    <details class="role-card evil" data-faction="evil" data-search="baozhawang bzw demolitionist">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/demolitionist.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.evil.demolitionist"></h3>
+          <p class="role-subtitle" data-mc-translate="role.evil.demolitionist.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.evil.demolitionist.info"></p>
+    </details>
+    <details class="role-card evil" data-faction="evil" data-search="shenfenqiezei sfqz identity thief">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/identitythief.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.evil.identitythief"></h3>
+          <p class="role-subtitle" data-mc-translate="role.evil.identitythief.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.evil.identitythief.info"></p>
+    </details>
+    <details class="role-card evil" data-faction="evil" data-search="renzhe rz ninja">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/ninja.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.evil.ninja"></h3>
+          <p class="role-subtitle" data-mc-translate="role.evil.ninja.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.evil.ninja.info"></p>
+    </details>
+    <details class="role-card evil" data-faction="evil" data-search="yinxingzhe yxz invisibility">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/invisibility.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.evil.invisibility"></h3>
+          <p class="role-subtitle" data-mc-translate="role.evil.invisibility.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.evil.invisibility.info"></p>
+    </details>
+    <details class="role-card evil" data-faction="evil" data-search="xiaochou xc clown">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/clown.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.evil.clown"></h3>
+          <p class="role-subtitle" data-mc-translate="role.evil.clown.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.evil.clown.info"></p>
+    </details>
+    <details class="role-card evil" data-faction="evil" data-search="guyongshashou gyss hitman">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/hitman.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.evil.hitman"></h3>
+          <p class="role-subtitle" data-mc-translate="role.evil.hitman.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.evil.hitman.info"></p>
+    </details>
+    <details class="role-card evil" data-faction="evil" data-search="paiduikuang pdk party">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/party.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.evil.party"></h3>
+          <p class="role-subtitle" data-mc-translate="role.evil.party.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.evil.party.info"></p>
+    </details>
+    <details class="role-card evil" data-faction="evil" data-search="jinyuzhe jyz silencer">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/silencer.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.evil.silencer"></h3>
+          <p class="role-subtitle" data-mc-translate="role.evil.silencer.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.evil.silencer.info"></p>
+    </details>
+    <details class="role-card evil" data-faction="evil" data-search="jujishou jjs sniper">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/sniper.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.evil.sniper"></h3>
+          <p class="role-subtitle" data-mc-translate="role.evil.sniper.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.evil.sniper.info"></p>
+    </details>
+    <details class="role-card evil" data-faction="evil" data-search="qiubite qbt cupid">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/cupid.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.evil.cupid"></h3>
+          <p class="role-subtitle" data-mc-translate="role.evil.cupid.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.evil.cupid.info"></p>
+    </details>
+    <details class="role-card evil" data-faction="evil" data-search="lianhuanshashou lhss serial killer">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/serialkiller.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.evil.serialkiller"></h3>
+          <p class="role-subtitle" data-mc-translate="role.evil.serialkiller.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.evil.serialkiller.info"></p>
+    </details>
+    <details class="role-card evil" data-faction="evil" data-search="chaonenglizhe cnlz esper">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/esper.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.evil.esper"></h3>
+          <p class="role-subtitle" data-mc-translate="role.evil.esper.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.evil.esper.info"></p>
+    </details>
+    <div class="faction-heading neutral-heading" data-faction="neutral">
+      <span data-mc-translate="text.faction.neutral"></span>
+      <span class="faction-summary" data-i18n="roles.group.neutral"></span>
+    </div>
+    <details class="role-card neutral" data-faction="neutral" data-search="daidainiao ddn dodo">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/dodo.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.neutral.dodo"></h3>
+          <p class="role-subtitle" data-mc-translate="role.neutral.dodo.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.neutral.dodo.info"></p>
+    </details>
+    <details class="role-card neutral" data-faction="neutral" data-search="juedoudaidainiao jdddn dueling dodo">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/dueling_dodo.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.neutral.duelingdodos"></h3>
+          <p class="role-subtitle" data-mc-translate="role.neutral.duelingdodos.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.neutral.duelingdodos.info"></p>
+    </details>
+    <details class="role-card neutral" data-faction="neutral" data-search="tujiu tj vulture">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/vulture.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.neutral.vulture"></h3>
+          <p class="role-subtitle" data-mc-translate="role.neutral.vulture.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.neutral.vulture.info"></p>
+    </details>
+    <details class="role-card neutral" data-faction="neutral" data-search="gezi gz pigeon">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/pigeon.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.neutral.pigeon"></h3>
+          <p class="role-subtitle" data-mc-translate="role.neutral.pigeon.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.neutral.pigeon.info"></p>
+    </details>
+    <details class="role-card neutral" data-faction="neutral" data-search="lieying ly falcon">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/falcon.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.neutral.falcon"></h3>
+          <p class="role-subtitle" data-mc-translate="role.neutral.falcon.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.neutral.falcon.info"></p>
+    </details>
+    <details class="role-card neutral" data-faction="neutral" data-search="tihu th pelican">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/pelican.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.neutral.pelican"></h3>
+          <p class="role-subtitle" data-mc-translate="role.neutral.pelican.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.neutral.pelican.info"></p>
+    </details>
+    <details class="role-card neutral" data-faction="neutral" data-search="buguniao bgn cuckoo">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/cuckoo.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.neutral.cuckoo"></h3>
+          <p class="role-subtitle" data-mc-translate="role.neutral.cuckoo.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.neutral.cuckoo.info"></p>
+    </details>
+    <details class="role-card neutral" data-faction="neutral" data-search="duya dy raven">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/raven.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.neutral.raven"></h3>
+          <p class="role-subtitle" data-mc-translate="role.neutral.raven.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.neutral.raven.info"></p>
+    </details>
+    <details class="role-card neutral" data-faction="neutral" data-search="businiao bsn phoenix">
+      <summary>
+        <img src="mc:minecraft:textures/gui/sprites/custom/ggdrole/phoenix.png">
+        <div class="role-title">
+          <h3 data-mc-translate="role.neutral.phoenix"></h3>
+          <p class="role-subtitle" data-mc-translate="role.neutral.phoenix.subtitle"></p>
+        </div>
+      </summary>
+      <p class="role-description" data-mc-translate="role.neutral.phoenix.info"></p>
+    </details>
+    <section id="role-empty" class="empty-state" hidden>
+      <h3 data-i18n="roles.empty.title"></h3>
+      <p data-i18n="roles.empty.body"></p>
+    </section>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
