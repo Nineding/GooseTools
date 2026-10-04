@@ -13,7 +13,6 @@ import net.fabricmc.fabric.api.resource.v1.ResourceLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.PackType;
@@ -34,6 +33,7 @@ public final class CameraClient {
     private static final Map<String, Long> visible = new LinkedHashMap<>();
     private static final Map<String, Long> retryAfter = new HashMap<>();
     private static final CameraFocusState focus = new CameraFocusState();
+    private static final CameraRenderScheduler renderScheduler = new CameraRenderScheduler();
     private static int ticks;
     private static long decodeEpoch, decodeSequence;
     private static final Map<String,Long> newestDecode = new HashMap<>();
@@ -43,6 +43,7 @@ public final class CameraClient {
             new java.util.concurrent.ThreadPoolExecutor.DiscardOldestPolicy());
     private CameraClient() {}
     public static void register() {
+        CameraRenderPipelines.bootstrap();
         ClientPlayNetworking.registerGlobalReceiver(CameraPackets.Catalog.TYPE,(p,c) -> {
             CameraCatalog next = CameraCatalog.JSON.fromJson(p.json(), CameraCatalog.class);
             clear(); catalog = Objects.requireNonNull(next); generation = p.generation();
@@ -104,7 +105,7 @@ public final class CameraClient {
     public static void clear() {
         decodeEpoch++; newestDecode.clear();
         renderers.values().forEach(CameraSceneRenderer::close); renderers.clear(); scenes.clear(); visible.clear(); retryAfter.clear();
-        focus.reset();
+        focus.reset(); renderScheduler.reset();
     }
     public static long renderedFrames() { return renderers.values().stream().mapToLong(CameraSceneRenderer::draws).sum(); }
     public static int sceneCount() { return scenes.size(); }
@@ -133,15 +134,18 @@ public final class CameraClient {
         for (var s : selected) if (feeds.contains(s.cameraId()) || feeds.size()<CameraLimits.MAX_ACTIVE) feeds.add(s.cameraId());
         long now = System.nanoTime();
         feeds.forEach(id -> visible.put(id,now));
-        for (String id : feeds) {
+        var readyFeeds = feeds.stream().filter(id -> {
             var scene = scenes.get(id);
-            if (scene != null && scene.blocks != null && now >= retryAfter.getOrDefault(id,0L)) {
-                try { renderers.computeIfAbsent(id,CameraSceneRenderer::new).update(scene); }
-                catch (RuntimeException e) {
-                    var renderer = renderers.remove(id); if (renderer != null) renderer.close();
-                    retryAfter.put(id,now+5_000_000_000L);
-                    GooseTools.LOGGER.error("Camera rendering failed for {}",id,e);
-                }
+            return scene != null && scene.blocks != null && now >= retryAfter.getOrDefault(id,0L);
+        }).toList();
+        String updateFeed = renderScheduler.next(readyFeeds).orElse(null);
+        if (updateFeed != null) {
+            var scene = scenes.get(updateFeed);
+            try { renderers.computeIfAbsent(updateFeed,CameraSceneRenderer::new).update(scene); }
+            catch (RuntimeException e) {
+                var renderer = renderers.remove(updateFeed); if (renderer != null) renderer.close();
+                retryAfter.put(updateFeed,now+5_000_000_000L);
+                GooseTools.LOGGER.error("Camera rendering failed for {}",updateFeed,e);
             }
         }
         if (selected.isEmpty()) {
@@ -151,15 +155,14 @@ public final class CameraClient {
         Set<String> displayedFeeds = new LinkedHashSet<>();
         for (var s : selected) {
             var renderer = renderers.get(s.cameraId());
-            Direction normal = Direction.byName(s.facing());
-            submitQuad(context.submitNodeCollector(), context.poseStack(), RenderTypes.debugQuads(),
-                    s, eye, normal, s.width(), s.height(), false, 0);
             var scene = scenes.get(s.cameraId());
             if (renderer != null && renderer.draws()>0 && feeds.contains(s.cameraId()) && scene != null) {
+                Direction normal = Direction.byName(s.facing());
                 float width = Math.min(s.width(),s.height()*16f/9f), height=width*9f/16f;
                 submitQuad(context.submitNodeCollector(), context.poseStack(),
-                        RenderTypes.text(renderer.texture()), s, eye, normal,
-                        width, height, true, .001f);
+                        renderer.screenRenderType(), s, eye, normal,
+                        width, height, .001f);
+                renderer.markPresented();
                 displayedFeeds.add(s.cameraId());
             }
         }
@@ -171,25 +174,21 @@ public final class CameraClient {
     }
     private static void submitQuad(SubmitNodeCollector collector, PoseStack poses, RenderType type,
                                    ScreenDefinition s, Vec3 eye, Direction normal,
-                                   float width, float height, boolean textured, float offset) {
+                                   float width, float height, float offset) {
         collector.submitCustomGeometry(poses, type, (pose, out) ->
-                quad(out, pose.pose(), s, eye, normal, width, height, textured, offset));
+                quad(out, pose.pose(), s, eye, normal, width, height, offset));
     }
     private static void quad(VertexConsumer out, Matrix4fc pose, ScreenDefinition s, Vec3 eye,
-                             Direction normal, float width,float height,boolean textured,float offset) {
+                             Direction normal, float width,float height,float offset) {
         float cx=(float)(s.x()-eye.x)+normal.getStepX()*offset,
                 cy=(float)(s.y()-eye.y), cz=(float)(s.z()-eye.z)+normal.getStepZ()*offset;
         float rx=normal.getStepZ()*width/2, rz=-normal.getStepX()*width/2;
-        vertex(out,pose,cx-rx,cy-height/2,cz-rz,0,0,textured);
-        vertex(out,pose,cx+rx,cy-height/2,cz+rz,1,0,textured);
-        vertex(out,pose,cx+rx,cy+height/2,cz+rz,1,1,textured);
-        vertex(out,pose,cx-rx,cy+height/2,cz-rz,0,1,textured);
+        vertex(out,pose,cx-rx,cy-height/2,cz-rz,0,0);
+        vertex(out,pose,cx+rx,cy-height/2,cz+rz,1,0);
+        vertex(out,pose,cx+rx,cy+height/2,cz+rz,1,1);
+        vertex(out,pose,cx-rx,cy+height/2,cz-rz,0,1);
     }
-    private static void vertex(VertexConsumer out,Matrix4fc pose,float x,float y,float z,float u,float v,boolean textured) {
-        out.addVertex(pose,x,y,z).setColor(textured ? 0xffffffff : 0xff080808);
-        if (textured) {
-            out.setUv(u,v);
-            out.setLight(0xf000f0);
-        }
+    private static void vertex(VertexConsumer out,Matrix4fc pose,float x,float y,float z,float u,float v) {
+        out.addVertex(pose,x,y,z).setColor(0xffffffff).setUv(u,v).setLight(0xf000f0);
     }
 }

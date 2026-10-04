@@ -2,11 +2,13 @@ package com.goosethings.tools.client;
 
 import com.goosethings.tools.GooseTools;
 import com.goosethings.tools.client.hud.BroadcastHud;
+import com.goosethings.tools.client.hud.MeetingAlertHud;
 import com.goosethings.tools.client.vision.VisionFogState;
 import com.goosethings.tools.client.vision.BirdwatcherClientState;
 import com.goosethings.tools.client.vision.WitchDoctorTargetClient;
 import com.goosethings.tools.client.vision.BlackoutAssistClient;
 import com.goosethings.tools.client.vision.BlackoutSettingsScreen;
+import com.goosethings.tools.client.presence.GamePresenceClient;
 import com.goosethings.tools.network.GooseToolsPayloads;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
@@ -33,6 +35,8 @@ public final class ClientHandshake {
         });
         ClientPlayNetworking.registerGlobalReceiver(GooseToolsPayloads.BroadcastHudS2C.TYPE, (payload, context) ->
                 context.client().execute(() -> BroadcastHud.apply(payload.active(), payload.speakerUuid())));
+        ClientPlayNetworking.registerGlobalReceiver(GooseToolsPayloads.MeetingAlertS2C.TYPE, (payload, context) ->
+                context.client().execute(() -> MeetingAlertHud.apply(payload)));
         ClientPlayNetworking.registerGlobalReceiver(GooseToolsPayloads.VisionStateS2C.TYPE, (payload, context) ->
                 context.client().execute(() -> VisionFogState.apply(
                         payload.active(),
@@ -48,6 +52,9 @@ public final class ClientHandshake {
         ClientPlayNetworking.registerGlobalReceiver(GooseToolsPayloads.BlackoutAssistStateS2C.TYPE, (payload, context) ->
                 context.client().execute(() -> BlackoutAssistClient.apply(
                         payload.blackoutActive(), payload.eligible(), payload.inLobby())));
+        ClientPlayNetworking.registerGlobalReceiver(GooseToolsPayloads.GamePresenceStateS2C.TYPE, (payload, context) ->
+                context.client().execute(() -> GamePresenceClient.apply(
+                        payload.phaseCode(), payload.mapId())));
         ClientPlayNetworking.registerGlobalReceiver(GooseToolsPayloads.OpenClientSettingsS2C.TYPE, (payload, context) ->
                 context.client().execute(() -> context.client().setScreenAndShow(
                         new BlackoutSettingsScreen(context.client().gui.screen()))));

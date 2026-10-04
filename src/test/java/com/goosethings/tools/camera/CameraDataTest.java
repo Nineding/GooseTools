@@ -6,7 +6,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class CameraDataTest {
-    @Test void eachFeedMaintainsAnIndependentSixtyFrameCadence() {
+    @Test void eachFeedMaintainsAnIndependentThirtyFrameCadence() {
         var pacer = new CameraFramePacer();
         long start = 1_000_000L;
         int renders = pacer.shouldRender(start) ? 1 : 0;
@@ -14,14 +14,24 @@ class CameraDataTest {
             long now = start + Math.round(frame * (1_000_000_000.0D / 144.0D));
             if (pacer.shouldRender(now)) renders++;
         }
-        assertTrue(renders >= 60 && renders <= 61, "one second should produce 60 FPS plus the initial frame");
+        assertTrue(renders >= 30 && renders <= 31, "one second should produce 30 FPS plus the initial frame");
     }
 
-    @Test void cameraQualityContractUsesFullHdAndExtendedForwardScene() {
-        assertEquals(1920,CameraLimits.RENDER_WIDTH); assertEquals(1080,CameraLimits.RENDER_HEIGHT);
+    @Test void cameraQualityContractUsesHalfHdAndExtendedForwardScene() {
+        assertEquals(960,CameraLimits.RENDER_WIDTH); assertEquals(540,CameraLimits.RENDER_HEIGHT);
         assertEquals(70.0F,CameraLimits.VERTICAL_FOV_DEGREES);
         assertEquals(128,CameraLimits.SIZE_X); assertEquals(128,CameraLimits.SIZE_Z);
         assertEquals(32,CameraLimits.FORWARD_OFFSET); assertTrue(CameraLimits.FAR_PLANE>=128);
+    }
+    @Test void schedulerUpdatesAtMostOneFeedPerFrameAndCyclesFairly() {
+        var scheduler = new CameraRenderScheduler();
+        var feeds = List.of("bridge", "engine", "communications");
+        assertEquals("bridge", scheduler.next(feeds).orElseThrow());
+        assertEquals("engine", scheduler.next(feeds).orElseThrow());
+        assertEquals("communications", scheduler.next(feeds).orElseThrow());
+        assertEquals("bridge", scheduler.next(feeds).orElseThrow());
+        assertTrue(scheduler.next(List.of()).isEmpty());
+        assertEquals("bridge", scheduler.next(feeds).orElseThrow());
     }
     @Test void inclusiveBlocksCoverAllFourFacesAndReversedNegativeSelections() {
         var south = ScreenDefinition.corners("wall","hall","minecraft:the_end",-2405,72,91,-2401,74,91,"south");

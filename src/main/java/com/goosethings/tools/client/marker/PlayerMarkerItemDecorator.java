@@ -27,7 +27,7 @@ public final class PlayerMarkerItemDecorator {
                     marker.translationKey(), marker.fallback());
             lines.add(Component.translatable("tooltip.goosetools.player_marker", markerName)
                     .withStyle(style -> style.withItalic(false)
-                            .withColor(TextColor.fromRgb(marker.faction().rgb()))));
+                            .withColor(TextColor.fromRgb(marker.style().cardRgb()))));
         });
     }
 
@@ -45,11 +45,10 @@ public final class PlayerMarkerItemDecorator {
         graphics.fill(RenderPipelines.GUI, left - 1, top - 1, left + CARD_SIZE, top + CARD_SIZE,
                 0xE6000000);
         graphics.fill(RenderPipelines.GUI, left, top, left + CARD_SIZE, top + CARD_SIZE,
-                0xE6000000 | marker.faction().rgb());
+                0xE6000000 | marker.style().cardRgb());
         graphics.blit(texture,
                 left + 1, top + 1,
                 left + CARD_SIZE - 1, top + CARD_SIZE - 1,
                 0.0F, 1.0F, 0.0F, 1.0F);
     }
 }
-

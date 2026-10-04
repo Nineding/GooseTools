@@ -63,14 +63,26 @@ public record NameTagAttachmentConfig(List<Attachment> attachments) {
                         Set<String> identityTagsSet,
                         Set<String> renderedTags,
                         boolean fullBlood) {
+            return visible(samePlayer, viewerTags, identityTagsSet,
+                    renderedTags, fullBlood, false);
+        }
+
+        boolean visible(boolean samePlayer,
+                        Set<String> viewerTags,
+                        Set<String> identityTagsSet,
+                        Set<String> renderedTags,
+                        boolean fullBlood,
+                        boolean spectatorStatusView) {
             if (hideSelf && samePlayer || requiresFullBlood && !fullBlood) {
                 return false;
             }
             Set<String> targetTags = identityTags ? identityTagsSet : renderedTags;
-            return viewerTags.containsAll(viewerTagsAll)
-                    && targetTags.containsAll(targetTagsAll)
-                    && disjoint(viewerTags, viewerTagsNone)
-                    && disjoint(targetTags, targetTagsNone);
+            boolean borrowedDetective = NameTagRolePolicy.hasBorrowedRole(viewerTags, "Detective");
+            return (spectatorStatusView || containsAllViewerTags(viewerTags, viewerTagsAll))
+                    && containsAllTargetTags(targetTags, targetTagsAll, borrowedDetective)
+                    && (spectatorStatusView || disjoint(viewerTags, viewerTagsNone))
+                    && disjointTargetTags(
+                    targetTags, targetTagsNone, borrowedDetective, spectatorStatusView);
         }
     }
 
@@ -152,6 +164,52 @@ public record NameTagAttachmentConfig(List<Attachment> attachments) {
     private static boolean disjoint(Set<String> left, Set<String> right) {
         for (String value : right) {
             if (left.contains(value)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean containsAllViewerTags(Set<String> viewerTags, Set<String> requiredTags) {
+        for (String tag : requiredTags) {
+            if (!NameTagRolePolicy.hasRole(viewerTags, tag)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean containsAllTargetTags(Set<String> targetTags,
+                                                 Set<String> requiredTags,
+                                                 boolean borrowedDetective) {
+        for (String tag : requiredTags) {
+            if (targetTags.contains(tag)) {
+                continue;
+            }
+            if (borrowedDetective
+                    && tag.equals("detectiveCheckedAngel")
+                    && targetTags.contains("seagullNametagDetectiveAngel")) {
+                continue;
+            }
+            if (borrowedDetective
+                    && tag.equals("detectiveCheckedDemon")
+                    && targetTags.contains("seagullNametagDetectiveDemon")) {
+                continue;
+            }
+            return false;
+        }
+        return true;
+    }
+
+    private static boolean disjointTargetTags(Set<String> targetTags,
+                                              Set<String> excludedTags,
+                                              boolean borrowedDetective,
+                                              boolean spectatorStatusView) {
+        for (String tag : excludedTags) {
+            if ((borrowedDetective || spectatorStatusView) && tag.equals("inTalk")) {
+                continue;
+            }
+            if (targetTags.contains(tag)) {
                 return false;
             }
         }

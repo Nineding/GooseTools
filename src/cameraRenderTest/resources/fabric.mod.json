@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "goosetools_camera_test",
+  "version": "1.0.0",
+  "name": "GooseTools camera GPU regression test",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["com.goosethings.tools.client.camera.CameraGpuRegression"]
+  },
+  "depends": {"goosetools": "*"}
+}

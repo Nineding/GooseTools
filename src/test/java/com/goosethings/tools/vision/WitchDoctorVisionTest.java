@@ -30,6 +30,15 @@ class WitchDoctorVisionTest {
     }
 
     @Test
+    void birdwatchThroughWallReturnsTwoWhileOrdinarySightReturnsOne() {
+        assertEquals(2, WitchDoctorVision.canSeeCode(true, true, false, false));
+        assertEquals(1, WitchDoctorVision.canSeeCode(true, true, true, false));
+        assertEquals(1, WitchDoctorVision.canSeeCode(true, false, true, false));
+        assertEquals(1, WitchDoctorVision.canSeeCode(false, true, false, true));
+        assertEquals(0, WitchDoctorVision.canSeeCode(false, true, false, false));
+    }
+
+    @Test
     void curseRangeMatchesFinalWitchDoctorAndBirdwatcherView() {
         assertEquals(24.0D, WitchDoctorVision.sightRange(true, 12, false));
         assertEquals(48.0D, WitchDoctorVision.sightRange(true, 12, true));

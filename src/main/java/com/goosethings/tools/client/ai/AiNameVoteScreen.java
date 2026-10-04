@@ -1,6 +1,7 @@
 package com.goosethings.tools.client.ai;
 
 import com.goosethings.tools.network.GooseToolsPayloads;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -103,7 +104,7 @@ public final class AiNameVoteScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() != 0 || submitted) {
+        if (event.button() != InputConstants.MOUSE_BUTTON_LEFT || submitted) {
             return super.mouseClicked(event, doubleClick);
         }
         Grid grid = grid();

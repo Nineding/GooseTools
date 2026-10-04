@@ -6,7 +6,12 @@ import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.SubmitNodeStorage;
+import net.minecraft.client.renderer.feature.CustomFeatureRenderer;
+import net.minecraft.client.renderer.rendertype.RenderSetup;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.resources.Identifier;
 import org.joml.Matrix4fc;
 
 /** Enforces radial limited vision when a shader pack ignores vanilla fog uniforms. */
@@ -16,12 +21,29 @@ final class ShaderVisionMask {
     private static final int LONGITUDE_SEGMENTS = 64;
     private static final int CYLINDER_SEGMENTS = 96;
     private static final int FULL_BRIGHT_LIGHT = 0x00F000F0;
+    private static final Identifier OPAQUE_MASK_TEXTURE = Identifier.withDefaultNamespace(
+            "textures/block/white_concrete.png");
+    /**
+     * Iris explicitly maps the world-text pipeline into shader packs. Keeping the mask in that
+     * pipeline lets deferred lighting and bloom retain distant silhouettes and exceptional bright
+     * lights, while the ordinary depth-tested pipeline still hides opaque and translucent scenery.
+     * Deliberately omit OIT here because the mask is flushed after translucent terrain composition.
+     */
+    private static final RenderType MASK_RENDER_TYPE = RenderType.create(
+            "goosetools_vision_mask",
+            RenderSetup.builder(RenderPipelines.TEXT)
+                    .withTexture("Sampler0", OPAQUE_MASK_TEXTURE)
+                    .useLightmap()
+                    .createRenderSetup());
     private static boolean activationLogged;
 
     private ShaderVisionMask() {
     }
 
     static void register() {
+        // Geometry must be submitted during extraction, but is placed in Minecraft's dedicated
+        // after-terrain feature phase below. That phase runs after glass, panes, ice and other
+        // translucent terrain while remaining before the glowing-entity outline pass.
         LevelRenderEvents.COLLECT_SUBMITS.register(ShaderVisionMask::render);
     }
 
@@ -46,29 +68,51 @@ final class ShaderVisionMask {
             return;
         }
 
-        // 26.3 collects custom geometry before executing the translucent feature pass.
-        context.submitNodeCollector().submitCustomGeometry(
-                context.poseStack(), RenderTypes.debugQuads(), (poseState, consumer) -> {
-                    Matrix4fc pose = poseState.pose();
-                    if (birdwatcherLimited) {
-                        addBirdwatcherMask(consumer, pose, client, camera);
-                    } else {
-                        for (int layer = MASK_LAYERS; layer >= 1; layer--) {
-                            float radius = RadialFogMaskMath.layerRadius(
-                                    parameters.clearRadius(), parameters.fullFogRadius(), layer, MASK_LAYERS);
-                            int alpha = Math.clamp(Math.round(RadialFogMaskMath.layerAlpha(
-                                    parameters.strength(), layer, MASK_LAYERS) * 255.0F), 0, 255);
-                            if (alpha > 0 && parameters.horizontalCylinder()) {
-                                addCylinder(consumer, pose, client, camera, radius, alpha);
-                            } else if (alpha > 0) {
-                                addSphere(consumer, pose, radius, alpha);
-                            }
-                        }
-                    }
-                });
+        var renderer = (net.minecraft.client.renderer.SubmitNodeCollector.CustomGeometryRenderer)
+                (poseState, consumer) -> writeMaskGeometry(
+                        consumer, poseState.pose(), client, camera, parameters, birdwatcherLimited);
+
+        // Fabric exposes the collector interface, while vanilla's concrete storage owns the
+        // after-terrain phase. Use that phase explicitly so translucent terrain cannot be drawn
+        // over the mask. The fallback keeps compatibility with a future alternate collector.
+        if (context.submitNodeCollector() instanceof SubmitNodeStorage storage) {
+            storage.order(0).afterTerrain.submit(new CustomFeatureRenderer.Submit(
+                    context.poseStack().last().copy(), MASK_RENDER_TYPE, renderer));
+        } else {
+            context.submitNodeCollector().submitCustomGeometry(
+                    context.poseStack(), MASK_RENDER_TYPE, renderer);
+        }
         if (!activationLogged) {
             GooseTools.LOGGER.info("Shader-independent radial vision mask active");
             activationLogged = true;
+        }
+    }
+
+    private static void writeMaskGeometry(
+            VertexConsumer consumer,
+            Matrix4fc pose,
+            Minecraft client,
+            Camera camera,
+            VisionFogState.MaskParameters parameters,
+            boolean birdwatcherLimited) {
+        if (birdwatcherLimited) {
+            addBirdwatcherMask(consumer, pose, client, camera);
+        } else {
+            for (int layer = MASK_LAYERS; layer >= 1; layer--) {
+                float radius = RadialFogMaskMath.layerRadius(
+                        parameters.clearRadius(), parameters.fullFogRadius(), layer, MASK_LAYERS);
+                int alpha = Math.clamp(Math.round(RadialFogMaskMath.layerAlpha(
+                        parameters.strength(), layer, MASK_LAYERS) * 255.0F), 0, 255);
+                if (alpha > 0 && parameters.horizontalCylinder()) {
+                    addCylinder(consumer, pose, client, camera, radius, alpha);
+                } else if (alpha > 0) {
+                    addSphere(consumer, pose, radius, alpha);
+                }
+            }
+            if (parameters.horizontalCylinder()) {
+                addCylinderCaps(consumer, pose, client, camera, parameters.fullFogRadius(),
+                        Math.clamp(Math.round(parameters.strength() * 255.0F), 0, 255));
+            }
         }
     }
 
@@ -90,6 +134,7 @@ final class ShaderVisionMask {
                     1.0F, layer, MASK_LAYERS) * 255.0F), 0, 255);
             addCylinder(consumer, pose, client, camera, radius, alpha);
         }
+        addCylinderCaps(consumer, pose, client, camera, farEnd, 255);
 
         // The two-block area around the player remains visible; outside that circle,
         // the 40-degree clear fan fades smoothly to black at 50 degrees.
@@ -125,7 +170,7 @@ final class ShaderVisionMask {
             float x1 = centerX + (float) (Math.cos(angle1) * radius);
             float z1 = centerZ + (float) (Math.sin(angle1) * radius);
 
-            // No top/bottom caps: visibility depends only on horizontal X/Z distance.
+            // The side wall carries the radial fade; caps are added once at the opaque edge.
             addCylinderVertex(consumer, pose, x0, bottomY, z0, alpha);
             addCylinderVertex(consumer, pose, x1, bottomY, z1, alpha);
             addCylinderVertex(consumer, pose, x1, topY, z1, alpha);
@@ -141,7 +186,55 @@ final class ShaderVisionMask {
             float z,
             int alpha) {
         consumer.addVertex(pose, x, y, z)
-                .setColor(0, 0, 0, alpha);
+                .setColor(0, 0, 0, alpha)
+                .setUv(0.5F, 0.5F)
+                .setLight(FULL_BRIGHT_LIGHT);
+    }
+
+    /**
+     * Closes the otherwise open X/Z cylinder outside the buildable world. In-world visibility
+     * therefore remains horizontal-distance based, but looking steeply up or down can no longer
+     * miss every side quad and expose an unmasked frame.
+     */
+    private static void addCylinderCaps(
+            VertexConsumer consumer,
+            Matrix4fc pose,
+            Minecraft client,
+            Camera camera,
+            float radius,
+            int alpha) {
+        if (alpha <= 0) {
+            return;
+        }
+        double cameraX = camera.position().x();
+        double cameraY = camera.position().y();
+        double cameraZ = camera.position().z();
+        var playerPosition = client.player.getPosition(camera.getCameraEntityPartialTicks(client.getDeltaTracker()));
+        float centerX = (float) (playerPosition.x - cameraX);
+        float centerZ = (float) (playerPosition.z - cameraZ);
+        float bottomY = (float) (client.level.getMinY() - cameraY - 16.0D);
+        float topY = (float) (client.level.getMaxY() - cameraY + 16.0D);
+
+        for (int segment = 0; segment < CYLINDER_SEGMENTS; segment++) {
+            double angle0 = Math.PI * 2.0D * segment / CYLINDER_SEGMENTS;
+            double angle1 = Math.PI * 2.0D * (segment + 1) / CYLINDER_SEGMENTS;
+            float x0 = centerX + (float) (Math.cos(angle0) * radius);
+            float z0 = centerZ + (float) (Math.sin(angle0) * radius);
+            float x1 = centerX + (float) (Math.cos(angle1) * radius);
+            float z1 = centerZ + (float) (Math.sin(angle1) * radius);
+
+            // Top faces down toward the camera; bottom faces up. The repeated centre vertex
+            // expresses each triangle through the QUADS topology used by the text pipeline.
+            addCylinderVertex(consumer, pose, centerX, topY, centerZ, alpha);
+            addCylinderVertex(consumer, pose, x0, topY, z0, alpha);
+            addCylinderVertex(consumer, pose, x1, topY, z1, alpha);
+            addCylinderVertex(consumer, pose, centerX, topY, centerZ, alpha);
+
+            addCylinderVertex(consumer, pose, centerX, bottomY, centerZ, alpha);
+            addCylinderVertex(consumer, pose, x1, bottomY, z1, alpha);
+            addCylinderVertex(consumer, pose, x0, bottomY, z0, alpha);
+            addCylinderVertex(consumer, pose, centerX, bottomY, centerZ, alpha);
+        }
     }
 
     private static void addSphere(VertexConsumer consumer, Matrix4fc pose, float radius, int alpha) {
@@ -215,6 +308,8 @@ final class ShaderVisionMask {
         float y = (float) (Math.sin(latitude) * radius);
         float z = (float) (horizontal * Math.sin(longitude));
         consumer.addVertex(pose, x, y, z)
-                .setColor(0, 0, 0, alpha);
+                .setColor(0, 0, 0, alpha)
+                .setUv(0.5F, 0.5F)
+                .setLight(FULL_BRIGHT_LIGHT);
     }
 }

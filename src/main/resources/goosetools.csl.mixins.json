@@ -1,0 +1,13 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "com.goosethings.tools.client.csl.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "plugin": "com.goosethings.tools.client.csl.GooseToolsCslMixinPlugin",
+  "client": [
+    "SkinManagerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

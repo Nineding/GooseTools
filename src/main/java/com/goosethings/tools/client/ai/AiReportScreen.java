@@ -3,6 +3,7 @@ package com.goosethings.tools.client.ai;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -19,13 +20,19 @@ public final class AiReportScreen extends Screen {
     private static final int TAB_WIDTH = 112;
     private static final int LINE_GAP = 3;
     private final JsonObject report;
+    private final Screen parent;
     private int tab;
     private double scroll;
     private int contentHeight;
 
     AiReportScreen(JsonObject report) {
+        this(report, null);
+    }
+
+    AiReportScreen(JsonObject report, Screen parent) {
         super(Component.translatableWithFallback("screen.goosetools.ai.title", "AI Match Review"));
         this.report = report;
+        this.parent = parent;
     }
 
     @Override
@@ -68,14 +75,17 @@ public final class AiReportScreen extends Screen {
         }
         graphics.disableScissor();
         drawScrollbar(graphics, right - 4, top, bottom);
-        graphics.text(font, Component.translatableWithFallback(
-                        "screen.goosetools.ai.close_hint", "Esc: close · /aireport: reopen"),
+        graphics.text(font, parent == null
+                        ? Component.translatableWithFallback(
+                                "screen.goosetools.ai.close_hint", "Esc: close · /aireport: reopen")
+                        : Component.translatableWithFallback(
+                                "screen.goosetools.ai.back_hint", "Esc: back to report history"),
                 MARGIN, height - 19, 0xFF78909E, false);
     }
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() == 0 && event.y() >= 39 && event.y() < 58) {
+        if (event.button() == InputConstants.MOUSE_BUTTON_LEFT && event.y() >= 39 && event.y() < 58) {
             int candidate = ((int) event.x() - MARGIN) / TAB_WIDTH;
             if (candidate >= 0 && candidate < 3
                     && event.x() >= MARGIN && event.x() < MARGIN + 3 * TAB_WIDTH) {
@@ -96,6 +106,12 @@ public final class AiReportScreen extends Screen {
 
     @Override
     public boolean isPauseScreen() { return false; }
+
+    @Override
+    public void onClose() {
+        if (parent == null) super.onClose();
+        else minecraft.setScreenAndShow(parent);
+    }
 
     private List<Line> buildLines(int width) {
         List<Line> output = new ArrayList<>();
@@ -168,9 +184,9 @@ public final class AiReportScreen extends Screen {
     private void add(List<Line> out, String value, int width, int color) {
         if (value == null || value.isBlank()) return;
         for (String paragraph : value.split("\\R", -1)) {
-            List<FormattedCharSequence> wrapped = font.split(Component.literal(paragraph), width);
+            List<FormattedCharSequence> wrapped = font.split(AiReportMarkup.parse(paragraph, color), width);
             if (wrapped.isEmpty()) blank(out);
-            else for (FormattedCharSequence line : wrapped) out.add(new Line(line, color));
+            else for (FormattedCharSequence line : wrapped) out.add(new Line(line, 0xFFFFFFFF));
         }
     }
 

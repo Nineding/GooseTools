@@ -1,9 +1,11 @@
 package com.goosethings.tools.client.nametag;
 
+import com.goosethings.tools.client.mime.MimeControllerViewClient;
 import com.goosethings.tools.marker.PlayerMarkerCatalog;
 import com.goosethings.tools.network.GooseToolsPayloads;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.Entity;
@@ -23,7 +25,8 @@ import java.util.UUID;
 /** Client cache for the already privacy-filtered nametag snapshot. */
 public final class NameTagClientState {
     private static final Map<UUID, GooseToolsPayloads.NameTagEntry> ENTRIES = new LinkedHashMap<>();
-    private static final Map<UUID, UUID> ENTITY_ALIASES = new LinkedHashMap<>();
+    private static final Map<UUID, UUID> SERVER_ENTITY_ALIASES = new LinkedHashMap<>();
+    private static final Map<UUID, UUID> LOCAL_ENTITY_ALIASES = new LinkedHashMap<>();
     private static final Map<UUID, GooseToolsPayloads.NameTagEntry> ITEM_PROFILES = new LinkedHashMap<>();
     private static final Map<String, GooseToolsPayloads.NameTagEntry> SCOREBOARD_NAMES = new LinkedHashMap<>();
 
@@ -62,19 +65,44 @@ public final class NameTagClientState {
 
     /** Resolves real players and profile-backed stand-ins to the same source UUID. */
     public static UUID sourcePlayerId(Entity entity) {
+        if (entity != null && MimeControllerViewClient.isControlling()
+                && MimeControllerViewClient.targetId() != null) {
+            Minecraft minecraft = Minecraft.getInstance();
+            if (minecraft != null && entity == minecraft.player) {
+                return MimeControllerViewClient.targetId();
+            }
+        }
+        UUID alias = entity == null ? null : LOCAL_ENTITY_ALIASES.get(entity.getUUID());
+        if (alias == null && entity != null) {
+            alias = SERVER_ENTITY_ALIASES.get(entity.getUUID());
+        }
+        if (alias != null) {
+            return alias;
+        }
         if (entity instanceof Player) {
             return entity.getUUID();
         }
         if (entity instanceof Mannequin mannequin) {
-            UUID alias = ENTITY_ALIASES.get(entity.getUUID());
-            return alias != null ? alias : mannequin.getProfile().partialProfile().id();
+            return mannequin.getProfile().partialProfile().id();
         }
         return null;
     }
 
+    public static void registerLocalAlias(UUID entityId, UUID sourcePlayerId) {
+        if (entityId != null && sourcePlayerId != null) {
+            LOCAL_ENTITY_ALIASES.put(entityId, sourcePlayerId);
+        }
+    }
+
+    public static void unregisterLocalAlias(UUID entityId) {
+        if (entityId != null) {
+            LOCAL_ENTITY_ALIASES.remove(entityId);
+        }
+    }
+
     private static void apply(GooseToolsPayloads.NameTagSnapshotS2C snapshot) {
         ENTRIES.clear();
-        ENTITY_ALIASES.clear();
+        SERVER_ENTITY_ALIASES.clear();
         ITEM_PROFILES.clear();
         SCOREBOARD_NAMES.clear();
         for (GooseToolsPayloads.NameTagEntry entry : snapshot.entries()) {
@@ -86,13 +114,14 @@ public final class NameTagClientState {
             ITEM_PROFILES.put(menuProfileId(entry.identityPlayerId()), entry);
         }
         for (GooseToolsPayloads.NameTagAlias alias : snapshot.aliases()) {
-            ENTITY_ALIASES.put(alias.entityId(), alias.playerId());
+            SERVER_ENTITY_ALIASES.put(alias.entityId(), alias.playerId());
         }
     }
 
     private static void clear() {
         ENTRIES.clear();
-        ENTITY_ALIASES.clear();
+        SERVER_ENTITY_ALIASES.clear();
+        LOCAL_ENTITY_ALIASES.clear();
         ITEM_PROFILES.clear();
         SCOREBOARD_NAMES.clear();
     }

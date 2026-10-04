@@ -21,12 +21,26 @@ public final class PlayerMarkerCatalog {
 
     private static Map<Integer, Definition> createDefinitions() {
         Map<Integer, Definition> definitions = new LinkedHashMap<>();
-        add(definitions, 1, Faction.GOOSE, "text.faction.good", "Goose",
+        add(definitions, 1, Style.GOOSE, "menu.ggd.marker.additional.goose", "Goose",
                 "minecraft:textures/item/ggd/goose.png", false);
-        add(definitions, 2, Faction.DUCK, "text.faction.evil", "Duck",
-                "minecraft:textures/item/kill.png", false);
-        add(definitions, 3, Faction.BIRD, "text.faction.neutral", "Bird",
+        add(definitions, 2, Style.DUCK, "menu.ggd.marker.additional.duck", "Duck",
+                "minecraft:textures/item/ggd/duck.png", false);
+        add(definitions, 3, Style.BIRD, "menu.ggd.marker.additional.bird", "Bird",
                 "minecraft:textures/item/ggd/dodo.png", false);
+        add(definitions, 4, Style.GROUP_ONE, "menu.ggd.marker.additional.group_one", "Group 1",
+                "minecraft:textures/item/group_one.png", false);
+        add(definitions, 5, Style.GROUP_TWO, "menu.ggd.marker.additional.group_two", "Group 2",
+                "minecraft:textures/item/group_two.png", false);
+        add(definitions, 6, Style.GROUP_THREE, "menu.ggd.marker.additional.group_three", "Group 3",
+                "minecraft:textures/item/group_three.png", false);
+        add(definitions, 7, Style.KILL, "menu.ggd.marker.additional.kill", "Kill Card",
+                "minecraft:textures/item/kill.png", false);
+        add(definitions, 8, Style.INFO, "menu.ggd.marker.additional.info", "Information Card",
+                "minecraft:textures/item/focus_mode.png", false);
+        add(definitions, 9, Style.PROTECT, "menu.ggd.marker.additional.protect", "Protection Card",
+                "minecraft:textures/item/guard_shield_nametag.png", false);
+        add(definitions, 10, Style.SOLO, "menu.ggd.marker.additional.solo", "Solo Card",
+                "minecraft:textures/item/rush.png", false);
 
         addRole(definitions, 101, Faction.GOOSE, "goose", "Goose", "goose");
         addRole(definitions, 102, Faction.GOOSE, "canadian", "Canadian Goose", "canadian");
@@ -58,6 +72,7 @@ public final class PlayerMarkerCatalog {
         addRole(definitions, 128, Faction.GOOSE, "lucid_dreamer", "Lucid Dreamer", "luciddreamer");
         addRole(definitions, 129, Faction.GOOSE, "guard", "Guard", "guard");
         addRole(definitions, 130, Faction.GOOSE, "broker", "Broker", "broker");
+        addRole(definitions, 131, Faction.GOOSE, "spook", "Spook", "spook");
 
         addRole(definitions, 201, Faction.DUCK, "cannibal", "Cannibal", "cannibal");
         addRole(definitions, 202, Faction.DUCK, "morphling", "Morphling", "morphling");
@@ -96,41 +111,66 @@ public final class PlayerMarkerCatalog {
 
     private static void addRole(Map<Integer, Definition> definitions, int code, Faction faction,
                                 String role, String fallback, String textureName) {
-        add(definitions, code, faction, "role." + faction.translationSegment + "." + role,
+        add(definitions, code, faction.style, "role." + faction.translationSegment + "." + role,
                 fallback, "minecraft:textures/item/ggd/" + textureName + ".png", true);
     }
 
-    private static void add(Map<Integer, Definition> definitions, int code, Faction faction,
+    private static void add(Map<Integer, Definition> definitions, int code, Style style,
                             String translationKey, String fallback, String texture,
                             boolean roleSpecific) {
         Definition previous = definitions.put(code, new Definition(
-                code, faction, translationKey, fallback, texture, roleSpecific));
+                code, style, translationKey, fallback, texture, roleSpecific));
         if (previous != null) {
             throw new IllegalStateException("Duplicate player marker code: " + code);
         }
     }
 
-    public enum Faction {
-        GOOSE("good", 0xCAFFBD),
-        DUCK("evil", 0xFF9C9C),
-        BIRD("neutral", 0xFFF9C4);
+    public enum Style {
+        GOOSE(0xCAFFBD, 0x55FF55),
+        DUCK(0xFF9C9C, 0xFF5555),
+        BIRD(0xFFF9C4, 0xFFFF55),
+        GROUP_ONE(0xB3DAFF, 0xB3DAFF),
+        GROUP_TWO(0xC9FFAB, 0xC9FFAB),
+        GROUP_THREE(0xFFF0AB, 0xFFF0AB),
+        KILL(0xFF33AA, 0xFF33AA),
+        INFO(0x84CFFF, 0x84CFFF),
+        PROTECT(0xEAF7FF, 0xEAF7FF),
+        SOLO(0xFFBE65, 0xFFBE65);
 
-        private final String translationSegment;
-        private final int rgb;
+        private final int cardRgb;
+        private final int glowRgb;
 
-        Faction(String translationSegment, int rgb) {
-            this.translationSegment = translationSegment;
-            this.rgb = rgb;
+        Style(int cardRgb, int glowRgb) {
+            this.cardRgb = cardRgb;
+            this.glowRgb = glowRgb;
         }
 
-        public int rgb() {
-            return rgb;
+        public int cardRgb() {
+            return cardRgb;
+        }
+
+        public int glowRgb() {
+            return glowRgb;
+        }
+    }
+
+    public enum Faction {
+        GOOSE("good", Style.GOOSE),
+        DUCK("evil", Style.DUCK),
+        BIRD("neutral", Style.BIRD);
+
+        private final String translationSegment;
+        private final Style style;
+
+        Faction(String translationSegment, Style style) {
+            this.translationSegment = translationSegment;
+            this.style = style;
         }
     }
 
     public record Definition(
             int code,
-            Faction faction,
+            Style style,
             String translationKey,
             String fallback,
             String texture,

@@ -7,6 +7,8 @@ import com.goosethings.tools.client.ai.AiDebugTraceClient;
 import com.goosethings.tools.client.ai.AiProgressHud;
 import com.goosethings.tools.client.ai.AiReviewFlowClient;
 import com.goosethings.tools.client.hud.BroadcastHud;
+import com.goosethings.tools.client.hud.MeetingAlertHud;
+import com.goosethings.tools.client.dream.DreamStandInClient;
 import com.goosethings.tools.client.vision.VisionFogState;
 import com.goosethings.tools.client.vision.BirdwatcherClientState;
 import com.goosethings.tools.client.vision.WitchDoctorTargetClient;
@@ -17,6 +19,8 @@ import com.goosethings.tools.client.shader.RestartGuard;
 import com.goosethings.tools.client.nametag.NameTagClientState;
 import com.goosethings.tools.client.nametag.NameTagRenderer;
 import com.goosethings.tools.client.marker.PlayerMarkerItemDecorator;
+import com.goosethings.tools.client.noclip.AdventureNoClipClient;
+import com.goosethings.tools.client.presence.GamePresenceClient;
 import com.goosethings.tools.xaero.GgdXaeroMapClient;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
@@ -30,8 +34,14 @@ public final class GooseToolsClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         RestartGuard.register();
+        GamePresenceClient.register();
         ClientClickActions.register();
         ClientHandshake.register();
+        AdventureNoClipClient.register();
+        MeetingAlertHud.register();
+        DreamStandInClient.register();
+        com.goosethings.tools.client.mime.MimeControlClient.register();
+        com.goosethings.tools.client.mime.MimeControllerViewClient.register();
         com.goosethings.tools.client.camera.CameraClient.register();
         ClientTaskMarkers.register();
         PlayerArmAnimationContinuity.register();
@@ -56,6 +66,9 @@ public final class GooseToolsClient implements ClientModInitializer {
         HudElementRegistry.addLast(
                 Identifier.fromNamespaceAndPath(GooseTools.MOD_ID, "ai_progress_hud"),
                 (graphics, delta) -> AiProgressHud.render(graphics));
+        HudElementRegistry.addLast(
+                Identifier.fromNamespaceAndPath(GooseTools.MOD_ID, "meeting_alert_hud"),
+                (graphics, delta) -> MeetingAlertHud.render(graphics));
         GooseTools.LOGGER.info(
                 "GooseTools client initialized (Web UI + Xaero + stand-in visual continuity)");
     }

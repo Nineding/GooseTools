@@ -19,9 +19,20 @@ class PlayerMarkerCatalogTest {
                 .map(PlayerMarkerCatalog.Definition::code)
                 .collect(Collectors.toSet());
 
-        assertEquals(64, definitions.size());
+        assertEquals(72, definitions.size());
         assertEquals(definitions.size(), codes.size());
         assertFalse(PlayerMarkerCatalog.byCode(1).roleSpecific());
+        assertEquals("menu.ggd.marker.additional.goose",
+                PlayerMarkerCatalog.byCode(1).translationKey());
+        assertEquals("minecraft:textures/item/ggd/duck.png",
+                PlayerMarkerCatalog.byCode(2).texture());
+        assertEquals(0xB3DAFF, PlayerMarkerCatalog.byCode(4).style().glowRgb());
+        assertEquals(0xC9FFAB, PlayerMarkerCatalog.byCode(5).style().glowRgb());
+        assertEquals(0xFFF0AB, PlayerMarkerCatalog.byCode(6).style().glowRgb());
+        assertEquals(0xFF33AA, PlayerMarkerCatalog.byCode(7).style().glowRgb());
+        assertEquals(0x84CFFF, PlayerMarkerCatalog.byCode(8).style().glowRgb());
+        assertEquals(0xEAF7FF, PlayerMarkerCatalog.byCode(9).style().glowRgb());
+        assertEquals(0xFFBE65, PlayerMarkerCatalog.byCode(10).style().glowRgb());
         assertTrue(PlayerMarkerCatalog.byCode(101).roleSpecific());
         assertEquals("role.evil.witch_doctor",
                 PlayerMarkerCatalog.byCode(217).translationKey());
@@ -29,6 +40,8 @@ class PlayerMarkerCatalogTest {
                 PlayerMarkerCatalog.byCode(129).translationKey());
         assertEquals("role.good.broker",
                 PlayerMarkerCatalog.byCode(130).translationKey());
+        assertEquals("role.good.spook",
+                PlayerMarkerCatalog.byCode(131).translationKey());
         assertNull(PlayerMarkerCatalog.byCode(999));
     }
 

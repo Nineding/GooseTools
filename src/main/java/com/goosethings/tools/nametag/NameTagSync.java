@@ -41,6 +41,7 @@ public final class NameTagSync {
     public static final int PIGEON_INFECTED = 1 << 3;
     public static final int LOVER = 1 << 4;
     public static final int GUARD_SHIELD = 1 << 5;
+    public static final int WITCH_DOCTOR_CURSE = 1 << 6;
     private static final String SETTINGS_OBJECTIVE = "ggdadv";
     private static final Map<UUID, GooseToolsPayloads.NameTagSnapshotS2C> LAST_SENT = new HashMap<>();
     private static final Map<UUID, Integer> LAST_COLOUR = new HashMap<>();
@@ -67,12 +68,14 @@ public final class NameTagSync {
             LAST_SENT.remove(handler.player.getUUID());
             DISGUISE_IDENTITIES.remove(handler.player.getUUID());
             NameTagVisibilityOverrides.removePlayer(handler.player.getUUID());
+            NameTagIconAssignments.removePlayer(handler.player.getUUID());
         });
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
             LAST_SENT.clear();
             LAST_COLOUR.clear();
             DISGUISE_IDENTITIES.clear();
             NameTagVisibilityOverrides.clear();
+            NameTagIconAssignments.clear();
         });
     }
 
@@ -88,6 +91,37 @@ public final class NameTagSync {
         return NameTagVisibilityOverrides.clearViewers(playerIds(viewers));
     }
 
+    public static int setIcon(Collection<ServerPlayer> targets,
+                              String slot,
+                              String texture,
+                              float width,
+                              float height,
+                              int rgb,
+                              int order) {
+        int changed = NameTagIconAssignments.set(
+                playerIds(targets), slot, texture, width, height, rgb, order);
+        if (changed > 0) {
+            LAST_SENT.clear();
+        }
+        return changed;
+    }
+
+    public static int removeIcon(Collection<ServerPlayer> targets, String slot) {
+        int changed = NameTagIconAssignments.remove(playerIds(targets), slot);
+        if (changed > 0) {
+            LAST_SENT.clear();
+        }
+        return changed;
+    }
+
+    public static int clearIcons(Collection<ServerPlayer> targets) {
+        int changed = NameTagIconAssignments.clear(playerIds(targets));
+        if (changed > 0) {
+            LAST_SENT.clear();
+        }
+        return changed;
+    }
+
     public static int reloadAttachments() throws IOException {
         NameTagAttachmentConfig config = ATTACHMENTS.reload();
         LAST_SENT.clear();
@@ -99,6 +133,7 @@ public final class NameTagSync {
             return;
         }
         boolean fullBlood = readScore(server, SETTINGS_OBJECTIVE, "FullBloodDLC", 0) == 1;
+        boolean roleVisible = readScore(server, SETTINGS_OBJECTIVE, "DLCRoleVisible", 0) == 1;
         NameTagAttachmentConfig attachmentConfig = ATTACHMENTS.current();
         List<ServerPlayer> onlinePlayers = List.copyOf(server.getPlayerList().getPlayers());
         Map<Integer, ServerPlayer> playersBySeat = new HashMap<>();
@@ -116,7 +151,7 @@ public final class NameTagSync {
                 .sorted(Comparator.comparingInt(player -> RoomOrderManager.orderOf(server, player)))
                 .toList();
         Map<UUID, VisualIdentity> identities = new HashMap<>();
-        for (ServerPlayer target : targets) {
+        for (ServerPlayer target : onlinePlayers) {
             identities.put(target.getUUID(), identityOf(server, target, playersBySeat, fullBlood));
         }
         List<GooseToolsPayloads.NameTagAlias> aliases = dreamAliases(server, playersBySeat);
@@ -125,8 +160,17 @@ public final class NameTagSync {
                     || !ServerPlayNetworking.canSend(viewer, GooseToolsPayloads.NameTagSnapshotS2C.TYPE)) {
                 continue;
             }
-            List<GooseToolsPayloads.NameTagEntry> entries = new ArrayList<>(targets.size());
-            for (ServerPlayer target : targets) {
+            boolean spectatorStatusView = NameTagSpectatorStatusPolicy.revealAll(
+                    fullBlood, roleVisible, viewer.entityTags());
+            List<ServerPlayer> viewerTargets = targets;
+            boolean alreadyOrdered = targets.contains(viewer);
+            if (NameTagTargetPolicy.includeUnorderedSelf(
+                    alreadyOrdered, viewer.isSpectator(), viewer.entityTags())) {
+                viewerTargets = new ArrayList<>(targets);
+                viewerTargets.add(viewer);
+            }
+            List<GooseToolsPayloads.NameTagEntry> entries = new ArrayList<>(viewerTargets.size());
+            for (ServerPlayer target : viewerTargets) {
                 VisualIdentity identity = identities.get(target.getUUID());
                 int markerCode = markerCode(server, viewer, target, fullBlood);
                 boolean markerNameTagVisible = markerCode != 0
@@ -146,9 +190,9 @@ public final class NameTagSync {
                     continue;
                 }
                 int flags = fullBlood ? attachmentFlags(
-                        viewer, target, identity, activeLoverCount) : 0;
+                        viewer, target, identity, activeLoverCount, spectatorStatusView) : 0;
                 if (NameTagAttachmentPolicy.showGuardShield(
-                        samePlayer, viewer.entityTags(), target.entityTags())) {
+                        samePlayer, viewer.entityTags(), target.entityTags(), spectatorStatusView)) {
                     flags |= GUARD_SHIELD;
                 }
                 entries.add(new GooseToolsPayloads.NameTagEntry(
@@ -162,7 +206,8 @@ public final class NameTagSync {
                         markerCode,
                         markerNameTagVisible,
                         dataDrivenAttachments(
-                                viewer, target, identity, fullBlood, attachmentConfig)));
+                                viewer, target, identity, fullBlood,
+                                spectatorStatusView, attachmentConfig)));
             }
             GooseToolsPayloads.NameTagSnapshotS2C snapshot =
                     new GooseToolsPayloads.NameTagSnapshotS2C(entries, aliases);
@@ -227,14 +272,21 @@ public final class NameTagSync {
             ServerPlayer renderedPlayer,
             VisualIdentity identity,
             boolean fullBlood,
+            boolean spectatorStatusView,
             NameTagAttachmentConfig config) {
         List<GooseToolsPayloads.NameTagIcon> result = new ArrayList<>();
+        result.addAll(NameTagIconAssignments.iconsForIdentity(
+                renderedPlayer.getUUID(), identity.playerId()));
+        if (result.size() == GooseToolsPayloads.NameTagSnapshotS2C.MAX_ATTACHMENTS_PER_ENTRY) {
+            return List.copyOf(result);
+        }
         Set<String> viewerTags = viewer.entityTags();
         Set<String> renderedTags = renderedPlayer.entityTags();
         boolean samePlayer = viewer.getUUID().equals(renderedPlayer.getUUID());
         for (NameTagAttachmentConfig.Attachment attachment : config.attachments()) {
             if (!attachment.visible(
-                    samePlayer, viewerTags, identity.tags(), renderedTags, fullBlood)) {
+                    samePlayer, viewerTags, identity.tags(), renderedTags,
+                    fullBlood, spectatorStatusView)) {
                 continue;
             }
             result.add(new GooseToolsPayloads.NameTagIcon(
@@ -283,37 +335,31 @@ public final class NameTagSync {
     private static int attachmentFlags(ServerPlayer viewer,
                                        ServerPlayer renderedPlayer,
                                        VisualIdentity identity,
-                                       int activeLoverCount) {
+                                       int activeLoverCount,
+                                       boolean spectatorStatusView) {
         Set<String> viewerTags = viewer.entityTags();
         Set<String> renderedTags = renderedPlayer.entityTags();
         Set<String> identityTags = identity.tags();
         int flags = 0;
-        if (viewerTags.contains("evil")
-                && !viewerTags.contains("inTutorial")
-                && identityTags.contains("Gravy")
-                && !renderedTags.contains("spectator")
-                && !renderedTags.contains("inTalk")
-                && !renderedTags.contains("inPelican")
-                && !renderedTags.contains("endGame")
-                && identity.gravyBounty() > 0) {
+        if (NameTagAttachmentPolicy.showGravyBounty(
+                viewerTags, identityTags, renderedTags,
+                identity.gravyBounty(), spectatorStatusView)) {
             flags |= GRAVY;
         }
-        if (viewerTags.contains("Clown")
-                && identityTags.contains("clownMarked")
-                && renderedTags.contains("players")
-                && !renderedTags.contains("spectator")
-                && !renderedTags.contains("inTalk")) {
-            if (identity.heliumLevel() == 1) {
-                flags |= CLOWN_BALLOON_ONE;
-            } else if (identity.heliumLevel() >= 2) {
-                flags |= CLOWN_BALLOON_TWO;
-            }
+        int clownBalloonLevel = NameTagAttachmentPolicy.clownBalloonLevel(
+                viewerTags, identityTags, renderedTags,
+                identity.heliumLevel(), spectatorStatusView);
+        if (clownBalloonLevel == 1) {
+            flags |= CLOWN_BALLOON_ONE;
+        } else if (clownBalloonLevel >= 2) {
+            flags |= CLOWN_BALLOON_TWO;
         }
         if (NameTagAttachmentPolicy.showPigeonInfected(
                 viewer.getUUID().equals(renderedPlayer.getUUID()),
                 viewerTags,
                 identityTags,
-                renderedTags)) {
+                renderedTags,
+                spectatorStatusView)) {
             flags |= PIGEON_INFECTED;
         }
         if (LoverVisualPolicy.show(
@@ -324,8 +370,13 @@ public final class NameTagSync {
                 identityTags,
                 DisguiseIdentityPolicy.playerSeat(viewerTags),
                 identity.seat(),
-                activeLoverCount)) {
+                activeLoverCount,
+                spectatorStatusView)) {
             flags |= LOVER;
+        }
+        if (NameTagAttachmentPolicy.showWitchDoctorCurse(
+                spectatorStatusView, renderedTags)) {
+            flags |= WITCH_DOCTOR_CURSE;
         }
         return flags;
     }

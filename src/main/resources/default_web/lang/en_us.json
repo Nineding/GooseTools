@@ -98,5 +98,21 @@
   "gameplay.tips.one": "Remember locations and approximate times; they are more useful than a name alone.",
   "gameplay.tips.two": "Do not reveal critical roles without need; some Ducks can guess roles during meetings.",
   "gameplay.tips.three": "Treat the current server resource pack and the text in this guide as the authoritative rules.",
-  "gameplay.roles.link": "Ready to play? Meet all 50 roles in the Role Guide →"
+  "gameplay.roles.link": "Ready to play? Meet all 50 roles in the Role Guide →",
+  "official.eyebrow": "OFFICIAL WEB DIRECTORY",
+  "official.title": "Goose Field Guide",
+  "official.subtitle": "The built-in Minecraft encyclopedia is no longer maintained. Choose an official page below; it will open in your system browser after confirmation.",
+  "official.guide.kicker": "GAME GUIDE",
+  "official.roles.title": "Role Guide",
+  "official.roles.desc": "Explore Goose, Duck, and Bird roles and their abilities.",
+  "official.gameplay.title": "Faction Gameplay",
+  "official.gameplay.desc": "Learn each faction's objectives, strategies, and core gameplay.",
+  "official.modes.title": "Game Modes",
+  "official.modes.desc": "See the available game modes and their rules.",
+  "official.website.kicker": "OFFICIAL WEBSITE",
+  "official.website.title": "Minecraft Goose Goose Duck",
+  "official.website.desc": "Visit the official website for project information and the latest content.",
+  "official.open": "Open official page →",
+  "official.note.title": "Safe external links",
+  "official.note.body": "GooseTools allows only the four preset HTTPS destinations above and always shows Minecraft's link confirmation screen first."
 }

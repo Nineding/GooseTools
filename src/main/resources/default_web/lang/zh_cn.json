@@ -98,5 +98,21 @@
   "gameplay.tips.one": "记住相遇地点和大致时间，比只记住颜色或名字更有价值。",
   "gameplay.tips.two": "不要公开不必要的关键职业信息；有些鸭职业能在会议中猜测身份。",
   "gameplay.tips.three": "职业详细规则以当前服务器资源包与本指南显示的文本为准。",
-  "gameplay.roles.link": "准备好了？前往职业图鉴认识全部 50 个职业 →"
+  "gameplay.roles.link": "准备好了？前往职业图鉴认识全部 50 个职业 →",
+  "official.eyebrow": "正式网页导航",
+  "official.title": "鹅鸭百科",
+  "official.subtitle": "Minecraft 内置百科内容已停止维护。请选择要查看的官方网页，确认后将在系统浏览器中打开。",
+  "official.guide.kicker": "游戏指南",
+  "official.roles.title": "角色图鉴",
+  "official.roles.desc": "查看鹅、鸭与鸟阵营的角色资料和能力说明。",
+  "official.gameplay.title": "阵营玩法",
+  "official.gameplay.desc": "了解不同阵营的目标、策略与基础玩法。",
+  "official.modes.title": "游戏模式",
+  "official.modes.desc": "查看当前提供的游戏模式及其规则说明。",
+  "official.website.kicker": "官方网站",
+  "official.website.title": "我的世界鹅鸭杀官网",
+  "official.website.desc": "前往官方网站查看项目信息与最新内容。",
+  "official.open": "打开正式网页 →",
+  "official.note.title": "安全提示",
+  "official.note.body": "GooseTools 只允许打开上方四个预设的 HTTPS 地址，并会先显示 Minecraft 的链接确认界面。"
 }

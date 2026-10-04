@@ -179,7 +179,8 @@ public final class VisionFogState {
                 Mth.lerp(strength, fog.color.z(), 0.0F),
                 Mth.lerp(strength, fog.color.w(), 1.0F));
 
-        // GooseShip blackout uses an uncapped X/Z cylinder rendered by ShaderVisionMask.
+        // GooseShip blackout uses an X/Z cylinder capped outside the buildable world by
+        // ShaderVisionMask, so its in-world visibility remains independent of Y distance.
         // Applying vanilla distance fog here would reintroduce a spherical Y-axis limit.
         if (horizontalCylinder) {
             return;

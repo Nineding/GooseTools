@@ -3,7 +3,7 @@ package com.goosethings.tools.camera;
 public final class CameraLimits {
     public static final int MAX_CAMERAS = 64, MAX_SCREENS = 128, MAX_ACTIVE = 4, MAX_ENTITIES = 128;
     public static final int WATCH_DISTANCE = 48;
-    public static final int RENDER_WIDTH = 1920, RENDER_HEIGHT = 1080;
+    public static final int RENDER_WIDTH = 960, RENDER_HEIGHT = 540;
     public static final float VERTICAL_FOV_DEGREES = 70.0F;
     public static final int SIZE_X = 128, SIZE_Y = 32, SIZE_Z = 128;
     public static final int HALF_X = SIZE_X / 2, HALF_Z = SIZE_Z / 2;

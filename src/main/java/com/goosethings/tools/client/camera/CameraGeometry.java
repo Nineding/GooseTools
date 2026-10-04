@@ -1,22 +1,26 @@
 package com.goosethings.tools.client.camera;
 
 import com.mojang.renderpearl.api.buffers.GpuBuffer;
-import com.mojang.blaze3d.pipeline.TextureTarget;
+import com.mojang.renderpearl.api.commands.RenderPass;
+import com.mojang.renderpearl.api.pipeline.PrimitiveTopology;
+import com.mojang.renderpearl.api.textures.FilterMode;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
-import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
+import net.minecraft.client.renderer.texture.TextureAtlas;
 import java.util.*;
 
-/** Upload static terrain once per scene revision; subsequent camera frames reuse GPU buffers. */
+/** Temporary upload used only to bake one static monitor terrain frame. */
 final class CameraGeometry implements AutoCloseable {
     private record Builder(ByteBufferBuilder memory,BufferBuilder vertices) {}
-    private record Mesh(RenderType type,GpuBuffer vertices,int indices) {}
-    private final Map<RenderType,Builder> builders=new LinkedHashMap<>();
+    private record Mesh(ChunkSectionLayer layer,GpuBuffer vertices,int indices) {}
+    private final Map<ChunkSectionLayer,Builder> builders=new EnumMap<>(ChunkSectionLayer.class);
     private final List<Mesh> meshes=new ArrayList<>();
-    public VertexConsumer getBuffer(RenderType type) {
-        return builders.computeIfAbsent(type,t -> {
+    public VertexConsumer getBuffer(ChunkSectionLayer layer) {
+        return builders.computeIfAbsent(layer,l -> {
             var memory=new ByteBufferBuilder(786432);
-            return new Builder(memory,new BufferBuilder(memory,t.primitiveTopology(),t.format()));
+            return new Builder(memory,new BufferBuilder(memory,PrimitiveTopology.QUADS,l.vertexFormat()));
         }).vertices();
     }
     void upload() {
@@ -28,26 +32,38 @@ final class CameraGeometry implements AutoCloseable {
                     meshes.add(new Mesh(entry.getKey(),gpu,data.drawState().indexCount()));
                 }
             }
-            meshes.sort(Comparator.comparing(m -> m.type().hasBlending()));
+            meshes.sort(Comparator.comparing(m -> m.layer().translucent()));
         } finally {
             builders.values().forEach(b -> b.memory().close());builders.clear();
         }
     }
-    void draw(TextureTarget target) {
+    int meshCount() { return meshes.size(); }
+    long indexCount() { return meshes.stream().mapToLong(Mesh::indices).sum(); }
+    String indexSummary() {
+        var totals = new EnumMap<ChunkSectionLayer,Long>(ChunkSectionLayer.class);
+        for (var layer : ChunkSectionLayer.values()) totals.put(layer,0L);
+        for (var mesh : meshes) totals.merge(mesh.layer(),(long)mesh.indices(),Long::sum);
+        return "solid=" + totals.get(ChunkSectionLayer.SOLID)
+                + ", cutout=" + totals.get(ChunkSectionLayer.CUTOUT)
+                + ", translucent=" + totals.get(ChunkSectionLayer.TRANSLUCENT);
+    }
+    void draw(RenderPass pass) {
+        if (meshes.isEmpty()) return;
+        var mc = Minecraft.getInstance();
+        var atlas = mc.getTextureManager().getTexture(TextureAtlas.LOCATION_BLOCKS);
+        var transform = RenderSystem.getDynamicUniforms().writeTransform(RenderSystem.getModelViewMatrixCopy());
+        var lightSampler = RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR);
+        var auto=RenderSystem.getSequentialBuffer(PrimitiveTopology.QUADS);
+        RenderSystem.bindDefaultUniforms(pass);
+        pass.setUniform("DynamicTransforms",transform);
+        pass.setUniform("Sampler0",atlas.getTextureView(),atlas.getSampler());
+        pass.setUniform("Sampler2",mc.gameRenderer.lightmap(),lightSampler);
         for(var mesh:meshes) {
-            var prepared=mesh.type().prepare();
-            var auto=RenderSystem.getSequentialBuffer(mesh.type().primitiveTopology());
             var indices=auto.getBuffer(mesh.indices());
-            try(var pass=RenderSystem.getDevice().createCommandEncoder().createRenderPass(
-                    () -> "GooseTools camera terrain",target.getColorTextureView(),Optional.empty(),
-                    target.getDepthTextureView(),OptionalDouble.empty())) {
-                pass.setPipeline(RenderSystem.getCompiledPipeline(prepared.pipeline()));
-                RenderSystem.bindDefaultUniforms(pass);
-                pass.setUniform("DynamicTransforms",prepared.dynamicTransforms());
-                prepared.textures().forEach(t -> pass.setUniform(t.name(),t.textureView(),t.sampler()));
-                pass.setVertexBuffer(0,mesh.vertices().slice());pass.setIndexBuffer(indices,auto.type());
-                pass.drawIndexed(0,0,mesh.indices(),1,0);
-            }
+            pass.setPipeline(RenderSystem.getCompiledPipeline(CameraRenderPipelines.forLayer(mesh.layer())));
+            pass.setVertexBuffer(0,mesh.vertices().slice());pass.setIndexBuffer(indices,auto.type());
+            // RenderPearl 26.3: indexCount, instanceCount, firstIndex, vertexOffset, firstInstance.
+            pass.drawIndexed(mesh.indices(),1,0,0,0);
         }
     }
     @Override public void close() {

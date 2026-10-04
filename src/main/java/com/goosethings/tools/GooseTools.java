@@ -6,11 +6,14 @@ import com.goosethings.tools.ai.AiReviewFlowServer;
 import com.goosethings.tools.aim.AimClaimService;
 import com.goosethings.tools.broadcast.BroadcastHudSync;
 import com.goosethings.tools.command.GooseToolsCommands;
+import com.goosethings.tools.dream.DreamStandInServer;
 import com.goosethings.tools.network.GooseToolsPayloads;
 import com.goosethings.tools.map.TaskMarkerSync;
+import com.goosethings.tools.movement.AdventureNoClipService;
 import com.goosethings.tools.network.MandatoryHandshake;
 import com.goosethings.tools.nametag.NameTagSync;
 import com.goosethings.tools.player.RoomOrderManager;
+import com.goosethings.tools.presence.GamePresenceSync;
 import com.goosethings.tools.vision.VisionSync;
 import com.goosethings.tools.vision.BirdwatcherSync;
 import com.goosethings.tools.vision.BlackoutAssistSync;
@@ -23,7 +26,7 @@ import org.slf4j.LoggerFactory;
 
 public final class GooseTools implements ModInitializer {
     public static final String MOD_ID = "goosetools";
-    public static final int PROTOCOL_VERSION = 21;
+    public static final int PROTOCOL_VERSION = 25;
     public static final String VERSION = FabricLoader.getInstance()
             .getModContainer(MOD_ID)
             .map(container -> container.getMetadata().getVersion().getFriendlyString())
@@ -33,6 +36,7 @@ public final class GooseTools implements ModInitializer {
     @Override
     public void onInitialize() {
         GooseToolsPayloads.registerTypes();
+        AdventureNoClipService.register();
         AiReportServer.register();
         AiDebugTraceServer.register();
         AiReviewFlowServer.register();
@@ -44,7 +48,10 @@ public final class GooseTools implements ModInitializer {
         BroadcastHudSync.register();
         VisionSync.register();
         BlackoutAssistSync.register();
+        GamePresenceSync.register();
         BirdwatcherSync.register();
+        DreamStandInServer.register();
+        com.goosethings.tools.mime.MimeControlSync.register();
         RoomOrderManager.register();
         NameTagSync.register();
         ServerWebManager.registerServer();

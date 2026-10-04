@@ -7,6 +7,8 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,12 +34,16 @@ public final class GooseToolsPayloads {
         PayloadTypeRegistry.clientboundPlay().register(WebCloseS2C.TYPE, WebCloseS2C.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(WebRequestC2S.TYPE, WebRequestC2S.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(BroadcastHudS2C.TYPE, BroadcastHudS2C.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(MeetingAlertS2C.TYPE, MeetingAlertS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(VisionStateS2C.TYPE, VisionStateS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(BlackoutAssistStateS2C.TYPE, BlackoutAssistStateS2C.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(GamePresenceStateS2C.TYPE, GamePresenceStateS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(OpenClientSettingsS2C.TYPE, OpenClientSettingsS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(BirdwatcherStateS2C.TYPE, BirdwatcherStateS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(WitchDoctorTargetS2C.TYPE, WitchDoctorTargetS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(NameTagSnapshotS2C.TYPE, NameTagSnapshotS2C.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(DreamSceneS2C.TYPE, DreamSceneS2C.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(DreamMotionS2C.TYPE, DreamMotionS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(TaskMarkersS2C.TYPE, TaskMarkersS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(AiReportStartS2C.TYPE, AiReportStartS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(AiReportChunkS2C.TYPE, AiReportChunkS2C.CODEC);
@@ -49,10 +55,90 @@ public final class GooseToolsPayloads {
         PayloadTypeRegistry.clientboundPlay().register(AiDebugStartS2C.TYPE, AiDebugStartS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(AiDebugChunkS2C.TYPE, AiDebugChunkS2C.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(AimClaimC2S.TYPE, AimClaimC2S.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(MimeControlS2C.TYPE, MimeControlS2C.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(MimeControllerViewS2C.TYPE, MimeControllerViewS2C.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(AdventureNoClipS2C.TYPE, AdventureNoClipS2C.CODEC);
     }
 
     private static <T extends CustomPacketPayload> CustomPacketPayload.Type<T> type(String path) {
         return new CustomPacketPayload.Type<>(Identifier.fromNamespaceAndPath(GooseTools.MOD_ID, path));
+    }
+
+    public record AdventureNoClipS2C(boolean enabled) implements CustomPacketPayload {
+        public static final Type<AdventureNoClipS2C> TYPE =
+                GooseToolsPayloads.type("adventure_noclip_s2c_v1");
+        public static final StreamCodec<RegistryFriendlyByteBuf, AdventureNoClipS2C> CODEC =
+                StreamCodec.composite(
+                        ByteBufCodecs.BOOL, AdventureNoClipS2C::enabled,
+                        AdventureNoClipS2C::new);
+
+        @Override
+        public Type<AdventureNoClipS2C> type() {
+            return TYPE;
+        }
+    }
+
+    public record MimeControlS2C(boolean active, UUID controllerId)
+            implements CustomPacketPayload {
+        public static final Type<MimeControlS2C> TYPE =
+                GooseToolsPayloads.type("mime_control_s2c_v1");
+        public static final StreamCodec<RegistryFriendlyByteBuf, MimeControlS2C> CODEC =
+                StreamCodec.of(MimeControlS2C::write, MimeControlS2C::read);
+
+        public MimeControlS2C {
+            if (controllerId == null) {
+                throw new IllegalArgumentException("Mime controller UUID is required");
+            }
+        }
+
+        private static void write(RegistryFriendlyByteBuf buffer, MimeControlS2C payload) {
+            buffer.writeBoolean(payload.active());
+            buffer.writeUUID(payload.controllerId());
+        }
+
+        private static MimeControlS2C read(RegistryFriendlyByteBuf buffer) {
+            return new MimeControlS2C(buffer.readBoolean(), buffer.readUUID());
+        }
+
+        @Override
+        public Type<MimeControlS2C> type() {
+            return TYPE;
+        }
+    }
+
+    /** Private controller-only view: hide the target locally and wear the target's skin. */
+    public record MimeControllerViewS2C(boolean active, UUID targetId, String targetName)
+            implements CustomPacketPayload {
+        public static final Type<MimeControllerViewS2C> TYPE =
+                GooseToolsPayloads.type("mime_controller_view_s2c_v1");
+        public static final StreamCodec<RegistryFriendlyByteBuf, MimeControllerViewS2C> CODEC =
+                StreamCodec.of(MimeControllerViewS2C::write, MimeControllerViewS2C::read);
+
+        public MimeControllerViewS2C {
+            if (targetId == null) {
+                throw new IllegalArgumentException("Mime controller-view target UUID is required");
+            }
+            targetName = targetName == null ? "" : targetName;
+            if (targetName.length() > 64) {
+                throw new IllegalArgumentException("Mime controller-view target name is too long");
+            }
+        }
+
+        private static void write(RegistryFriendlyByteBuf buffer, MimeControllerViewS2C payload) {
+            buffer.writeBoolean(payload.active());
+            buffer.writeUUID(payload.targetId());
+            buffer.writeUtf(payload.targetName(), 64);
+        }
+
+        private static MimeControllerViewS2C read(RegistryFriendlyByteBuf buffer) {
+            return new MimeControllerViewS2C(
+                    buffer.readBoolean(), buffer.readUUID(), buffer.readUtf(64));
+        }
+
+        @Override
+        public Type<MimeControllerViewS2C> type() {
+            return TYPE;
+        }
     }
 
     public record HelloS2C(int protocol, String version) implements CustomPacketPayload {
@@ -156,6 +242,91 @@ public final class GooseToolsPayloads {
         }
     }
 
+    /** A server-authoritative meeting alert with immutable player appearance snapshots. */
+    public record MeetingAlertS2C(
+            int kind,
+            MeetingAppearance caller,
+            MeetingAppearance victim) implements CustomPacketPayload {
+        public static final int REPORT = 0;
+        public static final int BELL = 1;
+        public static final int SACRIFICE = 2;
+        public static final Type<MeetingAlertS2C> TYPE = GooseToolsPayloads.type("meeting_alert_s2c_v1");
+        public static final StreamCodec<RegistryFriendlyByteBuf, MeetingAlertS2C> CODEC =
+                StreamCodec.of(MeetingAlertS2C::write, MeetingAlertS2C::read);
+
+        public MeetingAlertS2C {
+            if (kind != REPORT && kind != BELL && kind != SACRIFICE) {
+                throw new IllegalArgumentException("Unknown meeting alert kind: " + kind);
+            }
+            if (caller == null) {
+                throw new IllegalArgumentException("Meeting alert caller is required");
+            }
+            if (kind == REPORT && victim == null) {
+                throw new IllegalArgumentException("Reported-body alert requires a victim");
+            }
+            if (kind != REPORT && victim != null) {
+                throw new IllegalArgumentException("Bell alerts cannot carry a victim");
+            }
+        }
+
+        private static void write(RegistryFriendlyByteBuf buffer, MeetingAlertS2C payload) {
+            buffer.writeByte(payload.kind());
+            payload.caller().write(buffer);
+            buffer.writeBoolean(payload.victim() != null);
+            if (payload.victim() != null) {
+                payload.victim().write(buffer);
+            }
+        }
+
+        private static MeetingAlertS2C read(RegistryFriendlyByteBuf buffer) {
+            int kind = buffer.readUnsignedByte();
+            MeetingAppearance caller = MeetingAppearance.read(buffer);
+            MeetingAppearance victim = buffer.readBoolean() ? MeetingAppearance.read(buffer) : null;
+            return new MeetingAlertS2C(kind, caller, victim);
+        }
+
+        @Override
+        public Type<MeetingAlertS2C> type() {
+            return TYPE;
+        }
+    }
+
+    public record MeetingAppearance(UUID playerId, String playerName, List<ItemStack> equipment) {
+        private static final int EQUIPMENT_COUNT = EquipmentSlot.values().length;
+
+        public MeetingAppearance {
+            if (playerId == null) {
+                throw new IllegalArgumentException("Meeting appearance player UUID is required");
+            }
+            playerName = playerName == null ? "" : playerName;
+            if (playerName.length() > 64) {
+                throw new IllegalArgumentException("Meeting appearance player name is too long");
+            }
+            equipment = equipment == null ? List.of() : List.copyOf(equipment);
+            if (equipment.size() != EQUIPMENT_COUNT || equipment.stream().anyMatch(item -> item == null)) {
+                throw new IllegalArgumentException("Meeting appearance must contain every equipment slot");
+            }
+        }
+
+        private void write(RegistryFriendlyByteBuf buffer) {
+            buffer.writeUUID(playerId);
+            buffer.writeUtf(playerName, 64);
+            for (ItemStack item : equipment) {
+                ItemStack.OPTIONAL_STREAM_CODEC.encode(buffer, item);
+            }
+        }
+
+        private static MeetingAppearance read(RegistryFriendlyByteBuf buffer) {
+            UUID playerId = buffer.readUUID();
+            String playerName = buffer.readUtf(64);
+            List<ItemStack> equipment = new ArrayList<>(EQUIPMENT_COUNT);
+            for (int index = 0; index < EQUIPMENT_COUNT; index++) {
+                equipment.add(ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer));
+            }
+            return new MeetingAppearance(playerId, playerName, equipment);
+        }
+    }
+
     /** Per-player limited-vision state derived from the authoritative game settings. */
     public record VisionStateS2C(
             boolean active,
@@ -194,6 +365,32 @@ public final class GooseToolsPayloads {
 
         @Override
         public Type<BlackoutAssistStateS2C> type() {
+            return TYPE;
+        }
+    }
+
+    /** Spoiler-free map and match phase for optional local Rich Presence integrations. */
+    public record GamePresenceStateS2C(int phaseCode, int mapId)
+            implements CustomPacketPayload {
+        public static final Type<GamePresenceStateS2C> TYPE =
+                GooseToolsPayloads.type("game_presence_state_s2c_v1");
+        public static final StreamCodec<RegistryFriendlyByteBuf, GamePresenceStateS2C> CODEC =
+                StreamCodec.composite(
+                        ByteBufCodecs.VAR_INT, GamePresenceStateS2C::phaseCode,
+                        ByteBufCodecs.VAR_INT, GamePresenceStateS2C::mapId,
+                        GamePresenceStateS2C::new);
+
+        public GamePresenceStateS2C {
+            if (phaseCode < 0 || phaseCode > 7) {
+                throw new IllegalArgumentException("Unknown game presence phase: " + phaseCode);
+            }
+            if (mapId < -1 || mapId > 10_000) {
+                throw new IllegalArgumentException("Invalid game presence map id: " + mapId);
+            }
+        }
+
+        @Override
+        public Type<GamePresenceStateS2C> type() {
             return TYPE;
         }
     }
@@ -408,6 +605,198 @@ public final class GooseToolsPayloads {
                 throw new IllegalArgumentException("Invalid nametag attachment dimensions");
             }
             rgb &= 0x00ffffff;
+        }
+    }
+
+    /** Complete viewer-private set of client-rendered dream stand-ins. */
+    public record DreamSceneS2C(long revision, List<DreamStandIn> standIns)
+            implements CustomPacketPayload {
+        public static final int MAX_STAND_INS = 64;
+        public static final Type<DreamSceneS2C> TYPE =
+                GooseToolsPayloads.type("dream_scene_s2c_v1");
+        public static final StreamCodec<RegistryFriendlyByteBuf, DreamSceneS2C> CODEC =
+                StreamCodec.of(DreamSceneS2C::write, DreamSceneS2C::read);
+
+        public DreamSceneS2C {
+            standIns = standIns == null ? List.of() : List.copyOf(standIns);
+            if (standIns.size() > MAX_STAND_INS) {
+                throw new IllegalArgumentException("Too many dream stand-ins: " + standIns.size());
+            }
+        }
+
+        private static void write(RegistryFriendlyByteBuf buffer, DreamSceneS2C payload) {
+            buffer.writeVarLong(payload.revision());
+            buffer.writeVarInt(payload.standIns().size());
+            for (DreamStandIn standIn : payload.standIns()) {
+                standIn.write(buffer);
+            }
+        }
+
+        private static DreamSceneS2C read(RegistryFriendlyByteBuf buffer) {
+            long revision = buffer.readVarLong();
+            int count = buffer.readVarInt();
+            if (count < 0 || count > MAX_STAND_INS) {
+                throw new IllegalArgumentException("Invalid dream stand-in count: " + count);
+            }
+            List<DreamStandIn> standIns = new ArrayList<>(count);
+            for (int index = 0; index < count; index++) {
+                standIns.add(DreamStandIn.read(buffer));
+            }
+            return new DreamSceneS2C(revision, standIns);
+        }
+
+        @Override
+        public Type<DreamSceneS2C> type() {
+            return TYPE;
+        }
+    }
+
+    /** Immutable appearance and placement for one client-only RemotePlayer. */
+    public record DreamStandIn(
+            UUID fakeId,
+            UUID sourcePlayerId,
+            UUID appearancePlayerId,
+            String sourceName,
+            String dimension,
+            int kind,
+            boolean retiring,
+            double x,
+            double y,
+            double z,
+            float yRot,
+            float xRot,
+            float bodyRot,
+            float headRot,
+            String pose,
+            List<ItemStack> equipment) {
+        public static final int MEETING_PROXY = 0;
+        public static final int MAP_BODY = 1;
+        public static final int DREAM_CORPSE = 2;
+        private static final int EQUIPMENT_COUNT = EquipmentSlot.values().length;
+
+        public DreamStandIn {
+            if (fakeId == null || sourcePlayerId == null || appearancePlayerId == null) {
+                throw new IllegalArgumentException("Dream stand-in UUIDs are required");
+            }
+            sourceName = sourceName == null ? "" : sourceName;
+            dimension = dimension == null ? "" : dimension;
+            pose = pose == null ? "STANDING" : pose;
+            if (sourceName.length() > 64 || dimension.length() > 128 || pose.length() > 32) {
+                throw new IllegalArgumentException("Dream stand-in text field is too long");
+            }
+            if (kind < MEETING_PROXY || kind > DREAM_CORPSE) {
+                throw new IllegalArgumentException("Unknown dream stand-in kind: " + kind);
+            }
+            if (!Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(z)
+                    || !Float.isFinite(yRot) || !Float.isFinite(xRot)
+                    || !Float.isFinite(bodyRot) || !Float.isFinite(headRot)) {
+                throw new IllegalArgumentException("Dream stand-in transform must be finite");
+            }
+            equipment = equipment == null ? List.of() : List.copyOf(equipment);
+            if (equipment.size() != EQUIPMENT_COUNT
+                    || equipment.stream().anyMatch(item -> item == null)) {
+                throw new IllegalArgumentException(
+                        "Dream stand-in must contain every equipment slot");
+            }
+        }
+
+        private void write(RegistryFriendlyByteBuf buffer) {
+            buffer.writeUUID(fakeId);
+            buffer.writeUUID(sourcePlayerId);
+            buffer.writeUUID(appearancePlayerId);
+            buffer.writeUtf(sourceName, 64);
+            buffer.writeUtf(dimension, 128);
+            buffer.writeByte(kind);
+            buffer.writeBoolean(retiring);
+            buffer.writeDouble(x);
+            buffer.writeDouble(y);
+            buffer.writeDouble(z);
+            buffer.writeFloat(yRot);
+            buffer.writeFloat(xRot);
+            buffer.writeFloat(bodyRot);
+            buffer.writeFloat(headRot);
+            buffer.writeUtf(pose, 32);
+            for (ItemStack item : equipment) {
+                ItemStack.OPTIONAL_STREAM_CODEC.encode(buffer, item);
+            }
+        }
+
+        private static DreamStandIn read(RegistryFriendlyByteBuf buffer) {
+            UUID fakeId = buffer.readUUID();
+            UUID sourcePlayerId = buffer.readUUID();
+            UUID appearancePlayerId = buffer.readUUID();
+            String sourceName = buffer.readUtf(64);
+            String dimension = buffer.readUtf(128);
+            int kind = buffer.readUnsignedByte();
+            boolean retiring = buffer.readBoolean();
+            double x = buffer.readDouble();
+            double y = buffer.readDouble();
+            double z = buffer.readDouble();
+            float yRot = buffer.readFloat();
+            float xRot = buffer.readFloat();
+            float bodyRot = buffer.readFloat();
+            float headRot = buffer.readFloat();
+            String pose = buffer.readUtf(32);
+            List<ItemStack> equipment = new ArrayList<>(EQUIPMENT_COUNT);
+            for (int index = 0; index < EQUIPMENT_COUNT; index++) {
+                equipment.add(ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer));
+            }
+            return new DreamStandIn(fakeId, sourcePlayerId, appearancePlayerId,
+                    sourceName, dimension, kind, retiring,
+                    x, y, z, yRot, xRot, bodyRot, headRot, pose, equipment);
+        }
+    }
+
+    /** Lightweight pose update for a remotely controlled meeting proxy. */
+    public record DreamMotionS2C(
+            UUID fakeId,
+            float yRot,
+            float xRot,
+            float bodyRot,
+            float headRot,
+            String pose,
+            int swingSequence,
+            boolean offHand) implements CustomPacketPayload {
+        public static final Type<DreamMotionS2C> TYPE =
+                GooseToolsPayloads.type("dream_motion_s2c_v1");
+        public static final StreamCodec<RegistryFriendlyByteBuf, DreamMotionS2C> CODEC =
+                StreamCodec.of(DreamMotionS2C::write, DreamMotionS2C::read);
+
+        public DreamMotionS2C {
+            pose = pose == null ? "STANDING" : pose;
+            if (fakeId == null || pose.length() > 32
+                    || !Float.isFinite(yRot) || !Float.isFinite(xRot)
+                    || !Float.isFinite(bodyRot) || !Float.isFinite(headRot)) {
+                throw new IllegalArgumentException("Invalid dream proxy motion");
+            }
+        }
+
+        private static void write(RegistryFriendlyByteBuf buffer, DreamMotionS2C payload) {
+            buffer.writeUUID(payload.fakeId());
+            buffer.writeFloat(payload.yRot());
+            buffer.writeFloat(payload.xRot());
+            buffer.writeFloat(payload.bodyRot());
+            buffer.writeFloat(payload.headRot());
+            buffer.writeUtf(payload.pose(), 32);
+            buffer.writeVarInt(payload.swingSequence());
+            buffer.writeBoolean(payload.offHand());
+        }
+
+        private static DreamMotionS2C read(RegistryFriendlyByteBuf buffer) {
+            return new DreamMotionS2C(
+                    buffer.readUUID(),
+                    buffer.readFloat(),
+                    buffer.readFloat(),
+                    buffer.readFloat(),
+                    buffer.readFloat(),
+                    buffer.readUtf(32),
+                    buffer.readVarInt(),
+                    buffer.readBoolean());
+        }
+
+        @Override
+        public Type<DreamMotionS2C> type() {
+            return TYPE;
         }
     }
 

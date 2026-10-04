@@ -642,11 +642,31 @@ public final class BirdwatcherWallTransparency {
         }
         HashSet<Long> dirtySections = new HashSet<>();
         for (long packed : changed) {
-            dirtySections.add(SectionPos.asLong(BlockPos.of(packed)));
+            BlockPos pos = BlockPos.of(packed);
+            // Section meshes sample one block beyond their own bounds to decide which faces
+            // are visible. Include that one-block border so walls crossing a section edge do
+            // not leave stale faces, while avoiding 26.3's full-world geometry invalidation.
+            int minSectionX = SectionPos.blockToSectionCoord(pos.getX() - 1);
+            int maxSectionX = SectionPos.blockToSectionCoord(pos.getX() + 1);
+            int minSectionY = SectionPos.blockToSectionCoord(pos.getY() - 1);
+            int maxSectionY = SectionPos.blockToSectionCoord(pos.getY() + 1);
+            int minSectionZ = SectionPos.blockToSectionCoord(pos.getZ() - 1);
+            int maxSectionZ = SectionPos.blockToSectionCoord(pos.getZ() + 1);
+            for (int sectionZ = minSectionZ; sectionZ <= maxSectionZ; sectionZ++) {
+                for (int sectionX = minSectionX; sectionX <= maxSectionX; sectionX++) {
+                    for (int sectionY = minSectionY; sectionY <= maxSectionY; sectionY++) {
+                        dirtySections.add(SectionPos.asLong(sectionX, sectionY, sectionZ));
+                    }
+                }
+            }
         }
-        // 26.3 rebuilds section storage as one renderer-owned geometry set.
-        client.levelRenderer.invalidateCompiledGeometry(
-                client.level, client.options, client.gameRenderer.mainCamera(), client.getBlockColors());
+        for (long section : dirtySections) {
+            int sectionX = SectionPos.x(section);
+            int sectionY = SectionPos.y(section);
+            int sectionZ = SectionPos.z(section);
+            client.level.setSectionRangeDirty(
+                    sectionX, sectionY, sectionZ, sectionX, sectionY, sectionZ);
+        }
         if (GooseTools.LOGGER.isDebugEnabled()) {
             Map<Integer, Integer> hiddenByX = new TreeMap<>();
             Map<Integer, Integer> hiddenByY = new TreeMap<>();

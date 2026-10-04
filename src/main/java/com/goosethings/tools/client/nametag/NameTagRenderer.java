@@ -43,30 +43,17 @@ public final class NameTagRenderer {
     private static final Identifier PIGEON = texture("textures/item/ggd/pigeon.png");
     private static final Identifier LOVER = texture("textures/item/ggd/lover.png");
     private static final Identifier GUARD_SHIELD = texture("textures/item/guard_shield.png");
-    private static final Identifier SERIAL = texture("textures/item/serial_number.png");
     private static final int FULL_BRIGHT = 0x00f000f0;
     private static final double MAX_DISTANCE_SQUARED = 96.0D * 96.0D;
     private static final float SCALE = 0.025F;
     private static final float GAP = 1.5F;
     private static final float ICON_HEIGHT = 10.0F;
-    private static final float BADGE_SIZE = 12.0F;
+    private static final float BADGE_SIZE = SerialBadgeStyle.SIZE;
     private static final float ICON_DEPTH = 0.01F;
     private static final float BADGE_NUMBER_DEPTH = 0.03F;
     private static final float MARK_BACKGROUND_DEPTH = -0.02F;
     private static final float SERIAL_WHITE_U = 8.5F / 32.0F;
     private static final float SERIAL_WHITE_V = 3.5F / 32.0F;
-    private static final int[][] DIGIT_ROWS = {
-            {0b111, 0b101, 0b101, 0b101, 0b111},
-            {0b010, 0b110, 0b010, 0b010, 0b111},
-            {0b111, 0b001, 0b111, 0b100, 0b111},
-            {0b111, 0b001, 0b111, 0b001, 0b111},
-            {0b101, 0b101, 0b111, 0b001, 0b001},
-            {0b111, 0b100, 0b111, 0b001, 0b111},
-            {0b111, 0b100, 0b111, 0b101, 0b111},
-            {0b111, 0b001, 0b010, 0b010, 0b010},
-            {0b111, 0b101, 0b111, 0b101, 0b111},
-            {0b111, 0b101, 0b111, 0b001, 0b111}
-    };
     private NameTagRenderer() {
     }
 
@@ -104,15 +91,20 @@ public final class NameTagRenderer {
         for (Entity entity : client.level.entitiesForRendering()) {
             UUID sourceId = NameTagClientState.sourcePlayerId(entity);
             GooseToolsPayloads.NameTagEntry entry = NameTagClientState.entry(sourceId);
-            boolean localPlayer = sourceId != null && sourceId.equals(client.player.getUUID());
-            if (entry == null || entry.name().isEmpty()
-                    || localPlayer && client.options.getCameraType().isFirstPerson()) {
+            boolean localPlayer = entity == client.player
+                    || (sourceId != null && sourceId.equals(client.player.getUUID()));
+            if (entry == null || entry.name().isEmpty()) {
                 continue;
             }
             if (entity instanceof Mannequin mannequin && mannequin.getPose() == Pose.SLEEPING) {
                 continue;
             }
-            if (entity.isRemoved() || entity.isInvisibleTo(client.player)) {
+            if (entity.isRemoved() || NameTagRenderPolicy.shouldSkip(
+                    client.options.getCameraType().isFirstPerson(),
+                    entity == camera.entity(),
+                    entity.isInvisibleTo(client.player),
+                    client.player.isSpectator(),
+                    localPlayer)) {
                 continue;
             }
             Vec3 position = entity.getPosition(partialTick);
@@ -194,11 +186,11 @@ public final class NameTagRenderer {
                 ? PlayerMarkerCatalog.byCode(entry.markerCode()) : null;
         String markerText = marker == null ? "" : Component.translatableWithFallback(
                 marker.translationKey(), marker.fallback()).getString();
-        Identifier markerTexture = marker == null || !marker.roleSpecific()
-                ? null : Identifier.tryParse(marker.texture());
+        Identifier markerTexture = marker == null ? null : Identifier.tryParse(marker.texture());
 
         List<Icon> icons = new ArrayList<>(6 + entry.attachments().size());
-        if (WitchDoctorTargetClient.isTarget(entry.identityPlayerId())) {
+        if (NameTagRenderIconPolicy.showWitchDoctorCurse(
+                WitchDoctorTargetClient.isTarget(entry.identityPlayerId()), flags)) {
             icons.add(new Icon(CURSE_EYE, ICON_HEIGHT, ICON_HEIGHT, 0xffffff));
         }
         if ((flags & NameTagSync.GRAVY) != 0) {
@@ -226,7 +218,7 @@ public final class NameTagRenderer {
             }
         }
         if (entry.serialNumber() > 0) {
-            icons.add(new Icon(SERIAL, BADGE_SIZE, BADGE_SIZE, entry.rgb()));
+            icons.add(new Icon(SerialBadgeStyle.TEXTURE, BADGE_SIZE, BADGE_SIZE, entry.rgb()));
         }
 
         float nameWidth = font.width(entry.name());
@@ -253,30 +245,33 @@ public final class NameTagRenderer {
             float top = -icon.height() * 0.5F;
             emitIcon(destination, poses, icon.texture(), cursor, top,
                     icon.width(), icon.height(), alphaByte << 24 | icon.rgb());
-            if (icon.texture().equals(SERIAL)) {
-                int contrast = alphaByte << 24 | contrastColour(icon.rgb());
+            if (icon.texture().equals(SerialBadgeStyle.TEXTURE)) {
+                int contrast = alphaByte << 24 | SerialBadgeStyle.contrastColour(icon.rgb());
                 emitBadgeNumber(destination, poses, cursor, entry.serialNumber(), contrast);
             }
             cursor += icon.width() + GAP;
         }
         destination.submitText(poses, cursor, -4.5F,
                 Component.literal(entry.name()).getVisualOrderText(), false,
-                Font.DisplayMode.NORMAL, nameColour, background, FULL_BRIGHT, 0);
+                Font.DisplayMode.NORMAL, FULL_BRIGHT, nameColour, background, 0);
         cursor += nameWidth;
         if (marker != null) {
             cursor += GAP;
             int markerAlpha = Math.clamp(Math.round(alpha * 190.0F), 0, 255);
             emitSolidRect(destination, poses, cursor, -6.0F, markerWidth, 12.0F,
-                    markerAlpha << 24 | marker.faction().rgb());
-            int markerTextColour = alphaByte << 24 | contrastColour(marker.faction().rgb());
-            destination.submitText(poses, cursor + 2.0F, -4.5F,
-                    Component.literal(markerText).getVisualOrderText(), false,
-                    Font.DisplayMode.NORMAL, markerTextColour, 0, FULL_BRIGHT, 0);
+                    markerAlpha << 24 | marker.style().cardRgb());
+            int markerTextColour = alphaByte << 24
+                    | SerialBadgeStyle.contrastColour(marker.style().cardRgb());
+            float markerContentX = cursor + 2.0F;
             if (markerTexture != null) {
                 emitIcon(destination, poses, markerTexture,
-                        cursor + 2.0F + markerTextWidth + GAP, -ICON_HEIGHT * 0.5F,
+                        markerContentX, -ICON_HEIGHT * 0.5F,
                         ICON_HEIGHT, ICON_HEIGHT, alphaByte << 24 | 0xffffff);
+                markerContentX += ICON_HEIGHT + GAP;
             }
+            destination.submitText(poses, markerContentX, -4.5F,
+                    Component.literal(markerText).getVisualOrderText(), false,
+                    Font.DisplayMode.NORMAL, FULL_BRIGHT, markerTextColour, 0, 0);
         }
         poses.popPose();
     }
@@ -290,7 +285,7 @@ public final class NameTagRenderer {
                                       int colour) {
         float right = x + width;
         float bottom = y + height;
-        destination.submitCustomGeometry(poses, RenderTypes.text(SERIAL), (pose, out) -> {
+        destination.submitCustomGeometry(poses, RenderTypes.text(SerialBadgeStyle.TEXTURE), (pose, out) -> {
             Matrix4fc matrix = pose.pose();
             out.addVertex(matrix, x, bottom, MARK_BACKGROUND_DEPTH).setColor(colour)
                     .setUv(SERIAL_WHITE_U, SERIAL_WHITE_V).setLight(FULL_BRIGHT);
@@ -309,29 +304,8 @@ public final class NameTagRenderer {
                                         float badgeX,
                                         int number,
                                         int colour) {
-        String text = Integer.toString(Math.clamp(number, 1, 20));
-        float pixel = text.length() == 1 ? 1.45F : 1.15F;
-        float glyphWidth = pixel * 3.0F;
-        float gap = pixel * 0.8F;
-        float totalWidth = glyphWidth * text.length() + gap * (text.length() - 1);
-        float startX = badgeX + (BADGE_SIZE - totalWidth) * 0.5F;
-        float startY = -pixel * 2.5F;
-        for (int index = 0; index < text.length(); index++) {
-            int digit = text.charAt(index) - '0';
-            float digitX = startX + index * (glyphWidth + gap);
-            for (int row = 0; row < 5; row++) {
-                for (int column = 0; column < 3; column++) {
-                    if ((DIGIT_ROWS[digit][row] & 1 << (2 - column)) == 0) {
-                        continue;
-                    }
-                    emitSolidPixel(destination, poses,
-                            digitX + column * pixel,
-                            startY + row * pixel,
-                            pixel,
-                            colour);
-                }
-            }
-        }
+        SerialBadgeStyle.forEachDigitPixel(number, badgeX, -BADGE_SIZE * 0.5F,
+                (x, y, size) -> emitSolidPixel(destination, poses, x, y, size, colour));
     }
 
     private static void emitSolidPixel(SubmitNodeCollector destination,
@@ -342,7 +316,7 @@ public final class NameTagRenderer {
                                        int colour) {
         float right = x + size;
         float bottom = y + size;
-        destination.submitCustomGeometry(poses, RenderTypes.text(SERIAL), (pose, out) -> {
+        destination.submitCustomGeometry(poses, RenderTypes.text(SerialBadgeStyle.TEXTURE), (pose, out) -> {
             Matrix4fc matrix = pose.pose();
             out.addVertex(matrix, x, bottom, BADGE_NUMBER_DEPTH).setColor(colour)
                     .setUv(SERIAL_WHITE_U, SERIAL_WHITE_V).setLight(FULL_BRIGHT);
@@ -372,13 +346,6 @@ public final class NameTagRenderer {
             out.addVertex(matrix, right, y, ICON_DEPTH).setColor(colour).setUv(1, 0).setLight(FULL_BRIGHT);
             out.addVertex(matrix, x, y, ICON_DEPTH).setColor(colour).setUv(0, 0).setLight(FULL_BRIGHT);
         });
-    }
-
-    private static int contrastColour(int rgb) {
-        int red = rgb >> 16 & 0xff;
-        int green = rgb >> 8 & 0xff;
-        int blue = rgb & 0xff;
-        return red * 299 + green * 587 + blue * 114 >= 150_000 ? 0x000000 : 0xffffff;
     }
 
     private static Identifier texture(String path) {

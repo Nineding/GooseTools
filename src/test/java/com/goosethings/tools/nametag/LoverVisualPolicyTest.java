@@ -75,4 +75,13 @@ final class LoverVisualPolicyTest {
         assertFalse(LoverVisualPolicy.show(
                 false, true, VIEWER, RENDERED, LOVER_IDENTITY, 1, 1, 2));
     }
+
+    @Test
+    void roleVisibleFullBloodGhostSeesLoverWithoutSpectatorGameMode() {
+        Set<String> ghost = Set.of("players", "dlcDeadViewer");
+        assertFalse(LoverVisualPolicy.show(
+                false, false, ghost, RENDERED, LOVER_IDENTITY, 0, 2, 2));
+        assertTrue(LoverVisualPolicy.show(
+                false, false, ghost, RENDERED, LOVER_IDENTITY, 0, 2, 2, true));
+    }
 }

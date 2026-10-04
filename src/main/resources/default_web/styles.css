@@ -949,3 +949,118 @@ body.theme-dark {
 .theme-dark .progress-copy p {
   color: #b1c8d3;
 }
+
+/* Official web directory shown by the retired in-game encyclopedia entry. */
+.official-links-page {
+  padding: 11px;
+}
+
+.official-toolbar .brand {
+  width: 48%;
+}
+
+.toolbar-spacer {
+  width: 25%;
+}
+
+.official-hero {
+  padding: 18px;
+  margin-bottom: 11px;
+  text-align: center;
+  background-color: #fbfffd;
+  border-width: 1px;
+  border-color: #9bcbbb;
+}
+
+.official-hero .lead {
+  margin: 5px 8% 0 8%;
+  text-align: center;
+}
+
+.official-link-grid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.official-link-card {
+  display: flex;
+  flex-direction: row;
+  width: 48%;
+  min-height: 72px;
+  padding: 10px;
+  background-color: #fbfffd;
+  border-width: 1px;
+  border-color: #acd2c5;
+}
+
+.official-link-card:hover {
+  background-color: #e4f4ee;
+  border-color: #4fa392;
+}
+
+.official-link-card img {
+  width: 38px;
+  height: 38px;
+  margin: 4px 9px 0 0;
+}
+
+.official-link-card div {
+  width: 77%;
+}
+
+.official-link-card h2 {
+  margin: 2px 0 4px 0;
+}
+
+.official-link-card p {
+  margin: 0 0 5px 0;
+}
+
+.official-link-kicker, .official-open {
+  color: #2f8f83;
+  font-size: 8px;
+  font-weight: bold;
+}
+
+.external-note {
+  display: flex;
+  flex-direction: row;
+  margin-top: 11px;
+  padding: 9px;
+  background-color: #eaf5f1;
+  border-width: 1px;
+  border-color: #bdd8cf;
+}
+
+.external-note div {
+  width: 90%;
+}
+
+.external-note p {
+  margin: 0;
+}
+
+.theme-dark .official-hero, .theme-dark .official-link-card {
+  background-color: #172427;
+  border-color: #365952;
+}
+
+.theme-dark .official-link-card:hover {
+  background-color: #223634;
+  border-color: #5f968d;
+}
+
+.theme-dark .official-link-card p, .theme-dark .external-note p {
+  color: #a9c2bc;
+}
+
+.theme-dark .official-link-kicker, .theme-dark .official-open {
+  color: #76c9ba;
+}
+
+.theme-dark .external-note {
+  background-color: #1b2c2d;
+  border-color: #365957;
+}

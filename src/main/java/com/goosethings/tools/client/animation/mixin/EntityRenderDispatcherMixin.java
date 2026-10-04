@@ -1,6 +1,7 @@
 package com.goosethings.tools.client.animation.mixin;
 
 import com.goosethings.tools.client.animation.PlayerArmAnimationContinuity;
+import com.goosethings.tools.client.dream.DreamStandInClient;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.world.entity.Entity;
@@ -17,7 +18,9 @@ public abstract class EntityRenderDispatcherMixin {
     private <E extends Entity> void goosetools$suppressNewerStandInVisual(
             E entity, Frustum frustum, double cameraX, double cameraY, double cameraZ, float partialTick,
             CallbackInfoReturnable<Boolean> cir) {
-        if (PlayerArmAnimationContinuity.shouldSuppressRender(entity)) {
+        if (DreamStandInClient.shouldSuppressStandIn(entity)
+                || PlayerArmAnimationContinuity.shouldSuppressRender(entity)
+                || DreamStandInClient.shouldSuppressMeetingSource(entity)) {
             cir.setReturnValue(false);
         }
     }

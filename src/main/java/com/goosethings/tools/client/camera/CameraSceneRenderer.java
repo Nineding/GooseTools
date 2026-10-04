@@ -18,7 +18,7 @@ import net.minecraft.client.player.RemotePlayer;
 import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.block.ModelBlockRenderer;
 import net.minecraft.client.renderer.block.FluidRenderer;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
 import net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
 import net.minecraft.client.renderer.fog.FogRenderer;
@@ -32,21 +32,31 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.block.RenderShape;
-import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector4f;
 import java.util.*;
 
 /** Own target, geometry buffers and submit storage. Never switches Minecraft.level or its camera entity. */
 public final class CameraSceneRenderer implements AutoCloseable {
+    // Minecraft 26.3 uses reversed-Z depth (GREATER_THAN_OR_EQUAL). The far plane must
+    // therefore clear to zero; clearing to one rejects every normal world fragment.
+    static final double REVERSED_Z_DEPTH_CLEAR = 0.0D;
+    // Keep the loading/failure surface visibly different from the old all-black rendering bug.
+    private static final Vector4f NO_SIGNAL_COLOR = new Vector4f(0.045F,0.11F,0.18F,1.0F);
     private static final net.minecraft.client.renderer.block.model.BlockDisplayContext BLOCK_CONTEXT =
             net.minecraft.client.renderer.block.model.BlockDisplayContext.create();
     private final Minecraft mc = Minecraft.getInstance();
     private final TextureTarget target = new TextureTarget("GooseTools camera",
             CameraLimits.RENDER_WIDTH, CameraLimits.RENDER_HEIGHT,
             GpuFormat.RGBA8_UNORM, GpuFormat.D32_FLOAT);
+    private final TextureTarget terrainTarget = new TextureTarget("GooseTools camera terrain cache",
+            CameraLimits.RENDER_WIDTH, CameraLimits.RENDER_HEIGHT,
+            GpuFormat.RGBA8_UNORM, GpuFormat.D32_FLOAT);
+    private final String cameraId;
     private final Identifier texture;
+    private final RenderType screenRenderType;
     private final ProjectionMatrixBuffer projection = new ProjectionMatrixBuffer("GooseTools camera");
+    private final Projection cameraProjection = new Projection();
     private final FogRenderer fog = new FogRenderer();
     private final RenderBuffers renderBuffers = new RenderBuffers(3);
     private SubmitNodeStorage submits = new SubmitNodeStorage();
@@ -68,21 +78,63 @@ public final class CameraSceneRenderer implements AutoCloseable {
     private final List<BlockPos> buildingSpecialBlocks = new ArrayList<>();
     private final Map<UUID,ActorView> actorViews = new HashMap<>();
     private final List<BlockPos> specialBlocks = new ArrayList<>();
-    private long geometryVersion = -1;
+    private long pendingGeometryVersion = -1;
+    private long terrainCacheVersion = -1;
+    private long failedTerrainVersion = -1;
+    private boolean terrainCacheReady;
+    private boolean noSignalInitialized;
+    private boolean firstFrameLogged;
+    private boolean firstPresentationLogged;
     private boolean closed;
 
     public CameraSceneRenderer(String id) {
+        cameraId = id;
+        cameraProjection.setupPerspective(.05F, CameraLimits.FAR_PLANE,
+                CameraLimits.VERTICAL_FOV_DEGREES, CameraLimits.RENDER_WIDTH, CameraLimits.RENDER_HEIGHT);
         texture = Identifier.fromNamespaceAndPath(GooseTools.MOD_ID, "camera/" + UUID.randomUUID());
         mc.getTextureManager().register(texture, new TargetTexture(target));
+        // World text normally opts into the 26.3 OIT path. A monitor framebuffer is already
+        // opaque and must be sampled directly into the level target, so retain the compatible
+        // vertex format/shader without registering this RenderType for OIT composition.
+        screenRenderType = RenderType.create("goosetools_camera_screen",
+                RenderSetup.builder(RenderPipelines.TEXT)
+                        .withTexture("Sampler0", texture)
+                        .useLightmap()
+                        .createRenderSetup());
     }
     public Identifier texture() { return texture; }
+    public RenderType screenRenderType() { return screenRenderType; }
     public long draws() { return draws; }
 
+    public void markPresented() {
+        if (firstPresentationLogged) return;
+        firstPresentationLogged = true;
+        GooseTools.LOGGER.info("Camera {} first frame submitted to a monitor surface", cameraId);
+    }
+
     public void update(CameraScene scene) {
-        long now = System.nanoTime();
         if (closed || scene.blocks == null) return;
+        if (failedTerrainVersion == scene.blockVersion) return;
+        try {
+            updateIsolated(scene,System.nanoTime());
+        } catch (RuntimeException failure) {
+            failedTerrainVersion = scene.blockVersion;
+            discardPendingTerrain();
+            if (!terrainCacheReady) renderNoSignal();
+            GooseTools.LOGGER.error(
+                    "Camera {} disabled terrain revision {} after a render failure; waiting for a new revision",
+                    cameraId,scene.blockVersion,failure);
+        }
+    }
+
+    private void updateIsolated(CameraScene scene, long now) {
         prepareGeometry(scene);
-        if (geometry == null || !framePacer.shouldRender(now)) return;
+        boolean needsBake = geometry != null && pendingGeometryVersion == scene.blockVersion;
+        boolean renderFrame = framePacer.shouldRender(now);
+        if (!needsBake && (!terrainCacheReady || !renderFrame)) {
+            if (!terrainCacheReady && !noSignalInitialized) renderNoSignal();
+            return;
+        }
         var oldProjection = RenderSystem.getProjectionMatrixBuffer();
         var oldProjectionType = RenderSystem.getProjectionType();
         var oldFog = RenderSystem.getShaderFog();
@@ -90,70 +142,132 @@ public final class CameraSceneRenderer implements AutoCloseable {
         var oldCamera = dispatcher.camera;
         var oldCrosshair = dispatcher.crosshairPickEntity;
         var stack = RenderSystem.getModelViewStack();
+        boolean fogActive = false;
         stack.pushMatrix();
-        try (var iris = CameraIrisCompat.enter()) {
-            submits = new SubmitNodeStorage();
+        try {
             var d = scene.camera;
             camera.configure(d);
             cameraState.pos = camera.position(); cameraState.orientation = new Quaternionf(camera.rotation());
             cameraState.xRot = d.pitch(); cameraState.yRot = d.yaw(); cameraState.initialized = true;
-            int sky = scene.skyColor | 0xff000000;
-            RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(
-                    target.getColorTexture(), new Vector4f(
-                            (sky >> 16 & 0xff) / 255.0F,
-                            (sky >> 8 & 0xff) / 255.0F,
-                            (sky & 0xff) / 255.0F,
-                            1.0F), target.getDepthTexture(), 1.0);
-            RenderSystem.setProjectionMatrix(projection.getBuffer(new Matrix4f().perspective(
-                    (float)Math.toRadians(CameraLimits.VERTICAL_FOV_DEGREES),
-                    CameraLimits.RENDER_WIDTH/(float)CameraLimits.RENDER_HEIGHT,
-                    .05f, CameraLimits.FAR_PLANE)), ProjectionType.PERSPECTIVE);
+            var encoder = RenderSystem.getDevice().createCommandEncoder();
+            // Vanilla Projection supplies reversed-Z and the backend's clip-depth range together.
+            // A normal JOML perspective with a reversed-Z depth test lets distant walls hide actors.
+            RenderSystem.setProjectionMatrix(projection.getBuffer(cameraProjection), ProjectionType.PERSPECTIVE);
             // Geometry is relative to the fixed camera; this is the inverse camera orientation.
             stack.identity().rotate(new Quaternionf(camera.rotation()).conjugate());
             RenderSystem.setShaderFog(fog.getBuffer(FogRenderer.FogMode.NONE));
+            fogActive = true;
             dispatcher.prepare(camera, null);
-            geometry.draw(target);
+
+            if (needsBake) bakeTerrain(scene,encoder);
+            if (!terrainCacheReady || (!renderFrame && !needsBake)) return;
+
+            copyTerrainCache(encoder);
+            submits = new SubmitNodeStorage();
             drawActors(scene);
             try (var prepared = features.prepareFrame(submits);
-                 var pass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(
-                         () -> "GooseTools camera features", target.getColorTextureView(), Optional.empty(),
+                 var pass = encoder.createRenderPass(
+                         () -> "GooseTools camera scene", target.getColorTextureView(), Optional.empty(),
                          target.getDepthTextureView(), OptionalDouble.empty())) {
                 FeatureRenderDispatcher.renderAllFeatures(pass, prepared);
             }
-            fog.endFrame();
             draws++;
+            if (!firstFrameLogged) {
+                firstFrameLogged = true;
+                GooseTools.LOGGER.info("Camera {} rendered its first off-screen frame", cameraId);
+            }
         } finally {
             dispatcher.prepare(oldCamera, oldCrosshair);
             RenderSystem.setProjectionMatrix(oldProjection, oldProjectionType);
             RenderSystem.setShaderFog(oldFog);
+            if (fogActive) fog.endFrame();
             stack.popMatrix();
         }
     }
 
     private void prepareGeometry(CameraScene scene) {
+        if (geometry != null && pendingGeometryVersion != scene.blockVersion) {
+            geometry.close(); geometry = null; pendingGeometryVersion = -1;
+        }
+        if (buildingScene != null && buildingScene.blockVersion != scene.blockVersion) discardBuildingTerrain();
         if (buildingScene == null) {
-            if (geometryVersion == scene.blockVersion) return;
+            if (!shouldStartTerrainBuild(
+                    terrainCacheVersion,pendingGeometryVersion,failedTerrainVersion,scene.blockVersion)) return;
             buildingScene = new CameraScene(scene.camera);
             buildingScene.blocks = scene.blocks; buildingScene.blockVersion = scene.blockVersion;
             buildingGeometry = new CameraGeometry(); buildCursor = 0; buildingSpecialBlocks.clear();
+            terrainSlices = 0; longestTerrainSliceNanos = 0;
             // World geometry must cull shared faces; item-style rendering emits all hidden interior faces.
             buildingBlocks = new ModelBlockRenderer(false,true,mc.getBlockColors());
             buildingFluids = new FluidRenderer(mc.getModelManager().getFluidStateModelSet());
+            GooseTools.LOGGER.info("Camera {} received terrain revision {}; preparing geometry",
+                    cameraId, buildingScene.blockVersion);
         }
-        // Spend more time on an empty target so the first picture appears quickly. Background
-        // refreshes retain the old geometry and use the smaller budget to avoid frame spikes.
+        // Geometry is built incrementally, then consumed once by the terrain cache. Keeping the
+        // old cache visible during refresh prevents both monitor flicker and frame-time spikes.
         long started = System.nanoTime();
-        drawBlocks(buildingScene,started+(geometry == null ? 1_500_000L : 500_000L));
+        drawBlocks(buildingScene,started+(terrainCacheReady ? 500_000L : 1_500_000L));
         terrainSlices++;
         longestTerrainSliceNanos = Math.max(longestTerrainSliceNanos,System.nanoTime()-started);
         if (buildCursor == CameraLimits.CELLS) {
             buildingGeometry.upload();
-            if (geometry != null) geometry.close();
             geometry = buildingGeometry; buildingGeometry = null;
-            geometryVersion = buildingScene.blockVersion; buildingScene = null;
+            pendingGeometryVersion = buildingScene.blockVersion; buildingScene = null;
             buildingBlocks = null; buildingFluids = null;
-            specialBlocks.clear(); specialBlocks.addAll(buildingSpecialBlocks); buildingSpecialBlocks.clear();
+            GooseTools.LOGGER.info(
+                    "Camera {} prepared one-shot terrain revision {} in {} slices (longest {} us; {})",
+                    cameraId, pendingGeometryVersion, terrainSlices, longestTerrainSliceNanos / 1_000L,
+                    geometry.indexSummary());
         }
+    }
+
+    private void bakeTerrain(CameraScene scene, com.mojang.renderpearl.api.commands.CommandEncoder encoder) {
+        int sky = scene.skyColor | 0xff000000;
+        encoder.clearColorAndDepthTextures(
+                terrainTarget.getColorTexture(),new Vector4f(
+                        (sky >> 16 & 0xff) / 255.0F,
+                        (sky >> 8 & 0xff) / 255.0F,
+                        (sky & 0xff) / 255.0F,
+                        1.0F),terrainTarget.getDepthTexture(),REVERSED_Z_DEPTH_CLEAR);
+        try (var pass = encoder.createRenderPass(
+                () -> "GooseTools camera terrain bake",terrainTarget.getColorTextureView(),Optional.empty(),
+                terrainTarget.getDepthTextureView(),OptionalDouble.empty())) {
+            geometry.draw(pass);
+        }
+        terrainCacheVersion = pendingGeometryVersion;
+        pendingGeometryVersion = -1;
+        terrainCacheReady = true;
+        noSignalInitialized = false;
+        specialBlocks.clear(); specialBlocks.addAll(buildingSpecialBlocks); buildingSpecialBlocks.clear();
+        GooseTools.LOGGER.info("Camera {} baked terrain revision {} once and released its mesh",
+                cameraId,terrainCacheVersion);
+        geometry.close(); geometry = null;
+    }
+
+    private void copyTerrainCache(com.mojang.renderpearl.api.commands.CommandEncoder encoder) {
+        encoder.copyTextureToTexture(terrainTarget.getColorTexture(),target.getColorTexture(),
+                0,0,0,0,0,CameraLimits.RENDER_WIDTH,CameraLimits.RENDER_HEIGHT);
+        encoder.copyTextureToTexture(terrainTarget.getDepthTexture(),target.getDepthTexture(),
+                0,0,0,0,0,CameraLimits.RENDER_WIDTH,CameraLimits.RENDER_HEIGHT);
+    }
+
+    private void renderNoSignal() {
+        RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(
+                target.getColorTexture(),NO_SIGNAL_COLOR,target.getDepthTexture(),REVERSED_Z_DEPTH_CLEAR);
+        noSignalInitialized = true;
+        draws++;
+    }
+
+    private void discardBuildingTerrain() {
+        if (buildingGeometry != null) buildingGeometry.close();
+        buildingGeometry = null; buildingScene = null; buildingBlocks = null; buildingFluids = null;
+        buildCursor = 0; buildingSpecialBlocks.clear();
+    }
+
+    private void discardPendingTerrain() {
+        if (geometry != null) geometry.close();
+        geometry = null; pendingGeometryVersion = -1;
+        discardBuildingTerrain();
     }
 
     private void drawBlocks(CameraScene scene, long deadline) {
@@ -163,27 +277,42 @@ public final class CameraSceneRenderer implements AutoCloseable {
         var fluids = buildingFluids;
         var pos = new BlockPos.MutableBlockPos();
         while (buildCursor < CameraLimits.CELLS && System.nanoTime() < deadline) {
-                int index = buildCursor++;
-                int x = index % CameraLimits.SIZE_X, z = index / CameraLimits.SIZE_X % CameraLimits.SIZE_Z;
-                int y = index / (CameraLimits.SIZE_X * CameraLimits.SIZE_Z);
+                int ordinal = buildCursor++;
+                int planeIndex = ordinal % (CameraLimits.SIZE_X * CameraLimits.SIZE_Z);
+                int x = planeIndex % CameraLimits.SIZE_X, z = planeIndex / CameraLimits.SIZE_X;
+                int y = centeredY(ordinal / (CameraLimits.SIZE_X * CameraLimits.SIZE_Z));
                 pos.set(frame.x()+x,frame.y()+y,frame.z()+z);
                 var state = scene.getBlockState(pos);
                 if (state.hasBlockEntity() && state.getRenderShape() == RenderShape.INVISIBLE) buildingSpecialBlocks.add(pos.immutable());
                 if (!state.getFluidState().isEmpty()) {
                     fluids.tesselate(scene,pos,layer -> new OffsetVertexConsumer(
-                            buildingGeometry.getBuffer(layer == ChunkSectionLayer.TRANSLUCENT ? RenderTypes.translucentMovingBlock()
-                                    : RenderTypes.cutoutMovingBlock()),
+                            buildingGeometry.getBuffer(layer),
                             (float)((pos.getX() & ~15)-d.x()),(float)((pos.getY() & ~15)-d.y()),
                             (float)((pos.getZ() & ~15)-d.z())),state,state.getFluidState());
                 }
                 if (state.isAir() || state.getRenderShape() != RenderShape.MODEL) continue;
                 var model = mc.getModelManager().getBlockStateModelSet().get(state);
                 renderer.tesselateBlock((qx,qy,qz,quad,instance) -> {
-                    RenderType type = quad.materialInfo().itemRenderType();
-                    buildingGeometry.getBuffer(type).putBlockBakedQuad(qx,qy,qz,quad,instance);
+                    ChunkSectionLayer layer = quad.materialInfo().layer();
+                    buildingGeometry.getBuffer(layer).putBlockBakedQuad(qx,qy,qz,quad,instance);
                 }, (float)(pos.getX()-d.x()), (float)(pos.getY()-d.y()), (float)(pos.getZ()-d.z()),
                         scene,pos,state,model,state.getSeed(pos));
             }
+    }
+
+    static int centeredY(int ordinal) {
+        if (ordinal < 0 || ordinal >= CameraLimits.SIZE_Y)
+            throw new IllegalArgumentException("Terrain layer is outside the camera volume");
+        int center = CameraLimits.SIZE_Y / 2;
+        return ordinal == 0 ? center
+                : (ordinal & 1) == 1 ? center - (ordinal + 1) / 2 : center + ordinal / 2;
+    }
+
+    static boolean shouldStartTerrainBuild(long cachedVersion, long pendingVersion,
+                                           long failedVersion, long incomingVersion) {
+        return incomingVersion != cachedVersion
+                && incomingVersion != pendingVersion
+                && incomingVersion != failedVersion;
     }
 
     private void drawActors(CameraScene scene) {
@@ -226,6 +355,10 @@ public final class CameraSceneRenderer implements AutoCloseable {
                 entity = type.create(mc.level, EntitySpawnReason.LOAD);
                 if (entity == null) continue;
             }
+            // 26.3 requires every rendered entity to have a non-zero ID. Camera actors are
+            // deliberately not inserted into ClientLevel, so give them a stable synthetic ID
+            // before render-state extraction reaches held-item and armour model resolution.
+            entity.setId(syntheticEntityId(actor.uuid()));
             view.entity = entity; view.type = actor.type();
             }
             view.metadataIds = ids;
@@ -299,13 +432,20 @@ public final class CameraSceneRenderer implements AutoCloseable {
         return first + (second-first)*amount;
     }
 
+    static int syntheticEntityId(UUID uuid) {
+        // Vanilla reserves zero for an entity whose ID has not been assigned. Keeping the
+        // high bit set also avoids the positive IDs used by entities registered in the level.
+        return uuid.hashCode() | Integer.MIN_VALUE;
+    }
+
     @Override public void close() {
         if (closed) return; closed = true;
         mc.getTextureManager().release(texture);
         if (geometry != null) geometry.close();
-        if (buildingGeometry != null) buildingGeometry.close();
+        if (buildingGeometry != null && buildingGeometry != geometry) buildingGeometry.close();
         actorViews.clear();
-        features.close(); renderBuffers.close(); projection.close(); fog.close(); target.destroyBuffers();
+        features.close(); renderBuffers.close(); projection.close(); fog.close();
+        terrainTarget.destroyBuffers(); target.destroyBuffers();
     }
     private static final class ActorView {
         Entity entity;

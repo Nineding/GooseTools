@@ -56,6 +56,30 @@ final class NameTagAttachmentConfigTest {
     }
 
     @Test
+    void seagullDetectiveSnapshotRemainsVisibleThroughMeeting() {
+        var angel = NameTagAttachmentConfig.defaults().attachments().getFirst();
+
+        assertTrue(angel.visible(
+                false,
+                Set.of("Seagull", "players", "seagullNametagDetective"),
+                Set.of("players"),
+                Set.of("players", "inTalk", "seagullNametagDetectiveAngel"),
+                true));
+        assertFalse(angel.visible(
+                false,
+                Set.of("Seagull", "players", "seagullNametagDetective"),
+                Set.of("players"),
+                Set.of("players", "inTalk", "seagullNametagDetectiveDemon"),
+                true));
+        assertFalse(angel.visible(
+                false,
+                Set.of("players", "seagullNametagDetective"),
+                Set.of("players"),
+                Set.of("players", "inTalk", "seagullNametagDetectiveAngel"),
+                true));
+    }
+
+    @Test
     void magpieIconIsPublicOnlyForLivingGuessedMeetingTargets() {
         var magpie = NameTagAttachmentConfig.defaults().attachments().stream()
                 .filter(attachment -> attachment.id().equals("magpie_guessed"))
@@ -112,6 +136,26 @@ final class NameTagAttachmentConfigTest {
     }
 
     @Test
+    void roleVisibleSpectatorSeesPrivateDataDrivenStatusThroughMeeting() {
+        var angel = NameTagAttachmentConfig.defaults().attachments().getFirst();
+
+        assertTrue(angel.visible(
+                false,
+                Set.of("players", "spectator", "dlcDeadViewer"),
+                Set.of("players"),
+                Set.of("players", "inTalk", "detectiveCheckedAngel"),
+                true,
+                true));
+        assertFalse(angel.visible(
+                false,
+                Set.of("players", "spectator", "dlcDeadViewer"),
+                Set.of("players"),
+                Set.of("players", "spectator", "detectiveCheckedAngel"),
+                true,
+                true));
+    }
+
+    @Test
     void createsDefaultFileAndRetainsLastGoodSnapshot() throws Exception {
         Path file = directory.resolve("goosetools/nametag_attachments.json");
         var repository = new NameTagAttachmentRepository(file);
@@ -138,6 +182,12 @@ final class NameTagAttachmentConfigTest {
         assertTrue(broker.visible(
                 false,
                 Set.of("Broker", "players"),
+                Set.of("players"),
+                Set.of("players", "inTalk", "brokerShackled"),
+                true));
+        assertTrue(broker.visible(
+                false,
+                Set.of("Seagull", "players", "seagullNametagBroker"),
                 Set.of("players"),
                 Set.of("players", "inTalk", "brokerShackled"),
                 true));

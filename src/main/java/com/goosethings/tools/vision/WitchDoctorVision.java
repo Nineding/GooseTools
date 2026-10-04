@@ -78,8 +78,21 @@ public final class WitchDoctorVision {
                 || target.entityTags().contains("spectator")) {
             return 0;
         }
-        return canSeeDirectly(context.getSource().getServer(), viewer, target)
-                || CameraService.get().isWatchingTarget(viewer, target) ? 1 : 0;
+        boolean birdwatch = viewer.entityTags().contains("birdwatcherActive");
+        boolean direct = canSeeDirectly(context.getSource().getServer(), viewer, target);
+        boolean camera = CameraService.get().isWatchingTarget(viewer, target);
+        return canSeeCode(direct, birdwatch, viewer.hasLineOfSight(target), camera);
+    }
+
+    /**
+     * 0 = hidden, 1 = ordinary sight or camera, 2 = birdwatch through a blocking wall.
+     * Curse progress treats any positive value as visible.
+     */
+    static int canSeeCode(boolean direct, boolean birdwatch, boolean vanillaLos, boolean camera) {
+        if (direct) {
+            return birdwatch && !vanillaLos ? 2 : 1;
+        }
+        return camera ? 1 : 0;
     }
 
     static boolean canSeeDirectly(MinecraftServer server, ServerPlayer viewer, ServerPlayer target) {

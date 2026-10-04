@@ -15,6 +15,19 @@ final class LoverVisualPolicy {
                         int viewerSeat,
                         int identitySeat,
                         int activeLoverCount) {
+        return show(sameRenderedPlayer, sameIdentity, viewerTags, renderedTags,
+                identityTags, viewerSeat, identitySeat, activeLoverCount, false);
+    }
+
+    static boolean show(boolean sameRenderedPlayer,
+                        boolean sameIdentity,
+                        Set<String> viewerTags,
+                        Set<String> renderedTags,
+                        Set<String> identityTags,
+                        int viewerSeat,
+                        int identitySeat,
+                        int activeLoverCount,
+                        boolean spectatorStatusView) {
         if (sameRenderedPlayer || sameIdentity
                 || !identityTags.contains("Lover")
                 || !isActiveRenderedPlayer(renderedTags)
@@ -22,7 +35,7 @@ final class LoverVisualPolicy {
                 || viewerTags.contains("voteDeathInvis")) {
             return false;
         }
-        if (viewerTags.contains("spectator")) {
+        if (spectatorStatusView || viewerTags.contains("spectator")) {
             return true;
         }
         if (!isActiveLover(viewerTags)) {

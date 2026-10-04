@@ -2,6 +2,7 @@ package com.goosethings.tools.xaero.mixin;
 
 import com.goosethings.tools.xaero.GameMapBounds;
 import com.goosethings.tools.xaero.GgdClientPreferences;
+import com.goosethings.tools.xaero.GgdMapElementRenderer;
 import com.goosethings.tools.xaero.GgdMapState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -141,12 +142,26 @@ public abstract class GgdWorldMapLockMixin {
         int right = (int) Math.ceil(width * 0.5D + (bounds.maxX() - cameraX) * scale * toGuiX);
         int top = (int) Math.floor(height * 0.5D + (bounds.minZ() - cameraZ) * scale * toGuiY);
         int bottom = (int) Math.ceil(height * 0.5D + (bounds.maxZ() - cameraZ) * scale * toGuiY);
+        int clippedLeft = Math.max(0, Math.min(width, left));
+        int clippedRight = Math.max(0, Math.min(width, right));
+        int clippedTop = Math.max(0, Math.min(height, top));
+        int clippedBottom = Math.max(0, Math.min(height, bottom));
         int black = 0xFF000000;
 
-        graphics.fill(0, 0, width, Math.max(0, Math.min(height, top)), black);
-        graphics.fill(0, Math.max(0, Math.min(height, bottom)), width, height, black);
-        graphics.fill(0, Math.max(0, top), Math.max(0, Math.min(width, left)), Math.min(height, bottom), black);
-        graphics.fill(Math.max(0, Math.min(width, right)), Math.max(0, top), width, Math.min(height, bottom), black);
+        graphics.fill(0, 0, width, clippedTop, black);
+        graphics.fill(0, clippedBottom, width, height, black);
+        graphics.fill(0, clippedTop, clippedLeft, clippedBottom, black);
+        graphics.fill(clippedRight, clippedTop, width, clippedBottom, black);
+
+        GgdMapElementRenderer.renderWorldMapOverlay(
+                graphics,
+                cameraX,
+                cameraZ,
+                scale,
+                clippedLeft,
+                clippedTop,
+                clippedRight,
+                clippedBottom);
     }
 
     private static double ggd$clampCameraCenter(

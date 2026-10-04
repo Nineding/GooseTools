@@ -7,9 +7,7 @@ import net.minecraft.world.effect.MobEffectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xaero.common.effect.Effects;
-import xaero.map.WorldMap;
 import xaero.map.gui.GuiMap;
-import xaero.map.mods.minimap.element.MinimapElementRendererWrapper;
 import xaero.minimap.XaeroMinimap;
 
 public final class GgdXaeroMapClient implements ClientModInitializer {
@@ -17,7 +15,6 @@ public final class GgdXaeroMapClient implements ClientModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
     private boolean registered;
-    private boolean worldMapRegistered;
     private GgdMapElementRenderer renderer;
 
     @Override
@@ -42,14 +39,6 @@ public final class GgdXaeroMapClient implements ClientModInitializer {
             XaeroMinimap.instance.getMinimap().getWorldRendererHandler().add(renderer);
             registered = true;
             LOGGER.info("Registered Goose Goose Duck room labels and private task markers with Xaero's Minimap and in-world renderer");
-        }
-        if (!worldMapRegistered && WorldMap.mapElementRenderHandler != null) {
-            WorldMap.mapElementRenderHandler.add(
-                    MinimapElementRendererWrapper.Builder.begin(renderer)
-                            .setModMain(XaeroMinimap.instance)
-                            .build());
-            worldMapRegistered = true;
-            LOGGER.info("Registered Goose Goose Duck room labels and private task markers with Xaero's World Map");
         }
     }
 

@@ -1,8 +1,8 @@
 package com.goosethings.tools.camera;
 
-/** Keeps each visible feed at an independent average 60 FPS without drift at high client FPS. */
+/** Keeps each visible feed at an independent average 30 FPS without drift at high client FPS. */
 public final class CameraFramePacer {
-    static final long FRAME_NANOS = 1_000_000_000L / 60L;
+    static final long FRAME_NANOS = 1_000_000_000L / 30L;
     private long observedAt;
     private long accumulated;
 

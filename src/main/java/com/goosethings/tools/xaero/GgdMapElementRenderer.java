@@ -5,6 +5,7 @@ import com.goosethings.tools.client.ClientTaskMarkers;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -29,6 +30,7 @@ import java.util.List;
 
 public final class GgdMapElementRenderer
         extends MinimapElementRenderer<GgdMapElementRenderer.Element, GgdMapElementRenderer.Context> {
+    private static final Context WORLD_MAP_OVERLAY_CONTEXT = new Context();
 
     public GgdMapElementRenderer() {
         this(new Reader(), new Provider(), new Context());
@@ -47,6 +49,7 @@ public final class GgdMapElementRenderer
     public void preRender(MinimapElementRenderInfo info,
                           XaeroBufferProvider buffer,
                           MultiTextureRenderTypeRendererProvider multiTextureProvider) {
+        buffer.endBatch();
     }
 
     @Override
@@ -121,13 +124,112 @@ public final class GgdMapElementRenderer
     public void postRender(MinimapElementRenderInfo info,
                            XaeroBufferProvider buffer,
                            MultiTextureRenderTypeRendererProvider multiTextureProvider) {
+        buffer.endBatch();
     }
 
     @Override
     public boolean shouldRender(MinimapElementRenderLocation location) {
         return location == MinimapElementRenderLocation.OVER_MINIMAP
-                || location == MinimapElementRenderLocation.WORLD_MAP
                 || location == MinimapElementRenderLocation.IN_WORLD;
+    }
+
+    public static void renderWorldMapOverlay(
+            GuiGraphicsExtractor graphics,
+            double cameraX,
+            double cameraZ,
+            double mapScale,
+            int clipLeft,
+            int clipTop,
+            int clipRight,
+            int clipBottom) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.getWindow().getWidth() <= 0
+                || minecraft.getWindow().getHeight() <= 0
+                || mapScale <= 0.0D
+                || clipLeft >= clipRight
+                || clipTop >= clipBottom) {
+            return;
+        }
+
+        WORLD_MAP_OVERLAY_CONTEXT.rebuild(MinimapElementRenderLocation.WORLD_MAP);
+        if (WORLD_MAP_OVERLAY_CONTEXT.frameElements.isEmpty()) {
+            return;
+        }
+
+        double toGuiX = (double) graphics.guiWidth() / minecraft.getWindow().getWidth();
+        double toGuiY = (double) graphics.guiHeight() / minecraft.getWindow().getHeight();
+        float markerScale = WorldMapOverlayProjection.markerScale(
+                GgdClientPreferences.mapMarkerScale(), toGuiX, toGuiY);
+
+        graphics.enableScissor(clipLeft, clipTop, clipRight, clipBottom);
+        try {
+            for (Element element : WORLD_MAP_OVERLAY_CONTEXT.frameElements) {
+                int screenX = WorldMapOverlayProjection.coordinate(
+                        element.x(), cameraX, mapScale, toGuiX, graphics.guiWidth());
+                int screenY = WorldMapOverlayProjection.coordinate(
+                        element.z(), cameraZ, mapScale, toGuiY, graphics.guiHeight());
+
+                graphics.pose().pushMatrix();
+                graphics.pose().translate(screenX, screenY);
+                graphics.pose().scale(markerScale, markerScale);
+                try {
+                    renderWorldMapElement(graphics, element);
+                } finally {
+                    graphics.pose().popMatrix();
+                }
+            }
+        } finally {
+            graphics.disableScissor();
+        }
+    }
+
+    private static void renderWorldMapElement(GuiGraphicsExtractor graphics, Element element) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (element.kind() == ElementKind.TASK) {
+            var config = ClientTaskMarkers.current();
+            var task = config.task(element.textKey());
+            Component taskName = Component.translatableWithFallback(task.translationKey(), task.fallback());
+            int width = minecraft.font.width(taskName);
+            int background = config.background(element.textKey(),
+                    element.goldTask() ? "gold" : element.emergencyTask() ? "emergency" : "normal");
+
+            graphics.fill(-width / 2 - 3, -6, width / 2 + 4, 6, 0xD0171717);
+            graphics.fill(-width / 2 - 2, -5, width / 2 + 3, 5, background);
+            graphics.centeredText(minecraft.font, taskName, 0, -4, 0xFFFFFFFF);
+            return;
+        }
+
+        if (element.kind() == ElementKind.LAST_POSITION) {
+            Component marker = Component.translatable("marker.ggd_xaero_map.last_position");
+            int width = minecraft.font.width(marker);
+            graphics.fill(-width / 2 - 3, -6, width / 2 + 4, 6, 0xD0171717);
+            graphics.centeredText(minecraft.font, marker, 0, -4, 0xFFFFD54A);
+            return;
+        }
+
+        if (element.kind() == ElementKind.REPORTED_BODY) {
+            Component marker = Component.translatable("marker.ggd_xaero_map.reported_body");
+            int width = minecraft.font.width(marker);
+            graphics.fill(-width / 2 - 3, -6, width / 2 + 4, 6, 0xD0171717);
+            graphics.centeredText(minecraft.font, marker, 0, -4, 0xFFFF3030);
+            return;
+        }
+
+        if (element.kind() == ElementKind.BELL) {
+            drawAtlasIcon(graphics, "item/bell");
+            return;
+        }
+
+        if (element.kind() == ElementKind.BROADCAST) {
+            drawAtlasIcon(graphics, "item/interphone");
+            return;
+        }
+
+        Component name = Component.translatable(element.textKey());
+        int width = minecraft.font.width(name);
+        graphics.fill(-width / 2 - 2, -5, width / 2 + 3, 5, 0x8C111111);
+        graphics.centeredText(minecraft.font, name, 0, -4,
+                element.activeRoom() ? 0xFFFFD54A : 0xFFFFFFFF);
     }
 
     private static boolean isEmergencyTask(String kind) {
@@ -164,6 +266,12 @@ public final class GgdMapElementRenderer
         var atlas = Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(AtlasIds.ITEMS);
         TextureAtlasSprite sprite = atlas.getSprite(Identifier.withDefaultNamespace(spritePath));
         graphics.blit(sprite, -8, -8, 16, 16, RenderPipelines.GUI_TEXTURED);
+    }
+
+    private static void drawAtlasIcon(GuiGraphicsExtractor graphics, String spritePath) {
+        var atlas = Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(AtlasIds.ITEMS);
+        TextureAtlasSprite sprite = atlas.getSprite(Identifier.withDefaultNamespace(spritePath));
+        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, -8, -8, 16, 16);
     }
 
     record Element(String textKey, double x, double y, double z,

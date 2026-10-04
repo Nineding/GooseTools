@@ -15,14 +15,9 @@ public final class ServerWebRepository {
     private static final List<String> DEFAULT_FILES = List.of(
             "manifest.json",
             "index.html",
-            "roles.html",
-            "gameplay.html",
-            "features.html",
             "styles.css",
-            "app.js",
             "lang/zh_cn.json",
             "lang/en_us.json",
-            "images/task_progress.png",
             "images/theme_sun.png",
             "images/theme_moon.png");
 

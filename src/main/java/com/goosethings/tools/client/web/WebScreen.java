@@ -9,6 +9,7 @@ import com.goosethings.tools.client.web.render.LayoutEngine;
 import com.goosethings.tools.client.web.render.WebRenderGeometry;
 import com.goosethings.tools.client.web.script.JsSandbox;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.ConfirmLinkScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
@@ -285,7 +286,7 @@ public final class WebScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() != 0) {
+        if (event.button() != InputConstants.MOUSE_BUTTON_LEFT) {
             return super.mouseClicked(event, doubleClick);
         }
         WebRenderGeometry.Rect frame = currentViewport();
@@ -336,6 +337,9 @@ public final class WebScreen extends Screen {
             if (anchor != null) {
                 scroll = Math.max(0, anchor.y() + scroll);
             }
+        } else {
+            OfficialWebLinks.resolve(href)
+                    .ifPresent(uri -> ConfirmLinkScreen.confirmLinkNow(this, uri));
         }
         if (target.hasAttribute("data-page")) {
             manager.openLocalPage(target.attribute("data-page"));

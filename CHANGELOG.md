@@ -1,5 +1,271 @@
 # Changelog
 
+## 1.14.0 - 2026-10-04
+
+- Consolidated every GooseTools change from 1.13.0 through 1.13.0+Alpha0.29 into the 1.14.0 stable release.
+- Added Goose Goose Duck-style animated meeting alerts for body reports, emergency bells, and sacrifice bells, with privacy-filtered player appearance, equipment, names, serial badges, localized text, movement locking, and corrected corpse presentation.
+- Expanded server-authoritative nametags and meeting markers with keyed public icon slots, trust/readiness/authority indicators, private faction, group, role, and action cards, viewer-specific outline colors, Full Blood spectator status icons, and retained Seagull borrowed-role visibility.
+- Integrated optional CustomSkinLoader compatibility and completed local disguise presentation for Morphling, Identity Thief, Parasite, Seagull-borrowed Morphling, and Mime, including first-person arms, third-person skin layers, capes, hats, nametags, and identity-bound icons.
+- Added persistent per-player AI report history, a report-selection screen, safe inline emphasis colors, deferred screen opening, configurable retention, and fixes for mouse input across AI and server-provided web interfaces.
+- Replaced visible dream mannequins with viewer-private client stand-ins for meetings, frozen bodies, and dream corpse copies. Staged handoffs, resolved skins, synchronized pose/look/swing state, marker outlines, unload recovery, and render blocking prevent real-body, default-skin, origin, and empty-chair flashes.
+- Added the required Mime remote-control client synchronization, private controller appearance, input/view/hotbar restrictions, bounded packets, and disconnect cleanup.
+- Added optional, spoiler-safe CraftPresence placeholders for public map and coarse match phase, and replaced retired encyclopedia pages with an exact HTTPS allowlist for the official role, faction, game-mode, and website guides.
+- Added server-authoritative Adventure no-clip for Raven Dream, Raven Moment, Astral Projection, Sniper scope, and Phoenix Moment without Spectator spoofing, including lifecycle cleanup and fixes for wall pushback and incorrect swimming/crawling poses.
+- The server and every client must all use GooseTools 1.14.0. GooseThings 1.14.0+Alpha0.31 and the accompanying Whoiskiller data/resource packs are compatible. Network protocol remains 25; this stable release does not change the Alpha0.29 packet formats.
+
+## 1.13.0+Alpha0.29 - 2026-10-04
+
+- Fixed Adventure no-clip players being forced into the swimming/crawling pose inside low ceilings or solid blocks. Client and server now treat pose dimensions as collision-free only while Adventure no-clip is active, allowing vanilla to retain the correct desired pose without affecting normal movement or legitimate swimming and sleeping poses.
+- The server and every client must all use 1.13.0+Alpha0.29. GooseThings 1.14.0+Alpha0.29 and the accompanying Whoiskiller data pack remain compatible and do not require changes. Network protocol remains 25 and packet formats are unchanged.
+
+## 1.13.0+Alpha0.28 - 2026-10-04
+
+- Fixed Adventure no-clip players being pushed back by walls or requiring sustained movement to slowly cross a block. The client now disables vanilla wall-escape handling before movement input is processed, and the server reasserts no-physics at the movement boundary before collision validation.
+- The server and every client must all use 1.13.0+Alpha0.28. GooseThings 1.14.0+Alpha0.29 and the accompanying Whoiskiller data pack remain compatible and do not require changes. Network protocol remains 25 and packet formats are unchanged.
+
+## 1.13.0+Alpha0.27 - 2026-10-04
+
+- Added server-authoritative Adventure no-clip without Spectator mode spoofing. Raven Dream, Raven Moment, Astral Projection, Sniper scope, and Phoenix Moment can now fly through blocks while retaining normal Adventure interaction and rendering.
+- Added `/goosetools noclip <players> <true|false>` plus disconnect, respawn, and server-shutdown cleanup. The server and every client must all use 1.13.0+Alpha0.27 with GooseThings 1.14.0+Alpha0.29 and the accompanying Whoiskiller data pack. Network protocol remains 25; the packet set adds the bounded `adventure_noclip_s2c_v1` payload.
+
+## 1.13.0+Alpha0.26 - 2026-10-04
+
+- AI match reports now render the server-validated fixed emphasis palette inline, so key turns, correct play, mistakes/danger, player identities, and uncertainty can be scanned quickly without allowing arbitrary formatting.
+- Existing plain reports remain compatible. The server and every client must all use 1.13.0+Alpha0.26 with GooseThings 1.14.0+Alpha0.27 for colored AI emphasis. Network protocol remains 25 and the report JSON packet shape is unchanged.
+
+## 1.13.0+Alpha0.25 - 2026-10-04
+
+- When Full Blood DLC role display is enabled, every death or lobby spectator now sees the active status icons on living players: Pigeon infection, Detective result halos, Clown balloons, Gravy bounty, Witch Doctor curse targets (including Seagull borrowing), Guard shields, Lover hearts, Broker shackles, Magpie guesses, and configured nametag attachments.
+- Spectator status icons remain visible through meetings while their underlying tag or score still exists, then disappear on the next nametag snapshot after the state is cleared. Living-player role privacy and temporary non-spectator views remain unchanged.
+- The server and every client must all use 1.13.0+Alpha0.25. Network protocol remains 25 and packet formats are unchanged.
+
+## 1.13.0+Alpha0.24 - 2026-10-04
+
+- Dream stand-ins now detect when Minecraft has independently unloaded their synthetic client entity and recreate it with a collision-free local ID. This restores the meeting chair proxy plus Raven living-player and corpse-location bodies instead of retaining a permanently detached model.
+- Every active dream session now sends its meeting proxy to the entering player's own client as well as other viewers. New and recovered proxies remain render-blocked until their position, seated pose, equipment, resolved skin, nametag alias, and marker glow are all ready, preventing origin, standing-body, default-skin, and real-body flash frames.
+- The server and every client must all use 1.13.0+Alpha0.24 with GooseThings 1.14.0+Alpha0.26. Network protocol remains 25 and packet formats are unchanged.
+
+## 1.13.0+Alpha0.23 - 2026-10-03
+
+- A controlled player's client now suppresses the complete Mime controller entity before the controller is moved into the target's position, preventing a one-frame head, armour, held-item, or nametag flash.
+- Mime control synchronization is sent before the server-side body handoff. Clients and the server must all use 1.13.0+Alpha0.23 with GooseThings 1.14.0+Alpha0.24 and the accompanying Whoiskiller data pack. Network protocol remains 25 and packet formats are unchanged.
+
+## 1.13.0+Alpha0.22 - 2026-10-03
+
+- Dream stand-ins now reuse the source player's already-resolved client skin and model layers, preserving CustomSkinLoader skins even though each stand-in has a viewer-private fake UUID.
+- Meeting proxies are fully created by the prepare packet and locally replace the real chair occupant in one render decision. Entry no longer exposes the real body or an empty chair for a frame, while wake keeps the proxy until the restored player has arrived.
+- Clients and the server must all use 1.13.0+Alpha0.22. Network protocol remains 25 and packet formats are unchanged.
+
+## 1.13.0+Alpha0.21 - 2026-10-03
+
+- Added an optional CraftPresence integration with localized `ggd.activity`, `ggd.state`, `ggd.map`, `ggd.phase`, and `ggd.server` placeholders for Discord Rich Presence. GooseTools continues to run normally when CraftPresence is absent.
+- The server now synchronizes only the selected public map and a coarse phase: lobby, preparing, playing, meeting, spectating, results, or tutorial. Roles, factions, death details, and other spoiler-sensitive state are never included.
+- Clients and the server must all use 1.13.0+Alpha0.21. CraftPresence remains optional and client-only. Network protocol remains 25; the packet set adds the bounded `game_presence_state_s2c_v1` payload.
+
+## 1.13.0+Alpha0.20 - 2026-10-03
+
+- Seagulls now retain the nametag visibility granted by a borrowed role until the next meeting ends or another ability is taken. This covers Detective inspection halos, Pigeon infection badges, Clown balloons, Gravy bounties, Guard shields, and Broker shackles.
+- Borrowed Detective, Pigeon, and Clown results keep private Seagull-only visual snapshots through the meeting even when the base role state is cleared earlier; gameplay state and ownership are unchanged.
+- Clients and the server must all use 1.13.0+Alpha0.20 with the accompanying Whoiskiller datapack. Full Blood DLC gating is unchanged. Network protocol remains 25 and packet formats are unchanged.
+
+## 1.13.0+Alpha0.19 - 2026-10-03
+
+- While Morphling, Identity Thief, Parasite, or a Seagull-borrowed Morphling is transformed, the disguiser's own client now renders first-person arms and F5 with the stolen player's skin, hat, and cape. Other clients are unchanged and still receive the existing server skin copy.
+- The local override reads the target's already-loaded player skin, so CustomSkinLoader profiles continue to work without rewriting the disguiser's own UUID cache. Mime remote-control appearance still takes priority.
+- Clients and the server must all use 1.13.0+Alpha0.19. Network protocol remains 25 and packet formats are unchanged.
+
+## 1.13.0+Alpha0.18 - 2026-10-03
+
+- While Mime remote control is active, the Mime's F5 nametag (name, colour, serial badge, and attachments) now follows the target. Hat and cape flags also follow the target skin. Other clients are unchanged.
+- Clients and the server must all use 1.13.0+Alpha0.18. Network protocol remains 25 and packet formats are unchanged.
+
+## 1.13.0+Alpha0.17 - 2026-10-03
+
+- While Mime remote control is active, the Mime's own client now receives a private view packet and renders the local player (including first-person arms) with the target's skin. Other clients are unchanged and still see the dummy plus the real target.
+- Clients and the server must all use 1.13.0+Alpha0.17; network protocol is now 25.
+
+## 1.13.0+Alpha0.16 - 2026-10-03
+
+- Added required Mime control synchronization: the controlled player's movement input is suppressed, mouse-look is locked to the server-authoritative controller view, and their client hotbar is hidden while the server retains the real role items for ability proxying.
+- Added the bounded Mime control payload and disconnect cleanup. Clients and the server must all use 1.13.0+Alpha0.16; network protocol is now 24.
+
+## 1.13.0+Alpha0.15 - 2026-10-02
+
+- Replaced the retired in-game Goose encyclopedia pages with a four-button directory for the official Role Guide, Faction Gameplay guide, Game Modes guide, and Minecraft Goose Goose Duck website.
+- Official links open through Minecraft's confirmation screen. Server-provided pages can open only the four exact allowlisted HTTPS destinations; arbitrary, lookalike, query-modified, and non-HTTPS URLs remain blocked.
+- Clients and the server must all use 1.13.0+Alpha0.15. Network protocol remains 23 and packet formats are unchanged. Existing server page files under `config/goosetools/web` must be updated with the accompanying directory page.
+
+## 1.13.0+Alpha0.14 - 2026-10-02
+
+- Meeting dream proxies now render with vanilla's seated-player leg state even though their GooseTools-only chair proxy is not a rideable entity.
+- Viewer-visible player markers now directly enable their matching outline colour, including on dream proxies that do not have a server-synchronized glow flag. Clients and the server must all use 1.13.0+Alpha0.14; network protocol remains 23 and packet formats are unchanged.
+
+## 1.13.0+Alpha0.13 - 2026-10-02
+
+- Replaced the Lucid Dreamer and Raven's visible vanilla dream mannequins with viewer-private GooseTools client RemotePlayers for meeting proxies, frozen map bodies, and dream-only corpse copies.
+- Dream entry and wake now use staged client/server handoffs so the real body and its stand-in never render in the same frame. Meeting markers and their private outline colours now follow dream proxies.
+- Added synchronized proxy pose, look, and swing animation while remote control is active. Clients and the server must all use 1.13.0+Alpha0.13; network protocol is now 23.
+
+## 1.13.0+Alpha0.12 - 2026-09-30
+
+- Fixed /aireport briefly opening and then immediately closing when run from chat. The report screen is now opened at the end of the client tick, after the submitting chat screen has completed its own close operation.
+- Pending report opens are cancelled on disconnect or report-cache reset. Clients and the server must all use 1.13.0+Alpha0.12; network protocol remains 22 and packet formats are unchanged.
+
+## 1.13.0+Alpha0.11 - 2026-09-30
+
+- AI match reports are now stored per player in the server world's data/goosetools/ai-reports archive and restored after a server restart. /aireport opens a match list when multiple reports are available.
+- Each archived match shows its game number, save time, and concise AI-written match summary. The server keeps 50 reports per player by default; config/goosetools/ai-report-history.json can set a value from 1 to 200.
+- Starting another match no longer clears saved reports. Clients and the server must all use 1.13.0+Alpha0.11; network protocol remains 22 and packet formats are unchanged.
+
+## 1.13.0+Alpha0.10 - 2026-09-28
+
+- Fixed Morphling, Identity Thief, and Parasite disguises retaining the disguiser's own selected title or trust-rank icon. While transformed, the identity-bound `trust` slot now follows the copied player and restores automatically when the disguise ends.
+- Other command-managed nametag icons remain attached to the real player, preventing lobby readiness or authority state from being copied with a disguise.
+- Clients and the server must all use 1.13.0+Alpha0.10. Network protocol remains 22; packet formats are unchanged.
+
+## 1.13.0+Alpha0.9 - 2026-09-27
+
+- Corrected the Group 2 and Group 3 meeting-marker colours: Group 2 now uses `#c9ffab`, and Group 3 now uses `#fff0ab`.
+- Clients and the server must all use 1.13.0+Alpha0.9 with the corrected Whoiskiller data pack. Network protocol remains 22; packet formats are unchanged.
+
+## 1.13.0+Alpha0.8 - 2026-09-27
+
+- Expanded private meeting markers with three group markers plus Kill, Information, Protection, and Solo cards, and changed faction cards to show the Goose, Duck, or Bird icon with the short faction name.
+- Private meeting markers now highlight each marked living player only for the player who placed that marker. Faction and role markers use the existing spectator faction colours; the seven new marker types preserve their configured RGB outline colours through GooseTools rendering.
+- Reordered the additional marker menu into aligned faction, group, and card rows. Clients and the server must all use 1.13.0+Alpha0.8 with the accompanying Whoiskiller data/resource packs. Network protocol remains 22; packet formats are unchanged.
+
+## 1.13.0+Alpha0.7 - 2026-09-27
+
+- Integrated the GooseThings CustomSkinLoader bridge into GooseTools for Minecraft 26.3 and CustomSkinLoader 15.1 snapshot builds. Marked runtime disguise profiles bypass CSL's identity cache while ordinary player profiles continue through CSL unchanged.
+- The integration detects both the current `customskinloader-bootstrap` mod ID and the legacy `customskinloader` ID. When CSL is absent, its mixin is skipped and the module remains inactive; CSL is not a required dependency.
+- Clients and the server must all use 1.13.0+Alpha0.7. Network protocol remains 22; packet formats are unchanged. Servers do not need CustomSkinLoader.
+
+## 1.13.0+Alpha0.6 - 2026-09-24
+
+- Fixed AI name-confirmation vote options, AI report/debug tabs, and in-game web page controls ignoring left clicks. Minecraft 26.3 numbers the left mouse button as 1; these custom screens still treated 0 as left click, so the visible options never received the click.
+- Clients and the server must all use 1.13.0+Alpha0.6. Network protocol remains 22; packet formats are unchanged.
+
+## 1.13.0+Alpha0.5 - 2026-09-24
+
+- Witch Doctor `goosetools witchdoctor cansee` now returns 2 when Spirit Watching sees the cursed target through a wall that blocks ordinary line of sight, so the datapack can grant Perfect Alibi. Ordinary sight and camera feeds still return 1; curse charging still treats any positive result as visible.
+- Clients and the server must all use 1.13.0+Alpha0.5. Network protocol remains 22; packet formats are unchanged.
+
+## 1.13.0+Alpha0.4 - 2026-09-24
+
+- Added command-managed, keyed public nametag icon slots with data-pack-controlled textures, dimensions, colours, and ordering. New public icons no longer require GooseTools Java changes.
+- Nametags now show each player's trust rank at all times. In the lobby, participating players additionally show ready state and authority identity in the order ready, identity, trust, serial badge, then player name; spectators omit only the ready-state icon.
+- Preserved the existing Admin rotating overhead icon and glow. Spectators now receive a private self-nametag entry even after releasing their lobby serial slot, so front and rear third-person views keep showing their own nametag without exposing the spectator to other viewers.
+- Clients and the server must all use 1.13.0+Alpha0.4. Network protocol remains 22; the existing bounded nametag attachment packet is reused.
+
+## 1.13.0+Alpha0.3 - 2026-09-23
+
+- Meeting labels now use the resource pack's existing `minecraft:serial_badge` font sequence, including its badge, negative spacing, and precomposed 1-20 number glyphs, so badge and name alignment exactly match the established label style.
+- Reported victims once again use Minecraft's real sleeping pose. The whole body is centred inside the wide viewport while only the head turns 60 degrees toward the viewer.
+- The no-shadow meeting text and non-spectator movement lock remain unchanged.
+- Clients and the server must all use 1.13.0+Alpha0.3. Network protocol remains 22; packet formats are unchanged.
+
+## 1.13.0+Alpha0.2 - 2026-09-23
+
+- Body-report victims now use an explicitly front-facing player render rotated horizontally in the HUD, so the full corpse remains visible with its face toward the viewer instead of inheriting Minecraft's inward-facing sleeping pose.
+- Meeting labels now reuse the exact existing serial-number texture and compact pixel digits from world nametags, with corrected group alignment.
+- Removed text shadows from meeting titles, subtitles, names, and serial digits to keep scaled text crisp.
+- Non-spectator movement, jumping, sprinting, sneaking, and residual local velocity are blocked while the meeting transition is visible. Spectators, camera look, and authoritative server teleports remain unaffected.
+- Clients and the server must all use 1.13.0+Alpha0.2. Network protocol remains 22; packet formats are unchanged.
+
+## 1.13.0+Alpha0.1 - 2026-09-23
+
+- Fixed the meeting-alert client startup crash by creating the bell item only after Minecraft has bound item component holders.
+- Meeting-alert actors no longer display held items. Reporters now look toward the reported body, while the corpse faces the viewer and uses a wider viewport so its complete sleeping model remains visible.
+- Reporter, victim, and normal bell-ringer labels now reuse each viewer's privacy-filtered GooseTools nametag colour and serial number.
+- Added a dedicated pink sacrifice-bell alert that shows no player, preventing the technical meeting host or the duck who placed the bell from being exposed.
+- Clients and the server must all use 1.13.0+Alpha0.1. Network protocol remains 22; the existing meeting-alert packet shape is unchanged.
+
+## 1.13.0 - 2026-09-23
+
+- Added a Goose Goose Duck-style animated meeting alert for authoritative body reports and emergency-bell calls, replacing the previous static title/subtitle notification.
+- The alert shows the reporting or ringing player's live skin, name, and equipped appearance. Body reports also show the exact reported victim as a sleeping corpse with the captured skin and equipment; forced reports without a ground corpse use an equivalent victim snapshot.
+- Added separate red report and amber bell sweeps with resolution-independent HUD layout, localized text, and frame-rate-independent entrance, hold, and exit timing.
+- Clients and the server must all update to 1.13.0. Network protocol is now 22 because meeting alerts carry bounded player appearance snapshots.
+
+## 1.12.4 - 2026-09-21
+
+- Moved the limited-vision shader mask after translucent terrain so glass, stained glass, panes, ice, and other transparent blocks can no longer render over the fog boundary.
+- Kept the mask inside Iris world rendering on its supported depth-tested text pipeline, preserving shader-produced distant silhouettes, exceptional bright lights, and glowing-entity outlines outside normal vision.
+- Closed the horizontal blackout mask beyond the world's vertical build limits so steep upward or downward views can no longer bypass it, without adding an in-world vertical vision limit.
+- Clients and the server must all update to 1.12.4. Network protocol remains 21; no packet format changed.
+
+## 1.12.3 - 2026-09-21
+
+- Restored exact wardrobe colours for world nametags and meeting marker text after the Minecraft 26.3 text submission parameter order changed.
+- First-person view now hides only the body carrying the active camera, so a separate mannequin using the local player's profile keeps its nametag.
+- Spectators can see their own managed nametag while other invisible entities remain concealed.
+- Clients and the server must all update to 1.12.3. Network protocol remains 21; no packet format changed.
+
+## 1.12.2 - 2026-09-21
+
+- Added the Spook identity to the private meeting marker catalogue, using the existing localized role name and resource-pack icon.
+- Clients and the server must all update to 1.12.2. Network protocol remains 21; no packet format changed.
+
+## 1.12.1 - 2026-09-20
+
+- Fixed camera terrain drawing zero indices and zero instances after the RenderPearl 26.3 indexed-draw argument order changed. This caused feeds to show entities over a black background even when terrain meshes were generated successfully.
+- Use Minecraft's reversed-Z perspective projection, including the active backend's clip-depth range, so nearer blocks and actors correctly occlude distant terrain.
+- Added an isolated GPU regression client that renders real block models through the production camera renderer and checks the read-back pixels for visible terrain and near/far occlusion. Test code is not packaged in the release JAR.
+- Retained the cached terrain implementation, 960x540 targets and 30 FPS feed cap. Update clients and server to 1.12.1; protocol remains 21 and camera definitions need no migration.
+
+## 1.12.0 - 2026-09-20
+
+- Replaced the Minecraft 26.3 security-camera terrain renderer instead of continuing to reuse chunk or item render pipelines.
+- Camera block and fluid meshes now use GooseTools-owned shader pipelines with explicit transforms, block-atlas sampling, lightmap sampling, reversed-Z depth, cutout handling, and translucency.
+- Each terrain revision is rendered once into a persistent colour-and-depth cache; live frames copy that cache on the GPU and render only players, name tags, and dynamic block models over it.
+- One-shot terrain meshes are released immediately after baking, preventing every visible monitor from resubmitting large static buffers at up to 30 FPS.
+- A failed terrain revision is now isolated until a newer revision arrives. The monitor retains its last valid frame, or a stable no-signal background, instead of retrying and stalling every frame.
+- Camera targets remain 960x540 at up to 30 FPS, with at most one off-screen feed updated per main-world frame.
+- Clients and the server must all update to 1.12.0. Network protocol remains 21; no packet format changed.
+
+## 1.11.6 - 2026-09-19
+
+- Fixed security camera feeds remaining black on Minecraft 26.3 by clearing their depth attachment to the reversed-Z far plane (`0.0`) instead of the near plane (`1.0`).
+- Camera terrain and entity/name-tag features now render in one attachment-preserving pass, keeping their depth comparisons consistent and reducing framebuffer churn.
+- Iris vertex-format isolation now remains active when Iris is installed but shader packs are disabled, instead of depending on an active Iris shader pipeline.
+- Added first-batch mesh/index diagnostics so an empty remote scene can be distinguished from a presentation failure without continuous GPU readback or frame-time cost.
+- Camera targets remain 960x540 at up to 30 FPS, with at most one off-screen feed updated per main-world frame.
+- Clients and the server must all update to 1.11.6. Network protocol remains 21; no packet format changed.
+
+## 1.11.5 - 2026-09-19
+
+- Fixed security camera framebuffer textures remaining black on Minecraft 26.3 by presenting them through a direct non-OIT world render type instead of the text OIT path.
+- Removed the shader-sensitive `debug_quads` monitor backdrop that caused Iris missing-program errors.
+- Camera terrain now builds outward from camera height and publishes the initial geometry in batches, so the first picture appears before the complete 128x32x128 capture is meshed.
+- Kept camera targets at 960x540, capped at 30 FPS, with at most one off-screen feed updated per main-world frame.
+- Clients and the server must all update to 1.11.5. Network protocol remains 21; no packet format changed.
+
+## 1.11.4 - 2026-09-19
+
+- Fixed security camera terrain remaining black with Iris 1.11.6 on Minecraft 26.3 by isolating both mesh construction and drawing from Iris extended vertex formats.
+- Reduced security camera targets to 960x540 at up to 30 FPS and staggered visible feed updates so only one off-screen camera is processed per main-world frame.
+- Clients and the server must all update to 1.11.4. Network protocol remains 21; no packet format changed.
+
+## 1.11.3 - 2026-09-19
+
+- Fixed security camera feeds remaining black on Minecraft 26.3 because synthetic camera actors did not have the now-required non-zero entity IDs.
+- Stopped repeated camera renderer failures and retries from causing severe frame drops while players face active monitor walls.
+- Fixed Birdwatcher view rotation temporarily removing all world geometry and flashing the screen by rebuilding only sections whose transparent-wall state changed.
+- Clients and the server must all update to 1.11.3. Network protocol remains 21; no packet format changed.
+
+## 1.11.2 - 2026-09-19
+
+- Fixed custom world-map label text still stretching into long triangles with Iris shaders after the 1.11.1 buffer-boundary fix.
+- Moved GooseTools room labels, task markers, and special icons on Xaero's World Map to Minecraft 26.3's extracted GUI rendering path, avoiding Xaero's shader-sensitive immediate font renderer.
+- Minimap markers and in-world task paths keep their existing rendering path and behavior.
+- Clients and the server must all update to 1.11.2. Network protocol remains 21; no packet format changed.
+
+## 1.11.1 - 2026-09-19
+
+- Fixed custom room labels, task markers, and special icons producing stretched triangles across Xaero's World Map while Iris shaders are enabled.
+- Isolated the custom map element renderer from adjacent Xaero vertex batches before and after drawing, matching Xaero 26.3's buffer lifecycle.
+- Clients and the server must all update to 1.11.1. Network protocol remains 21; no packet format changed.
+
 ## 1.11.0 - 2026-09-19
 
 - Updated GooseTools from Minecraft 26.1.2 to 26.3, Fabric Loader 0.19.5, Fabric API 0.161.0+26.3, Xaero's Minimap 26.5.3, and Xaero's World Map 1.46.4.

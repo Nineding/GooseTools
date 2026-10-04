@@ -20,10 +20,17 @@
     "goosetools.aim.mixins.json",
     "goosetools.client.mixins.json",
     "goosetools.parasite.mixins.json",
+    "goosetools.noclip.server.mixins.json",
+    "goosetools.noclip.mixins.json",
+    "goosetools.mime.mixins.json",
     "goosetools.screen.mixins.json",
     "goosetools.vision.mixins.json",
     "goosetools.xaero.mixins.json",
-    "goosetools.voicechat.mixins.json"
+    "goosetools.voicechat.mixins.json",
+    {
+      "config": "goosetools.csl.mixins.json",
+      "environment": "client"
+    }
   ],
   "depends": {
     "fabricloader": ">=0.19.5",

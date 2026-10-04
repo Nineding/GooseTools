@@ -48,6 +48,46 @@ test {
     useJUnitPlatform()
 }
 
+// An isolated client mod exercises real GPU draws; it is never packaged in the release JAR.
+sourceSets {
+    cameraRenderTest {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+}
+configurations {
+    cameraRenderTestImplementation.extendsFrom implementation
+    cameraRenderTestRuntimeOnly.extendsFrom runtimeOnly
+}
+loom {
+    mods {
+        goosetools { sourceSet sourceSets.main }
+        goosetools_camera_test { sourceSet sourceSets.cameraRenderTest }
+    }
+    runs {
+        cameraRenderTest {
+            client()
+            source sourceSets.cameraRenderTest
+            runDir 'build/camera-render-test'
+            vmArg '-Dgoosetools.cameraRenderTest=true'
+        }
+    }
+}
+
+tasks.named('runCameraRenderTest') {
+    timeout = java.time.Duration.ofMinutes(3)
+    doFirst {
+        delete layout.buildDirectory.file('camera-render-test/result.txt')
+    }
+    doLast {
+        def result = layout.buildDirectory.file('camera-render-test/result.txt').get().asFile
+        if (!result.isFile() || !result.text.startsWith('PASS ')) {
+            throw new GradleException('Camera GPU regression failed; inspect build/camera-render-test/logs/latest.log and camera-gpu.png')
+        }
+        logger.lifecycle(result.text)
+    }
+}
+
 processResources {
     inputs.property "version", project.version
     filesMatching("fabric.mod.json") {

@@ -5,6 +5,7 @@ import com.google.gson.JsonParser;
 import com.goosethings.tools.GooseTools;
 import com.goosethings.tools.ai.AiReportServer;
 import com.goosethings.tools.network.GooseToolsPayloads;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
@@ -15,12 +16,16 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 
-/** Receives exactly one public+private report object for the local player. */
+/** Receives the local player's filtered report archive from the server. */
 public final class AiReportClient {
     private Incoming transfer;
-    private JsonObject report;
+    private final AiReportHistory history = new AiReportHistory();
+    private final AiReportOpenQueue manualOpen = new AiReportOpenQueue();
+    private long autoOpenGeneration;
 
     public void register() {
         ClientPlayNetworking.registerGlobalReceiver(GooseToolsPayloads.AiReportStartS2C.TYPE,
@@ -33,12 +38,24 @@ public final class AiReportClient {
         ClientPlayNetworking.registerGlobalReceiver(GooseToolsPayloads.AiReportClearS2C.TYPE,
                 (payload, context) -> context.client().execute(this::clear));
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(this::clear));
+        ClientTickEvents.END_CLIENT_TICK.register(this::openPending);
     }
 
     public boolean open() {
-        if (report == null) return false;
-        Minecraft.getInstance().setScreenAndShow(new AiReportScreen(report.deepCopy()));
-        return true;
+        return manualOpen.request(history.size() > 0);
+    }
+
+    private void openPending(Minecraft client) {
+        if (!manualOpen.consume(history.size() > 0)) return;
+        openNow(client);
+    }
+
+    private void openNow(Minecraft client) {
+        if (history.size() == 1) {
+            client.setScreenAndShow(new AiReportScreen(history.latest()));
+        } else {
+            client.setScreenAndShow(new AiReportSelectionScreen(history.entriesNewestFirst()));
+        }
     }
 
     private void begin(GooseToolsPayloads.AiReportStartS2C payload) {
@@ -63,8 +80,8 @@ public final class AiReportClient {
             String json = gunzip(compressed);
             JsonObject parsed = JsonParser.parseString(json).getAsJsonObject();
             validate(parsed);
-            report = parsed;
-            open();
+            long gameId = history.add(parsed);
+            scheduleAutoOpen(gameId);
         } catch (Exception exception) {
             GooseTools.LOGGER.warn("Rejected AI report: {}", exception.getMessage());
             Minecraft client = Minecraft.getInstance();
@@ -77,9 +94,26 @@ public final class AiReportClient {
 
     private void clear() {
         transfer = null;
-        report = null;
+        history.clear();
+        manualOpen.clear();
+        autoOpenGeneration++;
         Minecraft client = Minecraft.getInstance();
-        if (client.gui.screen() instanceof AiReportScreen) client.setScreenAndShow(null);
+        if (client.gui.screen() instanceof AiReportScreen
+                || client.gui.screen() instanceof AiReportSelectionScreen) {
+            client.setScreenAndShow(null);
+        }
+    }
+
+    private void scheduleAutoOpen(long gameId) {
+        long generation = ++autoOpenGeneration;
+        CompletableFuture.delayedExecutor(300L, TimeUnit.MILLISECONDS).execute(() -> {
+            Minecraft client = Minecraft.getInstance();
+            client.execute(() -> {
+                if (generation != autoOpenGeneration) return;
+                JsonObject latest = history.get(gameId);
+                if (latest != null) client.setScreenAndShow(new AiReportScreen(latest));
+            });
+        });
     }
 
     private static void validate(JsonObject value) throws IOException {
