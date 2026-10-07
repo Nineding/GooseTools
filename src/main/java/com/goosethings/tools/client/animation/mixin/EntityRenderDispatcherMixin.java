@@ -2,6 +2,7 @@ package com.goosethings.tools.client.animation.mixin;
 
 import com.goosethings.tools.client.animation.PlayerArmAnimationContinuity;
 import com.goosethings.tools.client.dream.DreamStandInClient;
+import com.goosethings.tools.client.projection.ProjectionBodyClient;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.world.entity.Entity;
@@ -10,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Prevents both sides of a Player/Mannequin hand-off rendering together. */
+/** Prevents both sides of a player/projection-body hand-off rendering together. */
 @Mixin(EntityRenderDispatcher.class)
 public abstract class EntityRenderDispatcherMixin {
 
@@ -19,6 +20,8 @@ public abstract class EntityRenderDispatcherMixin {
             E entity, Frustum frustum, double cameraX, double cameraY, double cameraZ, float partialTick,
             CallbackInfoReturnable<Boolean> cir) {
         if (DreamStandInClient.shouldSuppressStandIn(entity)
+                || ProjectionBodyClient.shouldSuppressBody(entity)
+                || ProjectionBodyClient.shouldSuppressSource(entity)
                 || PlayerArmAnimationContinuity.shouldSuppressRender(entity)
                 || DreamStandInClient.shouldSuppressMeetingSource(entity)) {
             cir.setReturnValue(false);

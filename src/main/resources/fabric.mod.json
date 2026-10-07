@@ -8,6 +8,9 @@
   "license": "GPL-3.0-or-later",
   "icon": "assets/goosetools/icon.png",
   "environment": "*",
+  "custom": {
+    "goosetools:protocol": 28
+  },
   "entrypoints": {
     "main": [
       "com.goosethings.tools.GooseTools"
@@ -20,6 +23,7 @@
     "goosetools.aim.mixins.json",
     "goosetools.client.mixins.json",
     "goosetools.parasite.mixins.json",
+    "goosetools.projection.mixins.json",
     "goosetools.noclip.server.mixins.json",
     "goosetools.noclip.mixins.json",
     "goosetools.mime.mixins.json",

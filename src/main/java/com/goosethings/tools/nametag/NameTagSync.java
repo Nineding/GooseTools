@@ -171,10 +171,14 @@ public final class NameTagSync {
             }
             List<GooseToolsPayloads.NameTagEntry> entries = new ArrayList<>(viewerTargets.size());
             for (ServerPlayer target : viewerTargets) {
-                VisualIdentity identity = identities.get(target.getUUID());
-                int markerCode = markerCode(server, viewer, target, fullBlood);
+                // Keep the real body as the entry/visibility owner, but mirror the
+                // viewer's effective identity and complete label with its skin.
+                ServerPlayer labelPlayer = fullBlood && AppearanceMirrorBridge.isMirrored(
+                        viewer.getUUID(), target.getUUID()) ? viewer : target;
+                VisualIdentity identity = identities.get(labelPlayer.getUUID());
+                int markerCode = markerCode(server, viewer, labelPlayer, fullBlood);
                 boolean markerNameTagVisible = markerCode != 0
-                        && PlayerMarkerPolicy.showBesideNameTag(target.entityTags());
+                        && PlayerMarkerPolicy.showBesideNameTag(labelPlayer.entityTags());
                 boolean samePlayer = viewer.getUUID().equals(target.getUUID());
                 if (NameTagVisibilityOverrides.isHidden(
                         viewer.getUUID(), target.getUUID())
@@ -190,9 +194,9 @@ public final class NameTagSync {
                     continue;
                 }
                 int flags = fullBlood ? attachmentFlags(
-                        viewer, target, identity, activeLoverCount, spectatorStatusView) : 0;
+                        viewer, labelPlayer, identity, activeLoverCount, spectatorStatusView) : 0;
                 if (NameTagAttachmentPolicy.showGuardShield(
-                        samePlayer, viewer.entityTags(), target.entityTags(), spectatorStatusView)) {
+                        viewer == labelPlayer, viewer.entityTags(), labelPlayer.entityTags(), spectatorStatusView)) {
                     flags |= GUARD_SHIELD;
                 }
                 entries.add(new GooseToolsPayloads.NameTagEntry(
@@ -206,7 +210,7 @@ public final class NameTagSync {
                         markerCode,
                         markerNameTagVisible,
                         dataDrivenAttachments(
-                                viewer, target, identity, fullBlood,
+                                viewer, labelPlayer, identity, fullBlood,
                                 spectatorStatusView, attachmentConfig)));
             }
             GooseToolsPayloads.NameTagSnapshotS2C snapshot =

@@ -50,27 +50,91 @@ test {
 
 // An isolated client mod exercises real GPU draws; it is never packaged in the release JAR.
 sourceSets {
+    xaeroRegressionTest {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
     cameraRenderTest {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+    flightRegressionTest {
         compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
         runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
     }
 }
 configurations {
+    xaeroRegressionTestImplementation.extendsFrom implementation
+    xaeroRegressionTestRuntimeOnly.extendsFrom runtimeOnly
     cameraRenderTestImplementation.extendsFrom implementation
     cameraRenderTestRuntimeOnly.extendsFrom runtimeOnly
+    flightRegressionTestImplementation.extendsFrom implementation
+    flightRegressionTestRuntimeOnly.extendsFrom runtimeOnly
 }
 loom {
     mods {
         goosetools { sourceSet sourceSets.main }
+        goosetools_xaero_test { sourceSet sourceSets.xaeroRegressionTest }
         goosetools_camera_test { sourceSet sourceSets.cameraRenderTest }
+        goosetools_flight_test { sourceSet sourceSets.flightRegressionTest }
     }
     runs {
+        xaeroRegressionTest {
+            client()
+            source sourceSets.xaeroRegressionTest
+            runDir 'build/xaero-regression-test'
+            vmArg '-Dgoosetools.xaeroRegressionTest=true'
+        }
+        xaeroServerSmokeTest {
+            server()
+            runDir 'build/xaero-server-smoke-test'
+        }
         cameraRenderTest {
             client()
             source sourceSets.cameraRenderTest
             runDir 'build/camera-render-test'
             vmArg '-Dgoosetools.cameraRenderTest=true'
         }
+        flightRegressionTest {
+            client()
+            source sourceSets.flightRegressionTest
+            runDir 'build/flight-regression-test'
+            vmArg '-Dgoosetools.flightRegressionTest=true'
+        }
+        projectionRegressionTest {
+            client()
+            source sourceSets.flightRegressionTest
+            runDir 'build/projection-regression-test'
+            vmArg '-Dgoosetools.projectionRegressionTest=true'
+        }
+    }
+}
+
+tasks.named('runXaeroRegressionTest') {
+    timeout = java.time.Duration.ofMinutes(3)
+    doFirst {
+        java.nio.file.Files.deleteIfExists(layout.buildDirectory.file('xaero-regression-test/result.txt').get().asFile.toPath())
+    }
+    doLast {
+        def result = layout.buildDirectory.file('xaero-regression-test/result.txt').get().asFile
+        if (!result.isFile() || !result.text.startsWith('PASS ')) {
+            throw new GradleException('Xaero menu regression failed; inspect build/xaero-regression-test/logs/latest.log and result.txt')
+        }
+        logger.lifecycle(result.text)
+    }
+}
+
+tasks.named('runFlightRegressionTest') {
+    timeout = java.time.Duration.ofMinutes(3)
+    doFirst {
+        delete layout.buildDirectory.file('flight-regression-test/result.txt')
+    }
+    doLast {
+        def result = layout.buildDirectory.file('flight-regression-test/result.txt').get().asFile
+        if (!result.isFile() || !result.text.startsWith('PASS ')) {
+            throw new GradleException('Flight regression failed; inspect build/flight-regression-test/logs/latest.log and result.txt')
+        }
+        logger.lifecycle(result.text)
     }
 }
 
@@ -83,6 +147,17 @@ tasks.named('runCameraRenderTest') {
         def result = layout.buildDirectory.file('camera-render-test/result.txt').get().asFile
         if (!result.isFile() || !result.text.startsWith('PASS ')) {
             throw new GradleException('Camera GPU regression failed; inspect build/camera-render-test/logs/latest.log and camera-gpu.png')
+        }
+        logger.lifecycle(result.text)
+    }
+}
+
+tasks.named('runProjectionRegressionTest') {
+    timeout = java.time.Duration.ofMinutes(3)
+    doLast {
+        def result = layout.buildDirectory.file('projection-regression-test/projection-result.txt').get().asFile
+        if (!result.isFile() || !result.text.startsWith('PASS ')) {
+            throw new GradleException('Projection regression failed; inspect build/projection-regression-test/logs/latest.log')
         }
         logger.lifecycle(result.text)
     }

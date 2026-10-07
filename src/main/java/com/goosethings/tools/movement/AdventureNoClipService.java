@@ -108,6 +108,7 @@ public final class AdventureNoClipService {
         boolean noClip = AdventureNoClipPolicy.shouldApply(requested, player.gameMode());
         player.noPhysics = noClip || player.isSpectator();
         if (noClip) {
+            player.setOnGround(false);
             player.fallDistance = 0.0F;
         }
     }

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "goosetools_xaero_test",
+  "version": "1.0.0",
+  "name": "GooseTools Xaero menu regression",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["com.goosethings.tools.xaero.XaeroMenuRegression"]
+  },
+  "depends": {"goosetools": "*"}
+}

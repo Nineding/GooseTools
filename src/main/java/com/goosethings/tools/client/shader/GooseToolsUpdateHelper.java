@@ -32,13 +32,16 @@ public final class GooseToolsUpdateHelper {
                 manifest.getProperty("launch.launcher", "other"));
         // The launch command can contain short-lived account credentials. Keep it only in memory.
         Files.deleteIfExists(manifestPath);
-        ProcessHandle.of(oldPid).ifPresent(handle -> {
-            try { handle.onExit().get(180, java.util.concurrent.TimeUnit.SECONDS); }
-            catch (Exception ignored) { }
-        });
+        var oldProcess = ProcessHandle.of(oldPid);
+        if (oldProcess.isPresent()) {
+            // Never replace files after a timeout if the old game is still using them.
+            oldProcess.get().onExit().get(180, java.util.concurrent.TimeUnit.SECONDS);
+        }
+        validateArtifacts(manifest, gameDir, staging);
 
         Path backupDir = gameDir.resolve("config").resolve("goosetools").resolve("update-backups")
                 .resolve(Long.toString(Instant.now().toEpochMilli()));
+        requireNoSymlinks(backupDir);
         Files.createDirectories(backupDir);
         List<Move> moves = new ArrayList<>();
         List<Backup> backups = new ArrayList<>();
@@ -84,10 +87,22 @@ public final class GooseToolsUpdateHelper {
             while (System.nanoTime() < deadline && restarted.isAlive() && !Files.isRegularFile(bootMarker)) {
                 Thread.sleep(500L);
             }
-            if (Files.isRegularFile(bootMarker) || restarted.isAlive()) {
+            String expectedVersion = manifest.getProperty("update.version", "");
+            boolean healthy = Files.isRegularFile(bootMarker)
+                    && (expectedVersion.isEmpty() || expectedVersion.equals(Files.readString(bootMarker).trim()));
+            if (healthy || (expectedVersion.isEmpty() && restarted.isAlive())) {
+                if (!expectedVersion.isEmpty()) Files.deleteIfExists(
+                        gameDir.resolve("config/goosetools/failed-update-version"));
                 return;
             }
+            if (restarted.isAlive()) {
+                restarted.destroy();
+                if (!restarted.waitFor(10, java.util.concurrent.TimeUnit.SECONDS)) {
+                    restarted.destroyForcibly().waitFor();
+                }
+            }
         } catch (Exception failure) {
+            markFailed(manifest, gameDir);
             try {
                 rollback(moves, backups);
             } catch (Exception rollbackFailure) {
@@ -104,6 +119,7 @@ public final class GooseToolsUpdateHelper {
         }
 
         try {
+            markFailed(manifest, gameDir);
             rollback(moves, backups);
         } finally {
             if (!relaunch.isEmpty()) {
@@ -119,6 +135,8 @@ public final class GooseToolsUpdateHelper {
         RestartCoordinator.writeLaunching(gameDir, token, launcher, now);
         ProcessBuilder builder = new ProcessBuilder(command).directory(gameDir.toFile());
         builder.environment().put(RestartCoordinator.TOKEN_ENVIRONMENT, token);
+        builder.redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.appendTo(
+                gameDir.resolve("config/goosetools/restarted-game.log").toFile()));
         try {
             Process process = builder.start();
             try {
@@ -173,12 +191,64 @@ public final class GooseToolsUpdateHelper {
         if ((!target.startsWith(mods) && !target.startsWith(shaders)) || target.equals(mods) || target.equals(shaders)) {
             throw new SecurityException("Unsafe update target");
         }
+        requireNoSymlinks(target);
     }
 
     private static void requireInside(Path path, Path parent) {
         Path normalizedParent = parent.toAbsolutePath().normalize();
         if (!path.startsWith(normalizedParent) || path.equals(normalizedParent)) {
             throw new SecurityException("Unsafe staged source");
+        }
+        requireNoSymlinks(path);
+    }
+
+    private static void requireNoSymlinks(Path path) {
+        for (Path current = path; current != null; current = current.getParent()) {
+            if (Files.isSymbolicLink(current)) throw new SecurityException("Symbolic link in update path");
+            try {
+                // Windows junctions are not always reported by isSymbolicLink.
+                if (Files.exists(current) && !current.toRealPath().equals(current.toAbsolutePath().normalize())) {
+                    throw new SecurityException("Redirected filesystem path in update");
+                }
+            } catch (java.io.IOException failure) {
+                throw new SecurityException("Cannot verify update path", failure);
+            }
+        }
+    }
+
+    static void validateArtifacts(Properties manifest, Path gameDir, Path staging) throws Exception {
+        int count = Integer.parseInt(manifest.getProperty("artifact.count", "0"));
+        if (count <= 0 || count > 8) throw new SecurityException("Invalid update artifact count");
+        java.util.Set<Path> targets = new java.util.HashSet<>();
+        for (int index = 0; index < count; index++) {
+            String prefix = "artifact." + index + ".";
+            Path source = Path.of(manifest.getProperty(prefix + "source")).toAbsolutePath().normalize();
+            Path target = Path.of(manifest.getProperty(prefix + "target")).toAbsolutePath().normalize();
+            requireInside(source, staging);
+            requireInstallTarget(target, gameDir);
+            if (!targets.add(target) || !Files.isRegularFile(source)) throw new SecurityException("Invalid update artifact");
+            String replace = manifest.getProperty(prefix + "replace");
+            if (replace != null && !replace.isBlank()) requireInstallTarget(Path.of(replace).toAbsolutePath().normalize(), gameDir);
+            String expected = manifest.getProperty(prefix + "sha256");
+            if (manifest.containsKey("update.version") && expected == null) throw new SecurityException("Missing update checksum");
+            if (expected != null) {
+                var digest = java.security.MessageDigest.getInstance("SHA-256");
+                try (InputStream input = Files.newInputStream(source)) {
+                    byte[] buffer = new byte[8192];
+                    for (int read; (read = input.read(buffer)) != -1;) digest.update(buffer, 0, read);
+                }
+                if (!java.util.HexFormat.of().formatHex(digest.digest()).equals(expected)) {
+                    throw new SecurityException("Update checksum changed after download");
+                }
+            }
+        }
+    }
+
+    private static void markFailed(Properties manifest, Path gameDir) {
+        String version = manifest.getProperty("update.version");
+        if (version != null) {
+            try { Files.writeString(gameDir.resolve("config/goosetools/failed-update-version"), version); }
+            catch (java.io.IOException ignored) { System.err.println("Could not record failed GooseTools update version"); }
         }
     }
 

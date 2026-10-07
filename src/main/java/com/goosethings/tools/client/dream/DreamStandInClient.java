@@ -1,8 +1,10 @@
 package com.goosethings.tools.client.dream;
 
+import com.goosethings.tools.GooseTools;
 import com.goosethings.tools.client.nametag.NameTagClientState;
 import com.goosethings.tools.network.GooseToolsPayloads;
 import com.mojang.authlib.GameProfile;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientEntityEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -12,6 +14,7 @@ import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.client.resources.DefaultPlayerSkin;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -22,10 +25,13 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.SwingAnimation;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /** Owns all client-only dream bodies and makes player/stand-in swaps frame-atomic. */
@@ -107,6 +113,7 @@ public final class DreamStandInClient {
         ClientPlayNetworking.registerGlobalReceiver(
                 GooseToolsPayloads.DreamMotionS2C.TYPE,
                 (payload, context) -> context.client().execute(() -> applyMotion(payload)));
+        ClientEntityEvents.ENTITY_UNLOAD.register(DreamStandInClient::onEntityUnload);
         ClientTickEvents.END_CLIENT_TICK.register(DreamStandInClient::tick);
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> clear());
     }
@@ -140,7 +147,20 @@ public final class DreamStandInClient {
         }
         // The prepare packet precedes the server-side remove/teleport packets. Build the
         // replacement now so the next render frame already has a complete chair occupant.
+        GooseTools.LOGGER.debug(
+                "Received dream scene revision {} with {} stand-ins",
+                scene.revision(), scene.standIns().size());
         refresh(Minecraft.getInstance());
+    }
+
+    private static void onEntityUnload(Entity entity, ClientLevel level) {
+        if (entity == null) {
+            return;
+        }
+        View view = VIEWS.get(entity.getUUID());
+        if (view != null) {
+            view.onModelUnloaded(entity, level);
+        }
     }
 
     private static void applyMotion(GooseToolsPayloads.DreamMotionS2C motion) {
@@ -164,9 +184,21 @@ public final class DreamStandInClient {
         if (minecraft.level == null || minecraft.player == null) {
             return;
         }
+        Set<Entity> renderingEntities = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (Entity entity : minecraft.level.entitiesForRendering()) {
+            renderingEntities.add(entity);
+        }
         for (View view : VIEWS.values()) {
             if (!view.state.dimension().equals(
                     minecraft.level.dimension().identifier().toString())) {
+                view.removeModel();
+                continue;
+            }
+            BlockPos position = BlockPos.containing(
+                    view.state.x(), view.state.y(), view.state.z());
+            if (!minecraft.level.hasChunkAt(position)) {
+                // Do not continually publish a meeting proxy into an unloaded far-away chunk on
+                // the dreamer's own client. It will be created as soon as that chunk is visible.
                 view.removeModel();
                 continue;
             }
@@ -174,9 +206,12 @@ public final class DreamStandInClient {
                 view.removeModel();
                 continue;
             }
-            view.ensureModel(minecraft);
+            view.ensureModel(minecraft, renderingEntities.contains(view.model));
             view.refreshAppearance(minecraft);
             view.applyToModel();
+            if (view.model != null) {
+                renderingEntities.add(view.model);
+            }
         }
     }
 
@@ -267,6 +302,7 @@ public final class DreamStandInClient {
         private int swingSequence;
         private boolean offHand;
         private int appliedSwingSequence;
+        private long nextRecoveryLogTick;
 
         private View(GooseToolsPayloads.DreamStandIn state) {
             update(state);
@@ -296,12 +332,16 @@ public final class DreamStandInClient {
             offHand = motion.offHand();
         }
 
-        private void ensureModel(Minecraft minecraft) {
+        private void ensureModel(Minecraft minecraft, boolean registeredForRendering) {
             if (model != null && DreamStandInLifecyclePolicy.canReuseModel(
                     modelLevel == minecraft.level,
                     model.isRemoved(),
-                    modelLevel != null && modelLevel.getEntity(model.getId()) == model)) {
+                    modelLevel != null && modelLevel.getEntity(model.getId()) == model,
+                    registeredForRendering)) {
                 return;
+            }
+            if (model != null) {
+                logRecovery(minecraft, registeredForRendering);
             }
             removeModel();
             model = new DreamRemotePlayer(
@@ -315,6 +355,13 @@ public final class DreamStandInClient {
             // equipment, skin and glow are complete in this same render-thread task.
             minecraft.level.addEntity(model);
             try {
+                if (minecraft.level.getEntity(model.getId()) != model) {
+                    GooseTools.LOGGER.warn(
+                            "ClientLevel rejected dream stand-in {} kind={}; retrying on a later tick",
+                            state.fakeId(), state.kind());
+                    removeModel();
+                    return;
+                }
                 refreshAppearance(minecraft);
                 applyToModel();
                 renderReady = true;
@@ -322,6 +369,34 @@ public final class DreamStandInClient {
                 removeModel();
                 throw exception;
             }
+        }
+
+        private void logRecovery(Minecraft minecraft, boolean registeredForRendering) {
+            long now = minecraft.level == null ? 0L : minecraft.level.getGameTime();
+            if (now < nextRecoveryLogTick) {
+                return;
+            }
+            nextRecoveryLogTick = now + 100L;
+            GooseTools.LOGGER.warn(
+                    "Rebuilding dream stand-in {} kind={} (sameLevel={}, removed={}, "
+                            + "registeredById={}, registeredForRendering={})",
+                    state.fakeId(), state.kind(), modelLevel == minecraft.level,
+                    model.isRemoved(),
+                    modelLevel != null && modelLevel.getEntity(model.getId()) == model,
+                    registeredForRendering);
+        }
+
+        private void onModelUnloaded(Entity entity, ClientLevel level) {
+            if (model != entity || modelLevel != level) {
+                return;
+            }
+            NameTagClientState.unregisterLocalAlias(entity.getUUID());
+            model = null;
+            modelLevel = null;
+            renderReady = false;
+            GooseTools.LOGGER.debug(
+                    "Dream stand-in {} was unloaded; it will be recreated when its chunk is visible",
+                    state.fakeId());
         }
 
         private void refreshAppearance(Minecraft minecraft) {
@@ -413,15 +488,18 @@ public final class DreamStandInClient {
                 renderReady = false;
                 return;
             }
+            DreamRemotePlayer removedModel = model;
+            ClientLevel removedLevel = modelLevel;
             renderReady = false;
-            NameTagClientState.unregisterLocalAlias(model.getUUID());
-            if (modelLevel != null && modelLevel.getEntity(model.getId()) == model) {
-                modelLevel.removeEntity(model.getId(), Entity.RemovalReason.DISCARDED);
-            } else if (!model.isRemoved()) {
-                model.discard();
-            }
             model = null;
             modelLevel = null;
+            NameTagClientState.unregisterLocalAlias(removedModel.getUUID());
+            if (removedLevel != null
+                    && removedLevel.getEntity(removedModel.getId()) == removedModel) {
+                removedLevel.removeEntity(removedModel.getId(), Entity.RemovalReason.DISCARDED);
+            } else if (!removedModel.isRemoved()) {
+                removedModel.discard();
+            }
         }
     }
 }

@@ -1,5 +1,143 @@
 # Changelog
 
+## 1.14.0+Alpha0.22 - 2026-10-07
+
+- Clients automatically check official GitHub Releases, download compatible GooseTools updates, and install them after leaving the game or at a safe lobby transition with a visible, cancellable restart countdown. Automatic updates and Alpha / Pre-release updates are both enabled by default; players can change them in the client settings or with `/goosetools-update`.
+- The version handshake can request the server's exact official release without weakening the client/server version lock. Updates verify the runtime JAR's SHA-256, mod identity, Minecraft/Fabric/dependency requirements and protocol before installation. Unavailable downloads leave the current game running and retry later.
+- Installation runs from a separate helper JAR, backs up the old mod, and restores it if the updated client fails to reach startup. Failed versions are skipped on subsequent automatic checks. If automatic launch cannot be captured, installation still completes and the player can reopen the launcher.
+- Tagged releases publish only the installable runtime JAR; Alpha versions are marked Pre-release, and release notes are taken directly from this version's Changelog entry.
+- Install GooseTools 1.14.0+Alpha0.22 once on every client and the server/host, then restart to enable the updater. Dedicated servers do not automatically stop or update themselves. Minecraft 26.3, Xaero Minimap 26.5.3, World Map 1.46.4, GooseThings 1.14.0+Alpha0.43 and the current data pack remain compatible. Protocol remains 28; packet formats are unchanged. Older releases without automatic-update metadata are not automatically installed.
+
+## 1.14.0+Alpha0.21 - 2026-10-07
+
+- Blocked Xaero settings and waypoint menus now stay closed safely when a shortcut fires, including Right Shift. GooseTools intercepts the actual GUI entry before Xaero 26.5.3's faulty disabled-waypoint redirect can crash Minecraft.
+- Server configuration screens remain blocked for administrators and ordinary players alike. The restricted Y-key player settings and minimap style screen remain available; other servers retain normal Xaero menu behavior.
+- Install GooseTools 1.14.0+Alpha0.21 on the server/host and every client, then restart. Xaero Minimap 26.5.3, World Map 1.46.4, GooseThings 1.14.0+Alpha0.43 and the current data pack remain compatible. Protocol remains 28; packet formats are unchanged.
+
+## 1.14.0+Alpha0.20 - 2026-10-07
+
+- Sensor and Stalker highlights now render on retained and copied Sniper, Esper, Mime and Astral bodies, using the viewer's original player highlight team and colour even while the authority is hidden. Clearing the highlight removes the body's outline as well.
+- The accompanying Whoiskiller data pack highlights an infested Parasite's current host and restores the original tracked player after release, including Seagull-borrowed Stalker tracking.
+- Requires GooseTools 1.14.0+Alpha0.20 on the server/host and every client, plus the accompanying data pack. GooseThings 1.14.0+Alpha0.43 remains compatible; protocol remains 28 and packet formats and Full Blood DLC gating are unchanged. Restart after replacing the JAR.
+
+## 1.14.0+Alpha0.19 - 2026-10-07
+
+- Esper possession now leaves a dedicated client-side player body for its owner and other viewers. It no longer reuses the local player skipped by Minecraft when the camera follows the possession target, or retains the authoritative player hidden by the server.
+- The body preserves its entry pose, including crouching, appearance and equipment. Active possession does not hide the body when the source overlaps it or its spectator update is delayed; the authoritative source is suppressed once the copy is ready to prevent duplicate heads, armour and nametags. Return retains the existing hand-off and Mime body-control behavior.
+- Requires GooseTools 1.14.0+Alpha0.19 on the server/host and every client; GooseThings 1.14.0+Alpha0.43 and the current Whoiskiller data pack remain compatible. Protocol remains 28 and packet formats are unchanged. Restart after replacing the JARs.
+
+## 1.14.0+Alpha0.18 - 2026-10-07
+
+- When an Astral, possessed Esper, or scoped Sniper returns to the body being moved by Mime, the existing Mime session now continues controlling the returned player with its remaining duration unchanged. The target's input locks at hand-off instead of aborting Mime control.
+- Return uses the body's latest controlled position and keeps its grace-period visual moving with Mime. Death, meetings, swallowing, disconnects, and invalid control relationships still terminate safely.
+- Requires GooseThings 1.14.0+Alpha0.43 on the server/host and GooseTools 1.14.0+Alpha0.18 on the server and every client. Protocol remains 28; packet formats, data-pack commands, and Full Blood DLC gating are unchanged. Restart after replacing the JARs.
+
+## 1.14.0+Alpha0.17 - 2026-10-07
+
+- Fixed adventure no-clip retaining the player's old ground contact. Both sides clear ground contact before no-clip movement so projected and phasing players use airborne movement correctly.
+- Added an explicit server-authorized forced-flight lock and speed synchronization. Role flight retains vanilla ascent/descent and configured speeds while preventing landing logic or double-tap jump from canceling flight mid-skill. Skill cleanup, respawn, and disconnect release the lock; ordinary ghost flight remains toggleable.
+- Requires GooseThings 1.14.0+Alpha0.42 on the server/host and GooseTools 1.14.0+Alpha0.17 on the server and every client. Protocol increases from 27 to 28 for the new flight payload; older clients are rejected by the existing handshake. Data-pack commands and Full Blood DLC gating are unchanged.
+
+## 1.14.0+Alpha0.16 - 2026-10-07
+
+- Goose Chapel fire, GooseShip fire, and Poolcore stabilizer appearance mirrors now show the observing player's effective nametag identity together with their skin: name, wardrobe colour, serial badge, and identity attachments. Duck observers retain the normal labels selected by the data pack.
+- Nametags read the same live GooseThings mirror scopes as skins and armor, so leaving a region, meetings, task completion, disconnects, and scope cleanup restore labels through the existing lifecycle.
+- Requires GooseThings 1.14.0+Alpha0.41 on the server/host and GooseTools 1.14.0+Alpha0.16 on the server and every client. Network protocol remains 27; packet formats and Full Blood DLC gating are unchanged.
+
+## 1.14.0+Alpha0.15 - 2026-10-07
+
+- Mime now controls the retained body of an Astral Projection, active Esper possession, or scoped Sniper when that body is selected. The remote player authority remains at its soul, possession camera, or scope position instead of being teleported by Mime movement.
+- Projected targets keep control of their remote state while Mime moves the body left behind. Ending that state returns the target to the body's latest controlled position and safely aborts Mime control.
+- The controller sees one target-skinned local body while all other viewers receive the moving retained body, including synchronized turning, pose, swing, and walking motion. Ordinary Mime targets keep the existing input-lock and authority-transfer behavior.
+- The server and every client must use GooseTools 1.14.0+Alpha0.15 together with GooseThings 1.14.0+Alpha0.40 and the accompanying Whoiskiller data pack. Network protocol remains 27 and packet formats are unchanged.
+
+## 1.14.0+Alpha0.14 - 2026-10-06
+
+- Restored the dedicated client-side player body at Lucid Dreamer and Raven meeting chairs. Dream entry no longer depends on retaining a server-hidden player entity, and wake-up again keeps the chair copy until the authoritative player has returned.
+- Astral Projection now always renders its original body through a dedicated GooseTools player copy for other viewers instead of retaining the entity removed by server-side true invisibility. Dedicated servers, late viewers, and tracking rebuilds therefore keep the original position occupied without bringing back mannequins.
+- Dream chair bodies and projection bodies have one visual owner each, preventing duplicate copies during staged enter, return, and heartbeat recovery. The server and every client must use GooseTools 1.14.0+Alpha0.14. GooseThings and the updated Whoiskiller data pack remain compatible; network protocol remains 27 and packet formats are unchanged.
+
+## 1.14.0+Alpha0.13 - 2026-10-06
+
+- Meeting report and bell banners now show the reporter or bell-ringer's real skin, name, wardrobe colour, and room-order badge while Morphling, Identity Thief, Parasite, or a Seagull-borrowed Morphling is transformed. The 3D models no longer inherit the live stolen PlayerInfo identity.
+- Reported-body appearance is unchanged. Network protocol remains 27 and packet formats are unchanged.
+- The server and every client must use GooseTools 1.14.0+Alpha0.13. GooseThings 1.14.0+Alpha0.34 and the updated Whoiskiller data pack remain compatible.
+
+## 1.14.0+Alpha0.12 - 2026-10-06
+
+- Fixed the active Mime body apparently teleporting beside its controller after running or jumping into a wall. Collision correctly left the body at the wall, but the general hand-off overlap guard hid its dedicated clone once the still-moving controller came within 1.5 blocks, exposing the controller-side player visual instead.
+- Active moving Mime bodies are now exempt from proximity suppression and remain rendered at their server-authoritative collision position even when the controller catches up or overlaps them. Prepared, returning, and other stationary hand-offs keep their existing duplicate-render protection.
+- The server and every client must use GooseTools 1.14.0+Alpha0.12. GooseThings 1.14.0+Alpha0.34 and the updated Whoiskiller data pack remain required. Network protocol remains 27 and packet formats are unchanged.
+
+## 1.14.0+Alpha0.11 - 2026-10-06
+
+- Fixed rapid opposite-direction Mime movement making the retained body oscillate. The client-only player clone now keeps one latest authoritative body sample and replaces an unplayed target instead of appending old directions to the normal sparse-network interpolation queue.
+- Removed velocity-driven movement from the no-physics clone. Its coordinates now come exclusively from collision-resolved server body samples, while Minecraft's normal `RemotePlayer` tick still derives walking and running animation from the actual per-tick displacement; sustained wall input can no longer push the visual body through a block.
+- Replaced the retained body's full-height step attempt with vanilla-style collision-shape candidate heights. Every direct or stepped result is checked before commit, the last collision-free position is restored if overlap is detected, and a pose expansion is deferred when its larger bounding box would enter a solid block.
+- The server and every client must use GooseTools 1.14.0+Alpha0.11. GooseThings 1.14.0+Alpha0.34 and the updated Whoiskiller data pack remain required. Network protocol remains 27 and packet formats are unchanged.
+
+## 1.14.0+Alpha0.10 - 2026-10-06
+
+- Completed the moving Mime clone hand-off by explicitly unloading the previously retained authoritative remote-player instance when control becomes active. The stale instance can no longer overlap the clone, suppress its render, or reintroduce server-position/body-position contention.
+- Includes the restored 1.14.0-era movement, jump, local gravity/collision, and normal RemotePlayer animation behavior introduced during the Alpha0.9 repair.
+- The server and every client must use GooseTools 1.14.0+Alpha0.10. GooseThings 1.14.0+Alpha0.34 and the updated Whoiskiller data pack remain required. Network protocol remains 27 and packet formats are unchanged.
+
+## 1.14.0+Alpha0.9 - 2026-10-06
+
+- Restored the original GooseTools 1.14.0-era Mime body-control behavior: each plausible one-tick controller displacement is mirrored, a grounded-to-airborne positive Y transition copies the real jump impulse, and the retained body then resolves its own gravity, block collision, stairs, ceiling, and landing at its original location.
+- Active Mime bodies now always render through a dedicated client-only player clone instead of reusing the authoritative remote-player entity. Server movement updates can no longer fight body pinning and make the torso, limbs, or cape vibrate.
+- Removed the synthetic walk-cycle override. The player clone now uses Minecraft's normal remote-player position/rotation interpolation, velocity, avatar state, and entity animation calculation, so walking, running, jumping, body turns, and cape motion are derived from actual body movement.
+- The server and every client must use GooseTools 1.14.0+Alpha0.9. GooseThings 1.14.0+Alpha0.34 and the updated Whoiskiller data pack remain required. Network protocol remains 27 and packet formats are unchanged.
+
+## 1.14.0+Alpha0.8 - 2026-10-06
+
+- Fixed Mime retained bodies gliding while their coordinates were mirrored. Walking and running limb motion now use the body's actual post-collision horizontal displacement with vanilla-equivalent target speed, smoothing, phase progression, and partial-tick interpolation.
+- A moving body transitions from walking to running amplitude as its resolved speed increases, then eases naturally to a stop when movement ends or its local collision blocks it. Turning, pose, and hand-swing synchronization are unchanged.
+- The server and every client must use GooseTools 1.14.0+Alpha0.8. GooseThings 1.14.0+Alpha0.34 and the updated Whoiskiller data pack remain required. Network protocol remains 27 and packet formats are unchanged.
+
+## 1.14.0+Alpha0.7 - 2026-10-06
+
+- Fixed Mime retained bodies mirroring only animation while remaining stationary. The body now copies the controller's plausible per-tick horizontal displacement from its own starting position.
+- Mirrored movement is resolved against blocks at the retained body's location, including player-height step-up handling and the independent gravity introduced in Alpha0.6. Teleports and the initial hand-off displacement are deliberately rebased instead of moving the body across the map.
+- The server and every client must use GooseTools 1.14.0+Alpha0.7. GooseThings 1.14.0+Alpha0.34 and the updated Whoiskiller data pack remain required. Network protocol remains 27 and packet formats are unchanged.
+
+## 1.14.0+Alpha0.6 - 2026-10-06
+
+- Astral, Sniper, Esper, and Mime retained bodies now use server-authoritative vertical gravity and block collision. Their invisible spatial anchor, aim geometry, and final return position follow the body to its landed height instead of remaining suspended at the projection entry point.
+- A Mime controlling another player now mirrors the controller's turning, pose, walking phase, and hand swings on the retained body while its position stays at the original body location.
+- Esper and Mime cleanup now lets their legacy authority manager finish first, then returns to the current retained-body position so an airborne entry coordinate cannot overwrite the landed height.
+- The server and every client must use GooseTools 1.14.0+Alpha0.6. GooseThings 1.14.0+Alpha0.34 and the updated Whoiskiller data pack are required. Network protocol is now 27 because retained-body motion uses a new bounded payload.
+
+## 1.14.0+Alpha0.5 - 2026-10-06
+
+- Restored Lucid Dreamer and Raven Dream Remote Control after the projection-body migration. Turning, head/body rotation, pose, and hand swings now target the retained meeting body instead of the removed legacy meeting proxy.
+- Motion updates received during the staged body hand-off are retained and applied as soon as the projection body is ready, while the body position and walking effects remain frozen at its meeting chair.
+- The server and every client must use GooseTools 1.14.0+Alpha0.5. GooseThings 1.14.0+Alpha0.34 and the accompanying Whoiskiller data pack remain compatible. Network protocol remains 26 and packet formats are unchanged.
+
+## 1.14.0+Alpha0.4 - 2026-10-06
+
+- Restored the seated meeting-chair render pose for Lucid Dreamer and Raven Dream projection bodies.
+- Projection bodies now clear stale walk/sprint animation and suppress sprint particles while pinned, preventing remote dream movement from appearing on the body left in the meeting.
+- The server and every client must use GooseTools 1.14.0+Alpha0.4. GooseThings 1.14.0+Alpha0.34 and the accompanying Whoiskiller data pack remain compatible. Network protocol remains 26 and packet formats are unchanged.
+
+## 1.14.0+Alpha0.3 - 2026-10-06
+
+- Replaced Astral, Sniper, Esper, Mime, Lucid Dreamer, and Raven Dream visible mannequin hand-offs with retained player bodies and viewer-private client projections. The authoritative player continues to own controls at the remote projection while normal viewers keep the original player render fixed at the entry point.
+- Added invisible server marker anchors for data-pack range, area, tracking, and aim validation. Full Blood aim claims resolve retained body hits back to the matching anchor without exposing a visible fake entity.
+- Added staged prepare/commit/return synchronization, heartbeat recovery, late-join fallback bodies, duplicate-spawn suppression, and return grace so pose, cape, equipment, and animation state no longer reset during body/projection transitions.
+- The server and every client must use GooseTools 1.14.0+Alpha0.3. GooseThings 1.14.0+Alpha0.34 and the accompanying Whoiskiller data pack are required. Network protocol is now 26 because the bounded projection-body payload is new.
+
+## 1.14.0+Alpha0.2 - 2026-10-05
+
+- Magpie's meeting guess-success icon no longer appears on the guessed living player's own nametag in third person. Other players, spectators, and the Magpie still see the public living-target mark.
+- The server and every client must all use GooseTools 1.14.0+Alpha0.2. GooseThings and the Whoiskiller data/resource packs do not require changes; network protocol remains 25 and packet formats are unchanged.
+
+## 1.14.0+Alpha0.1 - 2026-10-04
+
+- Dream stand-ins now verify both their entity-ID registration and their presence in the client's active rendering collection. An unload callback invalidates stale models immediately, while unloaded far-away chunks wait until visible instead of repeatedly publishing unusable entities.
+- The server now heartbeats each viewer-private dream scene at least once per second even when its contents are unchanged. A client that loses a meeting proxy during a world, chunk, or render-section transition can therefore reconstruct the full scene instead of remaining on an empty chair indefinitely.
+- Added rate-limited recovery diagnostics for missing render registrations and rejected synthetic entities. The server and every client must all use GooseTools 1.14.0+Alpha0.1. GooseThings and the Whoiskiller data/resource packs do not require changes; network protocol remains 25 and packet formats are unchanged.
+
 ## 1.14.0 - 2026-10-04
 
 - Consolidated every GooseTools change from 1.13.0 through 1.13.0+Alpha0.29 into the 1.14.0 stable release.

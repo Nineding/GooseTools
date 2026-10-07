@@ -26,3 +26,47 @@ jobs:
 
       - name: Build and test
         run: bash ./gradlew clean test build
+
+      - name: Prepare release from Changelog
+        if: startsWith(github.ref, 'refs/tags/v')
+        id: release
+        run: python3 scripts/release_info.py "$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Upload runtime JAR and Changelog entry
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: release
+          path: |
+            ${{ steps.release.outputs.jar }}
+            build/release-notes.md
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download tested release artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: release
+          path: release
+
+      - name: Publish runtime JAR with Changelog notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          args=()
+          if [[ "$version" == *Alpha* ]]; then
+            args+=(--prerelease --latest=false)
+          fi
+          gh release create "$GITHUB_REF_NAME" \
+            "release/libs/goosetools-$version.jar" \
+            --verify-tag --title "GooseTools $version" \
+            --notes-file release/release-notes.md "${args[@]}"

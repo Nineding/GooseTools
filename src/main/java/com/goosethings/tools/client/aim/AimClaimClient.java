@@ -1,5 +1,6 @@
 package com.goosethings.tools.client.aim;
 
+import com.goosethings.tools.client.nametag.NameTagClientState;
 import com.goosethings.tools.network.GooseToolsPayloads;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
@@ -95,7 +96,7 @@ public final class AimClaimClient {
 
         ClientPlayNetworking.send(new GooseToolsPayloads.AimClaimC2S(
                 sequence,
-                nearestEntity.getUUID(),
+                NameTagClientState.sourcePlayerId(nearestEntity),
                 origin.x,
                 origin.y,
                 origin.z,

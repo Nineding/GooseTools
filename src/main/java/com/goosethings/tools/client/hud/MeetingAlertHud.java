@@ -1,5 +1,6 @@
 package com.goosethings.tools.client.hud;
 
+import com.goosethings.tools.meeting.MeetingAlertIdentityPolicy;
 import com.goosethings.tools.network.GooseToolsPayloads;
 import com.mojang.authlib.GameProfile;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -7,17 +8,22 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.player.RemotePlayer;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
+import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.player.PlayerSkin;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
+
+import java.util.UUID;
 
 /** Animated full-width report/bell banner rendered above the ordinary HUD. */
 public final class MeetingAlertHud {
@@ -30,6 +36,7 @@ public final class MeetingAlertHud {
     }
 
     public static void register() {
+        MeetingAlertTrueSkinCache.register();
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> clear());
     }
 
@@ -61,6 +68,7 @@ public final class MeetingAlertHud {
         if (minecraft.level == null) {
             return;
         }
+        MeetingAlertTrueSkinCache.capture(minecraft);
         ensureModels(minecraft, alert.payload());
 
         int width = graphics.guiWidth();
@@ -254,10 +262,10 @@ public final class MeetingAlertHud {
 
     private static void ensureModels(Minecraft minecraft, GooseToolsPayloads.MeetingAlertS2C payload) {
         if (callerModel == null) {
-            callerModel = createModel(minecraft, payload.caller(), false, 0x6A110001);
+            callerModel = createModel(minecraft, payload.caller(), false, true, 0x6A110001);
         }
         if (payload.victim() != null && victimModel == null) {
-            victimModel = createModel(minecraft, payload.victim(), true, 0x6A110002);
+            victimModel = createModel(minecraft, payload.victim(), true, false, 0x6A110002);
         }
     }
 
@@ -265,10 +273,14 @@ public final class MeetingAlertHud {
             Minecraft minecraft,
             GooseToolsPayloads.MeetingAppearance appearance,
             boolean corpse,
+            boolean trueSkin,
             int entityId) {
-        RemotePlayer player = new RemotePlayer(
+        RemotePlayer player = new MeetingAlertRemotePlayer(
                 minecraft.level,
-                new GameProfile(appearance.playerId(), appearance.playerName()));
+                new GameProfile(
+                        MeetingAlertIdentityPolicy.isolatedModelId(appearance.playerId()),
+                        appearance.playerName()),
+                () -> skinFor(minecraft, appearance.playerId(), trueSkin));
         player.setId(entityId);
         player.setPose(corpse ? Pose.SLEEPING : Pose.STANDING);
         player.setYRot(0.0F);
@@ -287,6 +299,22 @@ public final class MeetingAlertHud {
         }
         player.refreshDimensions();
         return player;
+    }
+
+    private static PlayerSkin skinFor(Minecraft minecraft, UUID playerId, boolean trueSkin) {
+        if (trueSkin) {
+            PlayerSkin cached = MeetingAlertTrueSkinCache.get(playerId);
+            if (cached != null) {
+                return cached;
+            }
+        }
+        if (minecraft.getConnection() != null) {
+            PlayerInfo info = minecraft.getConnection().getPlayerInfo(playerId);
+            if (info != null && info.getSkin() != null) {
+                return info.getSkin();
+            }
+        }
+        return DefaultPlayerSkin.get(playerId);
     }
 
     private static int argb(int rgb, float alpha) {

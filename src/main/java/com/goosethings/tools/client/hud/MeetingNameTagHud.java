@@ -2,7 +2,7 @@ package com.goosethings.tools.client.hud;
 
 import com.goosethings.tools.client.nametag.NameTagClientState;
 import com.goosethings.tools.client.nametag.SerialBadgeStyle;
-import com.goosethings.tools.nametag.NameTagSync;
+import com.goosethings.tools.meeting.MeetingAlertIdentityPolicy;
 import com.goosethings.tools.network.GooseToolsPayloads;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -23,17 +23,29 @@ final class MeetingNameTagHud {
             int centerX,
             int top,
             float alpha) {
-        GooseToolsPayloads.NameTagEntry entry = NameTagClientState.entry(appearance.playerId());
-        if (entry != null && entry.name().isEmpty()) {
+        GooseToolsPayloads.NameTagEntry live = NameTagClientState.entry(appearance.playerId());
+        GooseToolsPayloads.NameTagEntry cached = NameTagClientState.trueIdentityEntry(appearance.playerId());
+        MeetingAlertIdentityPolicy.Label labelData = MeetingAlertIdentityPolicy.nametag(
+                appearance.playerName(),
+                appearance.playerId(),
+                live == null ? null : live.identityPlayerId(),
+                live == null ? null : live.name(),
+                live == null ? 0xffffff : live.rgb(),
+                live == null ? 0 : live.serialNumber(),
+                live == null ? 0 : live.attachmentFlags(),
+                cached == null ? null : cached.name(),
+                cached == null ? 0xffffff : cached.rgb(),
+                cached == null ? 0 : cached.serialNumber(),
+                cached == null ? 0 : cached.attachmentFlags());
+        if (labelData.concealed()) {
             // Preserve the server's per-viewer identity-concealment decision.
             return;
         }
 
-        String name = entry == null ? appearance.playerName() : entry.name();
-        int baseRgb = entry == null ? 0xffffff : entry.rgb();
-        int nameRgb = entry != null && (entry.attachmentFlags() & NameTagSync.LOVER) != 0
-                ? 0xff55ff : baseRgb;
-        int serial = entry == null ? 0 : entry.serialNumber();
+        String name = labelData.name();
+        int baseRgb = labelData.rgb();
+        int nameRgb = labelData.lover() ? 0xff55ff : baseRgb;
+        int serial = labelData.serial();
         Font font = minecraft.font;
         MutableComponent label = Component.empty();
         if (serial > 0) {

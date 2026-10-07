@@ -26,6 +26,8 @@ public final class AdventureNoClipClient {
     public static void enableForMovement(LocalPlayer player) {
         if (isActive(player)) {
             player.noPhysics = true;
+            // Entity.move's no-physics branch never refreshes onGround.
+            player.setOnGround(false);
             player.fallDistance = 0.0F;
         }
     }
@@ -46,6 +48,7 @@ public final class AdventureNoClipClient {
         if (client.gameMode != null && AdventureNoClipPolicy.shouldApply(
                 enabled, client.gameMode.getPlayerMode())) {
             client.player.noPhysics = true;
+            client.player.setOnGround(false);
             client.player.fallDistance = 0.0F;
         } else {
             client.player.noPhysics = client.player.isSpectator();

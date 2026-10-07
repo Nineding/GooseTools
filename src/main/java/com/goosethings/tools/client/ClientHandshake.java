@@ -20,6 +20,14 @@ public final class ClientHandshake {
 
     public static void register() {
         ClientPlayNetworking.registerGlobalReceiver(GooseToolsPayloads.HelloS2C.TYPE, (payload, context) -> {
+            context.client().execute(() -> {
+                try {
+                    com.goosethings.tools.client.update.AutoUpdateManager.onServerVersion(
+                            payload.version(), payload.protocol());
+                } catch (IllegalArgumentException invalidVersion) {
+                    GooseTools.LOGGER.warn("Server requested an unsupported GooseTools update version");
+                }
+            });
             context.responseSender().sendPacket(new GooseToolsPayloads.HelloC2S(
                     GooseTools.PROTOCOL_VERSION,
                     GooseTools.VERSION,

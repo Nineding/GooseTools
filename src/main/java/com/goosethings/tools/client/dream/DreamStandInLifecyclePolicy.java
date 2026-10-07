@@ -5,7 +5,8 @@ final class DreamStandInLifecyclePolicy {
     private DreamStandInLifecyclePolicy() {
     }
 
-    static boolean canReuseModel(boolean sameLevel, boolean removed, boolean registeredById) {
-        return sameLevel && !removed && registeredById;
+    static boolean canReuseModel(boolean sameLevel, boolean removed,
+                                 boolean registeredById, boolean registeredForRendering) {
+        return sameLevel && !removed && registeredById && registeredForRendering;
     }
 }

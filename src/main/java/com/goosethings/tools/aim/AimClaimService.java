@@ -2,6 +2,7 @@ package com.goosethings.tools.aim;
 
 import com.goosethings.tools.network.GooseToolsPayloads;
 import com.goosethings.tools.network.MandatoryHandshake;
+import com.goosethings.tools.projection.ProjectionBodyServer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -120,17 +121,25 @@ public final class AimClaimService {
 
         ServerLevel level = source.getLevel();
         Entity target = level.getEntityInAnyDimension(claim.targetId());
+        ProjectionBodyServer.VisualAnchor visualAnchor =
+                ProjectionBodyServer.visualAnchor(target);
         if (target == null
                 || target == player
                 || target.isRemoved()
-                || target.level() != level
+                || (visualAnchor == null && target.level() != level)
+                || (visualAnchor != null && !visualAnchor.dimension().equals(level.dimension()))
                 || !isTrackable(target)
-                || !target.entityTags().contains(CANDIDATE_TAG)) {
+                || (!target.entityTags().contains(CANDIDATE_TAG)
+                    && (visualAnchor == null || !visualAnchor.markerHasTag(CANDIDATE_TAG)))) {
             return 0;
         }
 
-        if (player.position().distanceTo(target.position()) > maximumRayDistance
-                || target.getBoundingBox().getCenter().distanceTo(claimedTargetCenter)
+        Vec3 visualPosition = visualAnchor == null
+                ? target.position() : visualAnchor.position();
+        Vec3 visualCenter = visualAnchor == null
+                ? target.getBoundingBox().getCenter() : visualAnchor.box().getCenter();
+        if (player.position().distanceTo(visualPosition) > maximumRayDistance
+                || visualCenter.distanceTo(claimedTargetCenter)
                         > HARD_DISPLACEMENT_LIMIT) {
             return 0;
         }
@@ -166,9 +175,11 @@ public final class AimClaimService {
             return 0;
         }
 
-        target.addTag(AIM_HIT_TAG);
-        target.addTag(AIM_IN_RANGE_TAG);
-        target.addTag(DEBUG_TARGET_TAG);
+        Entity resolvedTarget = visualAnchor != null && visualAnchor.marker() != null
+                ? visualAnchor.marker() : target;
+        resolvedTarget.addTag(AIM_HIT_TAG);
+        resolvedTarget.addTag(AIM_IN_RANGE_TAG);
+        resolvedTarget.addTag(DEBUG_TARGET_TAG);
         return 1;
     }
 
@@ -244,11 +255,14 @@ public final class AimClaimService {
             ResourceKey<Level> dimension,
             int now,
             int allowedHistoryTicks) {
-        Vec3 currentCenter = target.getBoundingBox().getCenter();
+        ProjectionBodyServer.VisualAnchor visualAnchor =
+                ProjectionBodyServer.visualAnchor(target);
+        Vec3 currentCenter = visualAnchor == null
+                ? target.getBoundingBox().getCenter() : visualAnchor.box().getCenter();
         Vec3 rayEnd = origin.add(direction.scale(maximumRayDistance));
         SampleHit best = null;
         double bestCenterError = Double.POSITIVE_INFINITY;
-        for (EntitySample sample : historyFor(target, now)) {
+        for (EntitySample sample : visualHistoryFor(target, visualAnchor, now)) {
             int age = now - sample.tick();
             if (age < 0 || age > allowedHistoryTicks || !sample.dimension().equals(dimension)) {
                 continue;
@@ -296,8 +310,11 @@ public final class AimClaimService {
             if (entity == source || entity.isRemoved() || entity.isSpectator() || !isTrackable(entity)) {
                 continue;
             }
-            Vec3 currentCenter = entity.getBoundingBox().getCenter();
-            for (EntitySample sample : historyFor(entity, now)) {
+            ProjectionBodyServer.VisualAnchor visualAnchor =
+                    ProjectionBodyServer.visualAnchor(entity);
+            Vec3 currentCenter = visualAnchor == null
+                    ? entity.getBoundingBox().getCenter() : visualAnchor.box().getCenter();
+            for (EntitySample sample : visualHistoryFor(entity, visualAnchor, now)) {
                 if (Math.abs(sample.tick() - targetSampleTick) > 1
                         || !sample.dimension().equals(level.dimension())
                         || sample.center().distanceTo(currentCenter) > HARD_DISPLACEMENT_LIMIT) {
@@ -348,6 +365,16 @@ public final class AimClaimService {
             samples.addAll(stored);
         }
         return samples;
+    }
+
+    private static List<EntitySample> visualHistoryFor(
+            Entity entity, ProjectionBodyServer.VisualAnchor anchor, int now) {
+        if (anchor == null) {
+            return historyFor(entity, now);
+        }
+        AABB box = anchor.box();
+        return List.of(new EntitySample(
+                now, anchor.dimension(), box, box.getCenter(), anchor.eye()));
     }
 
     private static EntitySample sample(Entity entity, int tick) {

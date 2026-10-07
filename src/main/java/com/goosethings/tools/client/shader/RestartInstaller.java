@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -56,10 +57,22 @@ public final class RestartInstaller {
                 .orElseThrow(() -> new IOException("GooseTools origin is unavailable"));
         String java = helperJavaExecutable()
                 .orElseThrow(() -> new IOException("Java executable is unavailable"));
-        new ProcessBuilder(java, "-cp", origin.toString(),
+        Path gameDir = FabricLoader.getInstance().getGameDir().toAbsolutePath().normalize();
+        Path normalized = manifest.toAbsolutePath().normalize();
+        Path stagingRoot = gameDir.resolve("config/goosetools/update-staging");
+        if (!normalized.startsWith(stagingRoot) || !Files.isRegularFile(normalized)) {
+            throw new IOException("Installer manifest is outside the staging directory");
+        }
+        // The helper must not hold the installed GooseTools JAR open while replacing itself on Windows.
+        Path helper = normalized.getParent().resolve("update-helper.jar");
+        Files.copy(origin, helper, StandardCopyOption.REPLACE_EXISTING);
+        new ProcessBuilder(java, "-cp", helper.toString(),
                 GooseToolsUpdateHelper.class.getName(), manifest.toString(),
                 Long.toString(ProcessHandle.current().pid()))
-                .directory(FabricLoader.getInstance().getGameDir().toFile())
+                .directory(gameDir.toFile())
+                .redirectErrorStream(true)
+                .redirectOutput(ProcessBuilder.Redirect.appendTo(
+                        gameDir.resolve("config/goosetools/update-installer.log").toFile()))
                 .start();
     }
 

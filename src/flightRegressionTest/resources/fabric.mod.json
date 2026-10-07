@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "goosetools_flight_test",
+  "version": "1.0.0",
+  "name": "GooseTools flight regression test",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.goosethings.tools.client.noclip.FlightRegression",
+      "com.goosethings.tools.client.projection.ProjectionBodyRegression"
+    ]
+  },
+  "depends": {"goosetools": "*", "goosethings": "*"}
+}

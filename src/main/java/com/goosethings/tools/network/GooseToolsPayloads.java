@@ -44,6 +44,10 @@ public final class GooseToolsPayloads {
         PayloadTypeRegistry.clientboundPlay().register(NameTagSnapshotS2C.TYPE, NameTagSnapshotS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(DreamSceneS2C.TYPE, DreamSceneS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(DreamMotionS2C.TYPE, DreamMotionS2C.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(
+                ProjectionBodiesS2C.TYPE, ProjectionBodiesS2C.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(
+                ProjectionBodyMotionS2C.TYPE, ProjectionBodyMotionS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(TaskMarkersS2C.TYPE, TaskMarkersS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(AiReportStartS2C.TYPE, AiReportStartS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(AiReportChunkS2C.TYPE, AiReportChunkS2C.CODEC);
@@ -58,10 +62,31 @@ public final class GooseToolsPayloads {
         PayloadTypeRegistry.clientboundPlay().register(MimeControlS2C.TYPE, MimeControlS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(MimeControllerViewS2C.TYPE, MimeControllerViewS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(AdventureNoClipS2C.TYPE, AdventureNoClipS2C.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(ForcedFlightS2C.TYPE, ForcedFlightS2C.CODEC);
     }
 
     private static <T extends CustomPacketPayload> CustomPacketPayload.Type<T> type(String path) {
         return new CustomPacketPayload.Type<>(Identifier.fromNamespaceAndPath(GooseTools.MOD_ID, path));
+    }
+
+    /** A zero multiplier releases the lock; positive values authorize active flight. */
+    public record ForcedFlightS2C(float speedMultiplier) implements CustomPacketPayload {
+        public static final Type<ForcedFlightS2C> TYPE = GooseToolsPayloads.type("forced_flight_s2c_v1");
+        public static final StreamCodec<RegistryFriendlyByteBuf, ForcedFlightS2C> CODEC =
+                StreamCodec.composite(ByteBufCodecs.FLOAT, ForcedFlightS2C::speedMultiplier,
+                        ForcedFlightS2C::new);
+
+        public ForcedFlightS2C {
+            if (!Float.isFinite(speedMultiplier)
+                    || (speedMultiplier != 0.0F && (speedMultiplier < 0.1F || speedMultiplier > 10.0F))) {
+                throw new IllegalArgumentException("Invalid forced flight multiplier");
+            }
+        }
+
+        @Override
+        public Type<ForcedFlightS2C> type() {
+            return TYPE;
+        }
     }
 
     public record AdventureNoClipS2C(boolean enabled) implements CustomPacketPayload {
@@ -797,6 +822,224 @@ public final class GooseToolsPayloads {
         @Override
         public Type<DreamMotionS2C> type() {
             return TYPE;
+        }
+    }
+
+    /** Continuous animation state for a retained body driven by a remote projection. */
+    public record ProjectionBodyMotionS2C(
+            UUID fakeBodyId,
+            float yRot,
+            float xRot,
+            float bodyRot,
+            float headRot,
+            String pose,
+            int swingSequence,
+            boolean offHand,
+            float walkAnimationPosition,
+            float walkAnimationSpeed) implements CustomPacketPayload {
+        public static final Type<ProjectionBodyMotionS2C> TYPE =
+                GooseToolsPayloads.type("projection_body_motion_s2c_v1");
+        public static final StreamCodec<RegistryFriendlyByteBuf, ProjectionBodyMotionS2C> CODEC =
+                StreamCodec.of(ProjectionBodyMotionS2C::write, ProjectionBodyMotionS2C::read);
+
+        public ProjectionBodyMotionS2C {
+            pose = pose == null ? "STANDING" : pose;
+            if (fakeBodyId == null || pose.length() > 32
+                    || !Float.isFinite(yRot) || !Float.isFinite(xRot)
+                    || !Float.isFinite(bodyRot) || !Float.isFinite(headRot)
+                    || !Float.isFinite(walkAnimationPosition)
+                    || !Float.isFinite(walkAnimationSpeed)) {
+                throw new IllegalArgumentException("Invalid projection-body motion");
+            }
+        }
+
+        private static void write(RegistryFriendlyByteBuf buffer,
+                                  ProjectionBodyMotionS2C payload) {
+            buffer.writeUUID(payload.fakeBodyId());
+            buffer.writeFloat(payload.yRot());
+            buffer.writeFloat(payload.xRot());
+            buffer.writeFloat(payload.bodyRot());
+            buffer.writeFloat(payload.headRot());
+            buffer.writeUtf(payload.pose(), 32);
+            buffer.writeVarInt(payload.swingSequence());
+            buffer.writeBoolean(payload.offHand());
+            buffer.writeFloat(payload.walkAnimationPosition());
+            buffer.writeFloat(payload.walkAnimationSpeed());
+        }
+
+        private static ProjectionBodyMotionS2C read(RegistryFriendlyByteBuf buffer) {
+            return new ProjectionBodyMotionS2C(
+                    buffer.readUUID(),
+                    buffer.readFloat(),
+                    buffer.readFloat(),
+                    buffer.readFloat(),
+                    buffer.readFloat(),
+                    buffer.readUtf(32),
+                    buffer.readVarInt(),
+                    buffer.readBoolean(),
+                    buffer.readFloat(),
+                    buffer.readFloat());
+        }
+
+        @Override
+        public Type<ProjectionBodyMotionS2C> type() {
+            return TYPE;
+        }
+    }
+
+    /**
+     * Complete viewer-private set of bodies whose original player render must stay
+     * at the skill-entry position while the authoritative player controls a remote
+     * projection. A full snapshot makes packet loss self-healing through the
+     * server heartbeat.
+     */
+    public record ProjectionBodiesS2C(long revision, List<ProjectionBody> bodies)
+            implements CustomPacketPayload {
+        public static final int MAX_BODIES = 32;
+        public static final Type<ProjectionBodiesS2C> TYPE =
+                GooseToolsPayloads.type("projection_bodies_s2c_v1");
+        public static final StreamCodec<RegistryFriendlyByteBuf, ProjectionBodiesS2C> CODEC =
+                StreamCodec.of(ProjectionBodiesS2C::write, ProjectionBodiesS2C::read);
+
+        public ProjectionBodiesS2C {
+            bodies = bodies == null ? List.of() : List.copyOf(bodies);
+            if (bodies.size() > MAX_BODIES) {
+                throw new IllegalArgumentException("Too many projected bodies: " + bodies.size());
+            }
+        }
+
+        private static void write(RegistryFriendlyByteBuf buffer,
+                                  ProjectionBodiesS2C payload) {
+            buffer.writeVarLong(payload.revision());
+            buffer.writeVarInt(payload.bodies().size());
+            for (ProjectionBody body : payload.bodies()) {
+                body.write(buffer);
+            }
+        }
+
+        private static ProjectionBodiesS2C read(RegistryFriendlyByteBuf buffer) {
+            long revision = buffer.readVarLong();
+            int count = buffer.readVarInt();
+            if (count < 0 || count > MAX_BODIES) {
+                throw new IllegalArgumentException("Invalid projected-body count: " + count);
+            }
+            List<ProjectionBody> bodies = new ArrayList<>(count);
+            for (int index = 0; index < count; index++) {
+                bodies.add(ProjectionBody.read(buffer));
+            }
+            return new ProjectionBodiesS2C(revision, bodies);
+        }
+
+        @Override
+        public Type<ProjectionBodiesS2C> type() {
+            return TYPE;
+        }
+    }
+
+    /** Immutable body snapshot plus the rendering policy chosen for one viewer. */
+    public record ProjectionBody(
+            UUID sourcePlayerId,
+            UUID fakeBodyId,
+            String sourceName,
+            String dimension,
+            int kind,
+            int phase,
+            boolean pinOriginal,
+            double x,
+            double y,
+            double z,
+            float yRot,
+            float xRot,
+            float bodyRot,
+            float headRot,
+            String pose,
+            List<ItemStack> equipment) {
+        public static final int ASTRAL = 0;
+        public static final int SNIPER = 1;
+        public static final int ESPER = 2;
+        public static final int MIME = 3;
+        public static final int DREAM_LUCID = 4;
+        public static final int DREAM_RAVEN = 5;
+
+        public static final int PREPARED = 0;
+        public static final int ACTIVE = 1;
+        public static final int RETURNING = 2;
+
+        private static final int EQUIPMENT_COUNT = EquipmentSlot.values().length;
+
+        public ProjectionBody {
+            if (sourcePlayerId == null || fakeBodyId == null) {
+                throw new IllegalArgumentException("Projected-body UUIDs are required");
+            }
+            sourceName = sourceName == null ? "" : sourceName;
+            dimension = dimension == null ? "" : dimension;
+            pose = pose == null ? "STANDING" : pose;
+            if (sourceName.length() > 64 || dimension.length() > 128 || pose.length() > 32) {
+                throw new IllegalArgumentException("Projected-body text field is too long");
+            }
+            if (kind < ASTRAL || kind > DREAM_RAVEN) {
+                throw new IllegalArgumentException("Unknown projection kind: " + kind);
+            }
+            if (phase < PREPARED || phase > RETURNING) {
+                throw new IllegalArgumentException("Unknown projection phase: " + phase);
+            }
+            if (!Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(z)
+                    || !Float.isFinite(yRot) || !Float.isFinite(xRot)
+                    || !Float.isFinite(bodyRot) || !Float.isFinite(headRot)) {
+                throw new IllegalArgumentException("Projected-body transform must be finite");
+            }
+            equipment = equipment == null ? List.of() : List.copyOf(equipment);
+            if (equipment.size() != EQUIPMENT_COUNT
+                    || equipment.stream().anyMatch(item -> item == null)) {
+                throw new IllegalArgumentException(
+                        "Projected body must contain every equipment slot");
+            }
+        }
+
+        private void write(RegistryFriendlyByteBuf buffer) {
+            buffer.writeUUID(sourcePlayerId);
+            buffer.writeUUID(fakeBodyId);
+            buffer.writeUtf(sourceName, 64);
+            buffer.writeUtf(dimension, 128);
+            buffer.writeByte(kind);
+            buffer.writeByte(phase);
+            buffer.writeBoolean(pinOriginal);
+            buffer.writeDouble(x);
+            buffer.writeDouble(y);
+            buffer.writeDouble(z);
+            buffer.writeFloat(yRot);
+            buffer.writeFloat(xRot);
+            buffer.writeFloat(bodyRot);
+            buffer.writeFloat(headRot);
+            buffer.writeUtf(pose, 32);
+            for (ItemStack item : equipment) {
+                ItemStack.OPTIONAL_STREAM_CODEC.encode(buffer, item);
+            }
+        }
+
+        private static ProjectionBody read(RegistryFriendlyByteBuf buffer) {
+            UUID sourcePlayerId = buffer.readUUID();
+            UUID fakeBodyId = buffer.readUUID();
+            String sourceName = buffer.readUtf(64);
+            String dimension = buffer.readUtf(128);
+            int kind = buffer.readUnsignedByte();
+            int phase = buffer.readUnsignedByte();
+            boolean pinOriginal = buffer.readBoolean();
+            double x = buffer.readDouble();
+            double y = buffer.readDouble();
+            double z = buffer.readDouble();
+            float yRot = buffer.readFloat();
+            float xRot = buffer.readFloat();
+            float bodyRot = buffer.readFloat();
+            float headRot = buffer.readFloat();
+            String pose = buffer.readUtf(32);
+            List<ItemStack> equipment = new ArrayList<>(EQUIPMENT_COUNT);
+            for (int index = 0; index < EQUIPMENT_COUNT; index++) {
+                equipment.add(ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer));
+            }
+            return new ProjectionBody(
+                    sourcePlayerId, fakeBodyId, sourceName, dimension, kind, phase,
+                    pinOriginal, x, y, z, yRot, xRot, bodyRot, headRot, pose, equipment);
         }
     }
 

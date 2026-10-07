@@ -8,9 +8,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class DreamStandInLifecyclePolicyTest {
     @Test
     void reusesOnlyARegisteredLiveModelInTheCurrentLevel() {
-        assertTrue(DreamStandInLifecyclePolicy.canReuseModel(true, false, true));
-        assertFalse(DreamStandInLifecyclePolicy.canReuseModel(false, false, true));
-        assertFalse(DreamStandInLifecyclePolicy.canReuseModel(true, true, true));
-        assertFalse(DreamStandInLifecyclePolicy.canReuseModel(true, false, false));
+        assertTrue(DreamStandInLifecyclePolicy.canReuseModel(true, false, true, true));
+        assertFalse(DreamStandInLifecyclePolicy.canReuseModel(false, false, true, true));
+        assertFalse(DreamStandInLifecyclePolicy.canReuseModel(true, true, true, true));
+        assertFalse(DreamStandInLifecyclePolicy.canReuseModel(true, false, false, true));
+        assertFalse(DreamStandInLifecyclePolicy.canReuseModel(true, false, true, false));
     }
 }

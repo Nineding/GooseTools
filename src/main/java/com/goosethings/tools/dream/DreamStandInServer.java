@@ -2,6 +2,7 @@ package com.goosethings.tools.dream;
 
 import com.goosethings.tools.network.GooseToolsPayloads;
 import com.goosethings.tools.network.MandatoryHandshake;
+import com.goosethings.tools.projection.ProjectionBodyServer;
 import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -48,6 +49,7 @@ public final class DreamStandInServer {
     private static final int MAX_PLAYER_SEAT = 20;
     private static final int PREPARE_TIMEOUT_TICKS = 40;
     private static final int RETIRE_TICKS = 40;
+    private static final int SCENE_HEARTBEAT_TICKS = 20;
 
     private static final Map<UUID, PlayerSnapshot> SNAPSHOTS = new HashMap<>();
     private static final List<CorpseSnapshot> CORPSES = new ArrayList<>();
@@ -56,6 +58,7 @@ public final class DreamStandInServer {
     private static final Map<UUID, RetiringProxy> RETIRING = new HashMap<>();
     private static final Map<UUID, GooseToolsPayloads.DreamSceneS2C> LAST_SCENES =
             new HashMap<>();
+    private static final Map<UUID, Integer> LAST_SCENE_SENT_TICKS = new HashMap<>();
 
     private static long revision;
     private static boolean dirty;
@@ -67,6 +70,7 @@ public final class DreamStandInServer {
         ServerTickEvents.END_SERVER_TICK.register(DreamStandInServer::tick);
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             LAST_SCENES.remove(handler.player.getUUID());
+            LAST_SCENE_SENT_TICKS.remove(handler.player.getUUID());
             dirty = true;
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
@@ -76,6 +80,7 @@ public final class DreamStandInServer {
             PENDING_WAKES.remove(playerId);
             RETIRING.remove(playerId);
             LAST_SCENES.remove(playerId);
+            LAST_SCENE_SENT_TICKS.remove(playerId);
             dirty = true;
         });
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> clearState());
@@ -133,6 +138,13 @@ public final class DreamStandInServer {
     }
 
     private static int snapshot(MinecraftServer server, Iterable<ServerPlayer> players) {
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            ProjectionBodyServer.Kind kind = ProjectionBodyServer.kind(player.getUUID());
+            if (kind == ProjectionBodyServer.Kind.DREAM_LUCID
+                    || kind == ProjectionBodyServer.Kind.DREAM_RAVEN) {
+                ProjectionBodyServer.abandon(server, player);
+            }
+        }
         clearState();
         int count = 0;
         for (ServerPlayer player : players) {
@@ -151,6 +163,12 @@ public final class DreamStandInServer {
                 || !player.entityTags().contains("inTalk")) {
             return 0;
         }
+        ProjectionBodyServer.Kind projectionKind = type == DreamType.LUCID
+                ? ProjectionBodyServer.Kind.DREAM_LUCID
+                : ProjectionBodyServer.Kind.DREAM_RAVEN;
+        if (!ProjectionBodyServer.prepare(player, projectionKind)) {
+            return 0;
+        }
         ProxySnapshot proxy = ProxySnapshot.capture(player);
         Session session = new Session(
                 player.getUUID(), type, proxy, server.getTickCount(), false);
@@ -167,6 +185,9 @@ public final class DreamStandInServer {
         if (session == null) {
             return 0;
         }
+        if (!ProjectionBodyServer.commit(player)) {
+            return 0;
+        }
         session.active = true;
         dirty = true;
         syncAll(server);
@@ -179,6 +200,7 @@ public final class DreamStandInServer {
             return 0;
         }
         SESSIONS.remove(player.getUUID());
+        ProjectionBodyServer.cancel(player);
         dirty = true;
         syncAll(server);
         return 1;
@@ -204,6 +226,7 @@ public final class DreamStandInServer {
         SNAPSHOTS.put(player.getUUID(), wake);
         RETIRING.put(player.getUUID(), new RetiringProxy(
                 session.proxy, server.getTickCount() + RETIRE_TICKS));
+        ProjectionBodyServer.retire(player);
         dirty = true;
         syncAll(server);
         return 1;
@@ -220,6 +243,7 @@ public final class DreamStandInServer {
         if (removed == null) {
             return 0;
         }
+        ProjectionBodyServer.abandon(server, player);
         dirty = true;
         syncAll(server);
         return 1;
@@ -228,6 +252,13 @@ public final class DreamStandInServer {
     private static int cleanup(MinecraftServer server) {
         int count = SESSIONS.size() + RETIRING.size();
         clearState();
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            ProjectionBodyServer.Kind kind = ProjectionBodyServer.kind(player.getUUID());
+            if (kind == ProjectionBodyServer.Kind.DREAM_LUCID
+                    || kind == ProjectionBodyServer.Kind.DREAM_RAVEN) {
+                ProjectionBodyServer.abandon(server, player);
+            }
+        }
         dirty = true;
         syncAll(server);
         return Math.max(1, count);
@@ -247,6 +278,7 @@ public final class DreamStandInServer {
             if (!session.active && tick - session.preparedAt > PREPARE_TIMEOUT_TICKS
                     && !player.entityTags().contains("inDream")) {
                 SESSIONS.remove(session.playerId);
+                ProjectionBodyServer.cancel(player);
                 changed = true;
                 continue;
             }
@@ -303,6 +335,7 @@ public final class DreamStandInServer {
 
     private static void syncAll(MinecraftServer server) {
         long nextRevision = ++revision;
+        int tick = server.getTickCount();
         for (ServerPlayer viewer : server.getPlayerList().getPlayers()) {
             if (!MandatoryHandshake.isVerified(viewer)
                     || !ServerPlayNetworking.canSend(viewer, GooseToolsPayloads.DreamSceneS2C.TYPE)) {
@@ -311,15 +344,20 @@ public final class DreamStandInServer {
             GooseToolsPayloads.DreamSceneS2C scene = new GooseToolsPayloads.DreamSceneS2C(
                     nextRevision, buildScene(server, viewer));
             GooseToolsPayloads.DreamSceneS2C previous = LAST_SCENES.get(viewer.getUUID());
-            if (sameStandIns(previous, scene)) {
+            boolean changed = !sameStandIns(previous, scene);
+            Integer lastSentTick = LAST_SCENE_SENT_TICKS.get(viewer.getUUID());
+            if (!DreamSceneSyncPolicy.shouldSend(
+                    changed, tick, lastSentTick, SCENE_HEARTBEAT_TICKS)) {
                 continue;
             }
             ServerPlayNetworking.send(viewer, scene);
             LAST_SCENES.put(viewer.getUUID(), scene);
+            LAST_SCENE_SENT_TICKS.put(viewer.getUUID(), tick);
         }
         Set<UUID> online = server.getPlayerList().getPlayers().stream()
                 .map(ServerPlayer::getUUID).collect(java.util.stream.Collectors.toSet());
         LAST_SCENES.keySet().removeIf(id -> !online.contains(id));
+        LAST_SCENE_SENT_TICKS.keySet().removeIf(id -> !online.contains(id));
         dirty = false;
     }
 
@@ -334,10 +372,11 @@ public final class DreamStandInServer {
         List<Session> sessions = SESSIONS.values().stream()
                 .sorted(Comparator.comparing(session -> session.playerId))
                 .toList();
+        // Always publish a dedicated player copy at the chair. The authenticated
+        // ServerPlayer is the remote dream authority and may be hidden, untracked,
+        // or in an unloaded chunk for ordinary meeting viewers, so retaining that
+        // entity cannot provide a reliable meeting body on a dedicated server.
         for (Session session : sessions) {
-            // The entering player's own client needs the chair proxy before the real body is
-            // moved as well. That makes the hand-off complete for F5 and client-side source
-            // suppression instead of relying on another viewer to be present.
             result.add(meetingStandIn(session.playerId, session.proxy, false));
         }
         RETIRING.entrySet().stream()
@@ -520,6 +559,7 @@ public final class DreamStandInServer {
         PENDING_WAKES.clear();
         RETIRING.clear();
         LAST_SCENES.clear();
+        LAST_SCENE_SENT_TICKS.clear();
     }
 
     private enum DreamType {

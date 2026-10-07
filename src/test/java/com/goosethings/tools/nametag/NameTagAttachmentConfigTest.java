@@ -116,6 +116,12 @@ final class NameTagAttachmentConfigTest {
                 Set.of("players"),
                 Set.of("players", "inTalk", "magpieGuessedThisMeeting"),
                 false));
+        assertFalse(magpie.visible(
+                true,
+                Set.of("players", "inTalk", "magpieGuessedThisMeeting"),
+                Set.of("players"),
+                Set.of("players", "inTalk", "magpieGuessedThisMeeting"),
+                true));
     }
 
     @Test

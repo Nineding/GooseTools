@@ -25,6 +25,7 @@ import java.util.UUID;
 /** Client cache for the already privacy-filtered nametag snapshot. */
 public final class NameTagClientState {
     private static final Map<UUID, GooseToolsPayloads.NameTagEntry> ENTRIES = new LinkedHashMap<>();
+    private static final Map<UUID, GooseToolsPayloads.NameTagEntry> TRUE_IDENTITIES = new LinkedHashMap<>();
     private static final Map<UUID, UUID> SERVER_ENTITY_ALIASES = new LinkedHashMap<>();
     private static final Map<UUID, UUID> LOCAL_ENTITY_ALIASES = new LinkedHashMap<>();
     private static final Map<UUID, GooseToolsPayloads.NameTagEntry> ITEM_PROFILES = new LinkedHashMap<>();
@@ -42,6 +43,21 @@ public final class NameTagClientState {
 
     public static GooseToolsPayloads.NameTagEntry entry(UUID playerId) {
         return playerId == null ? null : ENTRIES.get(playerId);
+    }
+
+    /**
+     * Last nametag that presented this player's own identity. Active Morphling /
+     * Identity Thief / Parasite disguises keep a stolen {@code identityPlayerId}
+     * on the live entry; meeting alerts still need the real name and wardrobe.
+     */
+    public static GooseToolsPayloads.NameTagEntry trueIdentityEntry(UUID playerId) {
+        GooseToolsPayloads.NameTagEntry live = entry(playerId);
+        if (live != null
+                && playerId.equals(live.identityPlayerId())
+                && !live.name().isEmpty()) {
+            return live;
+        }
+        return playerId == null ? null : TRUE_IDENTITIES.get(playerId);
     }
 
     public static GooseToolsPayloads.NameTagEntry entry(Entity entity) {
@@ -112,6 +128,9 @@ public final class NameTagClientState {
             ITEM_PROFILES.put(menuProfileId(entry.playerId()), entry);
             ITEM_PROFILES.put(entry.identityPlayerId(), entry);
             ITEM_PROFILES.put(menuProfileId(entry.identityPlayerId()), entry);
+            if (entry.playerId().equals(entry.identityPlayerId()) && !entry.name().isEmpty()) {
+                TRUE_IDENTITIES.put(entry.playerId(), entry);
+            }
         }
         for (GooseToolsPayloads.NameTagAlias alias : snapshot.aliases()) {
             SERVER_ENTITY_ALIASES.put(alias.entityId(), alias.playerId());
@@ -120,6 +139,7 @@ public final class NameTagClientState {
 
     private static void clear() {
         ENTRIES.clear();
+        TRUE_IDENTITIES.clear();
         SERVER_ENTITY_ALIASES.clear();
         LOCAL_ENTITY_ALIASES.clear();
         ITEM_PROFILES.clear();

@@ -36,7 +36,7 @@
       "viewer_tags_none": [],
       "target_tags_all": ["players", "inTalk", "magpieGuessedThisMeeting"],
       "target_tags_none": ["spectator", "deadInMap", "endGame"],
-      "hide_self": false,
+      "hide_self": true,
       "tag_source": "rendered",
       "requires_full_blood": true,
       "width": 10.0,

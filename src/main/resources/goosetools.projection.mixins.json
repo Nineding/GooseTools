@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.goosethings.tools.client.projection.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "ProjectionClientLevelMixin",
+    "ProjectionBodyEntityMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -9,6 +9,7 @@ import com.goosethings.tools.client.ai.AiReviewFlowClient;
 import com.goosethings.tools.client.hud.BroadcastHud;
 import com.goosethings.tools.client.hud.MeetingAlertHud;
 import com.goosethings.tools.client.dream.DreamStandInClient;
+import com.goosethings.tools.client.projection.ProjectionBodyClient;
 import com.goosethings.tools.client.vision.VisionFogState;
 import com.goosethings.tools.client.vision.BirdwatcherClientState;
 import com.goosethings.tools.client.vision.WitchDoctorTargetClient;
@@ -20,6 +21,7 @@ import com.goosethings.tools.client.nametag.NameTagClientState;
 import com.goosethings.tools.client.nametag.NameTagRenderer;
 import com.goosethings.tools.client.marker.PlayerMarkerItemDecorator;
 import com.goosethings.tools.client.noclip.AdventureNoClipClient;
+import com.goosethings.tools.client.noclip.ForcedFlightClient;
 import com.goosethings.tools.client.presence.GamePresenceClient;
 import com.goosethings.tools.xaero.GgdXaeroMapClient;
 import net.fabricmc.api.ClientModInitializer;
@@ -38,8 +40,10 @@ public final class GooseToolsClient implements ClientModInitializer {
         ClientClickActions.register();
         ClientHandshake.register();
         AdventureNoClipClient.register();
+        ForcedFlightClient.register();
         MeetingAlertHud.register();
         DreamStandInClient.register();
+        ProjectionBodyClient.register();
         com.goosethings.tools.client.mime.MimeControlClient.register();
         com.goosethings.tools.client.mime.MimeControllerViewClient.register();
         com.goosethings.tools.client.camera.CameraClient.register();
@@ -60,6 +64,7 @@ public final class GooseToolsClient implements ClientModInitializer {
         GooseToolsClientCommands.register(WEB_MANAGER, AI_REPORT);
         new GgdXaeroMapClient().onInitializeClient();
         RecommendedShaderManager.register();
+        com.goosethings.tools.client.update.AutoUpdateManager.register();
         HudElementRegistry.addLast(
                 Identifier.fromNamespaceAndPath(GooseTools.MOD_ID, "broadcast_hud"),
                 (graphics, delta) -> BroadcastHud.render(graphics));

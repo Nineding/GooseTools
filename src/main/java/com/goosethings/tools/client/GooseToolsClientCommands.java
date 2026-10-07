@@ -13,6 +13,20 @@ public final class GooseToolsClientCommands {
 
     public static void register(ClientWebManager manager, AiReportClient aiReport) {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
+                dispatcher.register(ClientCommands.literal("goosetools-update")
+                        .executes(context -> {
+                            Minecraft client = Minecraft.getInstance();
+                            client.setScreenAndShow(new com.goosethings.tools.client.update.UpdateSettingsScreen(client.gui.screen()));
+                            return 1;
+                        })
+                        .then(ClientCommands.literal("check").executes(context -> {
+                            com.goosethings.tools.client.update.AutoUpdateManager.resume();
+                            return 1;
+                        }))
+                        .then(ClientCommands.literal("later").executes(context -> {
+                            com.goosethings.tools.client.update.AutoUpdateManager.postpone();
+                            return 1;
+                        })));
                 dispatcher.register(ClientCommands.literal("guide")
                         .executes(context -> request(manager, context.getSource(), ""))
                         .then(ClientCommands.argument("page", StringArgumentType.word())

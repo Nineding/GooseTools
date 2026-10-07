@@ -1,6 +1,7 @@
 package com.goosethings.tools.mime;
 
 import com.goosethings.tools.network.GooseToolsPayloads;
+import com.goosethings.tools.projection.ProjectionBodyServer;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -12,12 +13,15 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** Synchronizes server-authoritative Mime input locks to the controlled client. */
 public final class MimeControlSync {
     private static final Map<UUID, UUID> CONTROLLED = new ConcurrentHashMap<>();
+    private static final Set<UUID> PROJECTION_BODY_TARGETS =
+            ConcurrentHashMap.newKeySet();
 
     private MimeControlSync() {
     }
@@ -33,9 +37,11 @@ public final class MimeControlSync {
                 }
                 ServerPlayer target = server.getPlayerList().getPlayer(entry.getKey());
                 if (target != null) {
-                    send(target, false, controllerId);
+                    clear(target);
+                } else {
+                    PROJECTION_BODY_TARGETS.remove(entry.getKey());
+                    CONTROLLED.remove(entry.getKey());
                 }
-                CONTROLLED.remove(entry.getKey());
             }
         });
     }
@@ -67,20 +73,71 @@ public final class MimeControlSync {
                 || !target.entityTags().contains("mimeControlled")) {
             return 0;
         }
+        if (CONTROLLED.containsKey(target.getUUID())) {
+            clear(target);
+        }
+        boolean projectionBody = ProjectionBodyServer.beginMimeBodyControl(
+                controller, target);
         CONTROLLED.put(target.getUUID(), controller.getUUID());
-        send(target, true, controller.getUUID());
+        if (projectionBody) {
+            PROJECTION_BODY_TARGETS.add(target.getUUID());
+        }
+        if (shouldLockTargetInput(projectionBody)) {
+            send(target, true, controller.getUUID());
+        }
         sendControllerView(controller, true, target);
         return 1;
     }
 
     private static boolean clear(ServerPlayer target) {
+        target.removeTag("mimeProjectionBodyReturned");
         UUID controller = CONTROLLED.remove(target.getUUID());
         if (controller == null) return false;
-        send(target, false, controller);
         MinecraftServer server = target.level().getServer();
         ServerPlayer mime = server == null ? null : server.getPlayerList().getPlayer(controller);
+        boolean projectionBody = PROJECTION_BODY_TARGETS.remove(target.getUUID());
+        if (projectionBody) {
+            if (mime != null) {
+                ProjectionBodyServer.endMimeBodyControl(mime, target);
+            }
+        } else {
+            send(target, false, controller);
+        }
         sendControllerView(mime, false, target);
         return true;
+    }
+
+    /** Switches the existing session after the authority has returned to its body. */
+    public static boolean continueAfterProjectionReturn(
+            ServerPlayer target, ServerPlayer controller) {
+        if (controller == null || target == null
+                || !canContinueAfterProjectionReturn(
+                controller.getUUID().equals(CONTROLLED.get(target.getUUID()))
+                        && PROJECTION_BODY_TARGETS.contains(target.getUUID()),
+                controller.level() == target.level(),
+                controller.entityTags(), target.entityTags())) {
+            return false;
+        }
+        PROJECTION_BODY_TARGETS.remove(target.getUUID());
+        target.addTag("mimeProjectionBodyReturned");
+        send(target, true, controller.getUUID());
+        return true;
+    }
+
+    static boolean canContinueAfterProjectionReturn(
+            boolean registeredProjectionControl, boolean sameLevel,
+            Set<String> controllerTags, Set<String> targetTags) {
+        return registeredProjectionControl && sameLevel
+                && controllerTags.contains("mimeControlling")
+                && !controllerTags.contains("mimeAbortRequested")
+                && targetTags.contains("mimeControlled")
+                && !isUnavailable(controllerTags) && !isUnavailable(targetTags);
+    }
+
+    private static boolean isUnavailable(Set<String> tags) {
+        return tags.contains("spectator") || tags.contains("endGame")
+                || tags.contains("inTalk") || tags.contains("inPelican")
+                || tags.contains("dlcDeadViewer") || tags.contains("dlcGhostActive");
     }
 
     private static int clearAll(MinecraftServer server) {
@@ -91,10 +148,12 @@ public final class MimeControlSync {
             ServerPlayer controller = controllerId == null ? null
                     : server.getPlayerList().getPlayer(controllerId);
             if (target != null) {
-                send(target, false, controllerId);
+                clear(target);
+            } else {
+                PROJECTION_BODY_TARGETS.remove(targetId);
+                CONTROLLED.remove(targetId);
+                sendControllerView(controller, false, null);
             }
-            sendControllerView(controller, false, target);
-            CONTROLLED.remove(targetId);
             count++;
         }
         return count;
@@ -104,12 +163,24 @@ public final class MimeControlSync {
         for (Map.Entry<UUID, UUID> entry : Map.copyOf(CONTROLLED).entrySet()) {
             ServerPlayer target = server.getPlayerList().getPlayer(entry.getKey());
             ServerPlayer controller = server.getPlayerList().getPlayer(entry.getValue());
+            boolean projectionBody = PROJECTION_BODY_TARGETS.contains(entry.getKey());
             if (target == null || controller == null
                     || !target.entityTags().contains("mimeControlled")
-                    || !controller.entityTags().contains("mimeControlling")) {
-                if (target != null) send(target, false, entry.getValue());
-                sendControllerView(controller, false, target);
-                CONTROLLED.remove(entry.getKey());
+                    || !controller.entityTags().contains("mimeControlling")
+                    || (projectionBody
+                    && !ProjectionBodyServer.isMimeBodyControlledBy(
+                    entry.getKey(), entry.getValue()))) {
+                if (target != null) {
+                    clear(target);
+                } else {
+                    PROJECTION_BODY_TARGETS.remove(entry.getKey());
+                    CONTROLLED.remove(entry.getKey());
+                    sendControllerView(controller, false, null);
+                }
+                if (controller != null
+                        && controller.entityTags().contains("mimeControlling")) {
+                    controller.addTag("mimeAbortRequested");
+                }
             }
         }
     }
@@ -119,6 +190,10 @@ public final class MimeControlSync {
             ServerPlayNetworking.send(target,
                     new GooseToolsPayloads.MimeControlS2C(active, controller));
         }
+    }
+
+    static boolean shouldLockTargetInput(boolean controlsProjectionBody) {
+        return !controlsProjectionBody;
     }
 
     private static void sendControllerView(ServerPlayer controller, boolean active,

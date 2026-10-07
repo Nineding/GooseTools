@@ -36,8 +36,13 @@ public final class BlackoutSettingsScreen extends Screen {
                 button -> RecommendedShaderManager.requestSetup(this))
                 .bounds(left, top + 48, 260, 20).build());
         addRenderableWidget(Button.builder(Component.translatableWithFallback(
+                "screen.goosetools.update.settings", "Update settings"),
+                button -> Minecraft.getInstance().setScreenAndShow(
+                        new com.goosethings.tools.client.update.UpdateSettingsScreen(this)))
+                .bounds(left, top + 72, 260, 20).build());
+        addRenderableWidget(Button.builder(Component.translatableWithFallback(
                 "gui.done", "Done"), button -> onClose())
-                .bounds(left, top + 82, 260, 20).build());
+                .bounds(left, top + 106, 260, 20).build());
     }
 
     @Override
@@ -54,7 +59,7 @@ public final class BlackoutSettingsScreen extends Screen {
                 ? Component.translatableWithFallback("screen.goosetools.blackout.shader_active", "Shader: active")
                 : Component.translatableWithFallback("screen.goosetools.blackout.shader_inactive", "Shader: inactive");
         graphics.text(font, status, width / 2 - font.width(status) / 2,
-                height / 2 + 64, IrisCompat.isShaderPackActive() ? 0xFF7FE69A : 0xFFFFC477, false);
+                height / 2 + 92, IrisCompat.isShaderPackActive() ? 0xFF7FE69A : 0xFFFFC477, false);
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
     }
 

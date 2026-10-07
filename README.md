@@ -73,6 +73,12 @@ These commands create public icons visible to every client allowed to see that n
 
 ## 版本与更新 / Versions and changes
 
+客户端默认自动检查并安装官方 GitHub Release，Alpha / Pre-release 更新也默认开启。新版先下载并校验，在主菜单或适合更新的大厅状态显示 10 秒倒计时，退出游戏后替换 JAR 并重启；对局中不会强制重启。更新设置可从客户端设置面板或 `/goosetools-update` 打开，也可以编辑 `config/goosetools/auto-update.properties` 中的 `enabled` 与 `includeAlpha`。联网失败不影响游戏，稍后重试。首次使用仍须安装一次带更新器的版本；专用服务器由管理员安排停服更新。
+
+Clients automatically check and install compatible official GitHub releases, including Alpha / Pre-release versions by default. Verified updates install only after the current game exits, with a visible 10-second countdown and a Later button. Open the updater settings through the client settings panel or `/goosetools-update`, or set `enabled` and `includeAlpha` in `config/goosetools/auto-update.properties`. Network failures leave the current game running. Install an updater-enabled version once on clients and the server/host; dedicated servers remain administrator-managed. The exact client/server version lock is preserved.
+
+Each release uses a matching `v<mod_version>` tag and only the runtime JAR attachment. Tags containing `Alpha` publish as Pre-release, and the release body contains only that version's entry from `CHANGELOG.md`.
+
 发布记录及兼容性变化参见 [CHANGELOG.md](CHANGELOG.md)。修改源码、资源、配置、网络或行为时必须递增模组版本；破坏网络兼容时还必须递增协议版本。
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes and compatibility changes. Source, resource, configuration, network, or behavior changes require a new mod version; breaking network changes also require a protocol bump.
