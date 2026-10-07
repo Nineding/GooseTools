@@ -33,8 +33,15 @@ public final class GitHubUpdateClient {
     private static final String API = "https://api.github.com/repos/Nineding/GooseTools/releases";
     private static final String DOWNLOAD = "/Nineding/GooseTools/releases/download/";
     private static final long MAX_JAR = 64L * 1024 * 1024;
-    private static final HttpClient HTTP = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(15)).followRedirects(HttpClient.Redirect.NEVER).build();
+    private static final HttpClient HTTP = httpClient();
+
+    private static HttpClient httpClient() {
+        var builder = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15))
+                .followRedirects(HttpClient.Redirect.NEVER);
+        var proxy = UpdateProxySelector.configured(System.getenv(), java.net.ProxySelector.getDefault());
+        if (proxy != null) builder.proxy(proxy);
+        return builder.build();
+    }
 
     private GitHubUpdateClient() { }
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.14.0+Alpha0.23 - 2026-10-07
+
+- Automatic client updates now use existing Java HTTP/HTTPS proxy settings or the standard `HTTPS_PROXY` / `HTTP_PROXY` environment configuration, and respect `NO_PROXY`. This allows official GitHub release downloads through an already configured HTTP proxy without changing the system proxy or using unofficial mirrors.
+- Automatic updates and Alpha / Pre-release updates remain enabled by default, with verified downloads, a cancellable restart countdown, old-JAR backups and startup-failure rollback. The updater can still obtain the connected server's exact compatible release.
+- Install GooseTools 1.14.0+Alpha0.23 once on every client and the server/host, then restart to enable automatic updates. Dedicated servers remain administrator-managed. Minecraft 26.3, Xaero Minimap 26.5.3, World Map 1.46.4, GooseThings 1.14.0+Alpha0.43 and the current data pack remain compatible. Protocol remains 28; packet formats are unchanged. Older releases without automatic-update metadata are not automatically installed.
+
 ## 1.14.0+Alpha0.22 - 2026-10-07
 
 - Clients automatically check official GitHub Releases, download compatible GooseTools updates, and install them after leaving the game or at a safe lobby transition with a visible, cancellable restart countdown. Automatic updates and Alpha / Pre-release updates are both enabled by default; players can change them in the client settings or with `/goosetools-update`.
