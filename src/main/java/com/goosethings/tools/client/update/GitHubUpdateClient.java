@@ -46,10 +46,15 @@ public final class GitHubUpdateClient {
     private GitHubUpdateClient() { }
 
     public static List<Release> releases(String current, boolean alpha, String required) throws Exception {
+        return releases(current, alpha, required, new UpdateMonitor());
+    }
+
+    public static List<Release> releases(String current, boolean alpha, String required, UpdateMonitor monitor) throws Exception {
+        monitor.update(UpdateMonitor.Phase.CHECKING, "", 0, 0);
         List<Release> result = new ArrayList<>();
         // An exact server version may be much older than the first page of Releases.
         String url = required == null ? API + "?per_page=100" : API + "/tags/v" + required.replace("+", "%2B");
-        JsonElement json = JsonParser.parseString(new String(get(URI.create(url), 4L * 1024 * 1024),
+        JsonElement json = JsonParser.parseString(new String(get(URI.create(url), 4L * 1024 * 1024, monitor, 0),
                 StandardCharsets.UTF_8));
         JsonArray entries = new JsonArray();
         if (json.isJsonArray()) entries = json.getAsJsonArray();
@@ -91,15 +96,24 @@ public final class GitHubUpdateClient {
 
     public static Optional<Path> stage(Release release, Path gameDir, Path origin,
                                       int protocol, Map<String, String> installed) throws Exception {
+        return stage(release, gameDir, origin, protocol, installed, new UpdateMonitor());
+    }
+
+    public static Optional<Path> stage(Release release, Path gameDir, Path origin,
+                                      int protocol, Map<String, String> installed, UpdateMonitor monitor) throws Exception {
+        monitor.update(UpdateMonitor.Phase.DOWNLOADING, release.version(), 0, release.size());
         Path root = gameDir.toAbsolutePath().normalize();
         Path mods = root.resolve("mods");
         // Do not replace a development class directory, nested dependency or launcher-managed path.
         if (!origin.toAbsolutePath().normalize().getParent().equals(mods)
                 || !Files.isRegularFile(origin) || Files.isSymbolicLink(origin)) return Optional.empty();
         Path staging = root.resolve("config/goosetools/update-staging").resolve(UUID.randomUUID().toString());
+        com.goosethings.tools.client.update.bootstrap.BootstrapFiles.safe(staging);
+        com.goosethings.tools.client.update.bootstrap.BootstrapFiles.safe(origin);
         Files.createDirectories(staging);
         Path jar = staging.resolve(release.fileName());
-        byte[] data = get(release.uri(), MAX_JAR);
+        byte[] data = get(release.uri(), MAX_JAR, monitor, release.size());
+        monitor.update(UpdateMonitor.Phase.VERIFYING, release.version(), data.length, release.size());
         if (data.length != release.size() || !HexFormat.of().formatHex(
                 MessageDigest.getInstance("SHA-256").digest(data)).equals(release.sha256())) {
             throw new IOException("GitHub update checksum or size mismatch");
@@ -122,6 +136,7 @@ public final class GitHubUpdateClient {
         manifest.setProperty("launch.automatic", "false");
         Path file = staging.resolve("pending-update.properties");
         try (var output = Files.newOutputStream(file)) { manifest.store(output, "Verified GooseTools update"); }
+        monitor.checkCancelled();
         return Optional.of(file);
     }
 
@@ -139,7 +154,8 @@ public final class GitHubUpdateClient {
             if (!"goosetools".equals(metadata.get("id").getAsString())
                     || !expected.equals(metadata.get("version").getAsString())
                     || !metadata.has("custom")
-                    || metadata.getAsJsonObject("custom").get("goosetools:protocol").getAsInt() != protocol) return false;
+                    || metadata.getAsJsonObject("custom").get("goosetools:protocol").getAsInt() <= 0
+                    || (protocol >= 0 && metadata.getAsJsonObject("custom").get("goosetools:protocol").getAsInt() != protocol)) return false;
             for (var dependency : metadata.getAsJsonObject("depends").entrySet()) {
                 String version = installed.get(dependency.getKey());
                 if (version == null || !matches(dependency.getValue(), version)) return false;
@@ -162,14 +178,26 @@ public final class GitHubUpdateClient {
         return false;
     }
 
-    private static byte[] get(URI uri, long max) throws Exception {
+    private static byte[] get(URI uri, long max, UpdateMonitor monitor, long downloadTotal) throws Exception {
         for (int redirects = 0; redirects <= 5; redirects++) {
+            monitor.checkCancelled();
             if (!allowed(uri)) throw new IOException("Unapproved GitHub download address");
             HttpRequest request = HttpRequest.newBuilder(uri).timeout(Duration.ofSeconds(60))
                     .header("Accept", "application/vnd.github+json")
                     .header("User-Agent", "GooseTools-Updater").GET().build();
-            HttpResponse<byte[]> response = HTTP.sendAsync(request, info -> new LimitedBody(max))
-                    .orTimeout(60, java.util.concurrent.TimeUnit.SECONDS).get();
+            var future = HTTP.sendAsync(request, info -> new LimitedBody(max, monitor,
+                    info.statusCode() == 200 ? downloadTotal : 0));
+            HttpResponse<byte[]> response;
+            long deadline = System.nanoTime() + Duration.ofSeconds(60).toNanos();
+            try {
+                while (true) {
+                    monitor.checkCancelled();
+                    try { response = future.get(200, java.util.concurrent.TimeUnit.MILLISECONDS); break; }
+                    catch (java.util.concurrent.TimeoutException waiting) {
+                        if (System.nanoTime() >= deadline) throw new IOException("GitHub transfer timed out");
+                    }
+                }
+            } catch (Exception failure) { future.cancel(true); throw failure; }
             if (response.statusCode() >= 300 && response.statusCode() < 400) {
                 uri = uri.resolve(response.headers().firstValue("location").orElseThrow());
                 continue;
@@ -190,17 +218,23 @@ public final class GitHubUpdateClient {
     /** Cancel excessive bodies while receiving, with a total network deadline on the future. */
     private static final class LimitedBody implements HttpResponse.BodySubscriber<byte[]> {
         private final long max;
+        private final UpdateMonitor monitor;
+        private final long total;
         private final java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
         private final java.util.concurrent.CompletableFuture<byte[]> result = new java.util.concurrent.CompletableFuture<>();
         private java.util.concurrent.Flow.Subscription subscription;
 
-        LimitedBody(long max) { this.max = max; }
+        LimitedBody(long max, UpdateMonitor monitor, long total) { this.max = max; this.monitor = monitor; this.total = total; }
         @Override public java.util.concurrent.CompletionStage<byte[]> getBody() { return result; }
         @Override public void onSubscribe(java.util.concurrent.Flow.Subscription value) {
             subscription = value;
             subscription.request(1);
         }
         @Override public void onNext(List<java.nio.ByteBuffer> buffers) {
+            try { monitor.checkCancelled(); }
+            catch (java.util.concurrent.CancellationException cancelled) {
+                subscription.cancel(); result.completeExceptionally(cancelled); return;
+            }
             for (var buffer : buffers) {
                 if ((long) bytes.size() + buffer.remaining() > max) {
                     subscription.cancel();
@@ -210,6 +244,12 @@ public final class GitHubUpdateClient {
                 byte[] chunk = new byte[buffer.remaining()];
                 buffer.get(chunk);
                 bytes.writeBytes(chunk);
+            }
+            if (total > 0) {
+                try { monitor.update(UpdateMonitor.Phase.DOWNLOADING, monitor.snapshot().version(), bytes.size(), total); }
+                catch (java.util.concurrent.CancellationException cancelled) {
+                    subscription.cancel(); result.completeExceptionally(cancelled); return;
+                }
             }
             subscription.request(1);
         }

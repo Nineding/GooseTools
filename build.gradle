@@ -48,8 +48,40 @@ test {
     useJUnitPlatform()
 }
 
+// One published runtime JAR contains an independent pre-launch updater. No Minecraft classes
+// enter its class path, and its dependencies are private to the separate updater JVM.
+def standaloneUpdater = tasks.register('standaloneUpdater', Jar) {
+    dependsOn tasks.named('classes')
+    archiveFileName = 'updater.jar'
+    destinationDirectory = layout.buildDirectory.dir('updater')
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    manifest { attributes 'Main-Class': 'com.goosethings.tools.client.update.bootstrap.GooseToolsBootstrap' }
+    from(sourceSets.main.output.classesDirs) {
+        include 'com/goosethings/tools/client/update/bootstrap/**'
+        include 'com/goosethings/tools/client/update/GitHubUpdateClient*'
+        include 'com/goosethings/tools/client/update/UpdateMonitor*'
+        include 'com/goosethings/tools/client/update/UpdateVersion*'
+        include 'com/goosethings/tools/client/update/UpdatePreferences*'
+        include 'com/goosethings/tools/client/update/UpdateProxySelector*'
+    }
+    from('src/main/resources') { include 'assets/goosetools/lang/en_us.json', 'assets/goosetools/lang/zh_cn.json' }
+    from({ configurations.compileClasspath.findAll {
+        it.name.startsWith('gson-') || it.name.startsWith('fabric-loader-')
+    }.collect { zipTree(it) } }) {
+        exclude 'META-INF/*.SF', 'META-INF/*.RSA', 'META-INF/*.DSA', 'module-info.class', 'META-INF/versions/**/module-info.class'
+    }
+}
+tasks.named('jar') {
+    dependsOn standaloneUpdater
+    from(standaloneUpdater.flatMap { it.archiveFile }) { into 'META-INF/goosetools' }
+}
+
 // An isolated client mod exercises real GPU draws; it is never packaged in the release JAR.
 sourceSets {
+    updateRegressionTest {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
     taskRegressionTest {
         compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
         runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
@@ -68,6 +100,8 @@ sourceSets {
     }
 }
 configurations {
+    updateRegressionTestImplementation.extendsFrom implementation
+    updateRegressionTestRuntimeOnly.extendsFrom runtimeOnly
     taskRegressionTestImplementation.extendsFrom implementation
     taskRegressionTestRuntimeOnly.extendsFrom runtimeOnly
     xaeroRegressionTestImplementation.extendsFrom implementation
@@ -79,6 +113,7 @@ configurations {
 }
 loom {
     mods {
+        goosetools_update_test { sourceSet sourceSets.updateRegressionTest }
         goosetools_task_test { sourceSet sourceSets.taskRegressionTest }
         goosetools { sourceSet sourceSets.main }
         goosetools_xaero_test { sourceSet sourceSets.xaeroRegressionTest }
@@ -86,6 +121,16 @@ loom {
         goosetools_flight_test { sourceSet sourceSets.flightRegressionTest }
     }
     runs {
+        updateRegressionTest {
+            client()
+            source sourceSets.updateRegressionTest
+            runDir 'build/update-regression-test'
+            vmArg '-Dgoosetools.updateRegressionTest=true'
+            programArg '--width'
+            programArg '1100'
+            programArg '--height'
+            programArg '800'
+        }
         taskRegressionTest {
             client()
             source sourceSets.taskRegressionTest
@@ -124,6 +169,23 @@ loom {
             runDir 'build/projection-regression-test'
             vmArg '-Dgoosetools.projectionRegressionTest=true'
         }
+    }
+}
+
+tasks.named('runUpdateRegressionTest') {
+    timeout = java.time.Duration.ofMinutes(3)
+    doFirst {
+        delete layout.buildDirectory.file('update-regression-test/result.txt')
+        def options = layout.buildDirectory.file('update-regression-test/options.txt').get().asFile
+        options.parentFile.mkdirs()
+        options.text = 'lang:zh_cn\nguiScale:2\nskipMultiplayerWarning:true\n'
+    }
+    doLast {
+        def result = layout.buildDirectory.file('update-regression-test/result.txt').get().asFile
+        if (!result.isFile() || !result.text.startsWith('PASS ')) {
+            throw new GradleException('Update GUI regression failed; inspect build/update-regression-test/logs/latest.log and result.txt')
+        }
+        logger.lifecycle(result.text)
     }
 }
 

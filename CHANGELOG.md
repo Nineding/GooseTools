@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.14.0+Alpha0.25 - 2026-10-08
+
+- GooseTools now opens a dedicated update screen after Minecraft loads, showing checking, actual download bytes and percentage, verification and results. Players can retry a failed check or continue playing. Checks during a match do not interrupt task screens or install files while the game is running.
+- HMCL instances can install compatible official GitHub updates before Minecraft starts, including Alpha / Pre-release releases by default. The standalone progress window finishes its check and installation before HMCL launches the game, so an available compatible update takes effect on that launch without an extra game restart. Network failures allow retrying or continuing with the installed version.
+- The independent updater is embedded in the runtime JAR and extracted automatically for HMCL instance settings. Existing launch commands are preserved; the update settings screen offers an HMCL connection button. The game shows the recent launcher check result instead of downloading the same update again.
+- Pre-launch installation verifies the official SHA-256, mod identity and Minecraft/Fabric/dependency requirements, keeps the old JAR outside mods, and records startup confirmation. If the updated game never reaches its first screen, the next launch restores the previous version and skips the failed release. Running instances are protected from file replacement; client/server exact version matching still applies.
+- Install GooseTools 1.14.0+Alpha0.25 once on every client and the server/host, then restart. HMCL pre-launch checks start on the following launch after connection; other launchers retain in-game automatic updates. Dedicated servers remain administrator-managed. Minecraft 26.3, Xaero Minimap 26.5.3, World Map 1.46.4, GooseThings 1.14.0+Alpha0.43 and the existing data pack remain compatible. Protocol remains 29; packet formats are unchanged.
+
 ## 1.14.0+Alpha0.24 - 2026-10-08
 
 - Added five dedicated GUI task trials: a rotating timing dial, four-wire matching, timed card swiping, draggable garbage and three-knob calibration. Each panel includes localized instructions, progress, completion time, retry feedback and a replay button.
