@@ -71,6 +71,8 @@ class GitHubUpdateClientTest {
         Map<String, String> installed = Map.of("minecraft", "26.3", "fabricloader", "0.19.5",
                 "java", "25", "xaerominimap", "26.5.3");
         assertTrue(GitHubUpdateClient.compatible(jar, "1.14.0+Alpha0.22", 28, installed));
+        // The standalone updater may install a new protocol before any game classes load.
+        assertTrue(GitHubUpdateClient.compatible(jar, "1.14.0+Alpha0.22", -1, installed));
         assertFalse(GitHubUpdateClient.compatible(jar, "1.14.0+Alpha0.22", 29, installed));
         assertFalse(GitHubUpdateClient.compatible(jar, "1.14.0+Alpha0.21", 28, installed));
         assertFalse(GitHubUpdateClient.compatible(jar, "1.14.0+Alpha0.22", 28, Map.of("minecraft", "26.3")));

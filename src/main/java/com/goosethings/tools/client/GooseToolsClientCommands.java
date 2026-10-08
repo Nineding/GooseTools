@@ -21,6 +21,8 @@ public final class GooseToolsClientCommands {
                         })
                         .then(ClientCommands.literal("check").executes(context -> {
                             com.goosethings.tools.client.update.AutoUpdateManager.resume();
+                            var client = Minecraft.getInstance();
+                            com.goosethings.tools.client.update.AutoUpdateManager.showProgress(client.gui.screen());
                             return 1;
                         }))
                         .then(ClientCommands.literal("later").executes(context -> {

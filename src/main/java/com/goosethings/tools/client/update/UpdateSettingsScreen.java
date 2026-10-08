@@ -7,6 +7,7 @@ import net.minecraft.client.gui.screens.Screen;
 
 public final class UpdateSettingsScreen extends Screen {
     private final Screen parent;
+    private net.minecraft.network.chat.Component connectionStatus;
 
     public UpdateSettingsScreen(Screen parent) {
         super(AutoUpdateManager.text("settings", "Update settings"));
@@ -26,10 +27,13 @@ public final class UpdateSettingsScreen extends Screen {
             button.setMessage(alphaLabel());
         }).bounds(width / 2 - 130, height / 2 - 14, 260, 20).build());
         addRenderableWidget(Button.builder(AutoUpdateManager.text("check", "Check now / install pending update"),
-                button -> { AutoUpdateManager.resume(); Minecraft.getInstance().setScreenAndShow(parent); })
+                button -> { AutoUpdateManager.resume(); AutoUpdateManager.showProgress(parent); })
                 .bounds(width / 2 - 130, height / 2 + 10, 260, 20).build());
+        addRenderableWidget(Button.builder(AutoUpdateManager.text("hmcl_connect", "Connect HMCL pre-launch updates"),
+                button -> connectionStatus = AutoUpdateManager.connectHmcl())
+                .bounds(width / 2 - 130, height / 2 + 34, 260, 20).build());
         addRenderableWidget(Button.builder(AutoUpdateManager.text("done", "Done"), button -> onClose())
-                .bounds(width / 2 - 130, height / 2 + 42, 260, 20).build());
+                .bounds(width / 2 - 130, height / 2 + 62, 260, 20).build());
     }
 
     private static net.minecraft.network.chat.Component enabledLabel() {
@@ -48,8 +52,8 @@ public final class UpdateSettingsScreen extends Screen {
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, width, height, 0xED10161D);
         graphics.text(font, title, width / 2 - font.width(title) / 2, height / 2 - 70, 0xFFFFFFFF, false);
-        int y = height / 2 + 76;
-        for (var line : font.split(AutoUpdateManager.status(), Math.min(420, width - 40))) {
+        int y = height / 2 + 90;
+        for (var line : font.split(connectionStatus == null ? AutoUpdateManager.status() : connectionStatus, Math.min(420, width - 40))) {
             graphics.text(font, line, width / 2 - Math.min(420, width - 40) / 2, y, 0xFFC8D7DF, false);
             y += font.lineHeight + 2;
         }
