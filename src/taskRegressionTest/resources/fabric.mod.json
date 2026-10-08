@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "goosetools_task_test",
+  "version": "1.0.0",
+  "name": "GooseTools task GUI regression",
+  "environment": "client",
+  "entrypoints": { "client": ["com.goosethings.tools.client.task.TaskGuiRegression"] },
+  "depends": { "goosetools": "*" }
+}

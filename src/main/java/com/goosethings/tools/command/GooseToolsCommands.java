@@ -38,6 +38,7 @@ public final class GooseToolsCommands {
                 .requires(source -> source.getEntity() == null
                         || source.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER))
                 .then(com.goosethings.tools.camera.CameraCommands.cameras())
+                .then(com.goosethings.tools.task.TaskServer.command())
                 .then(com.goosethings.tools.camera.CameraCommands.screens())
                 .then(com.goosethings.tools.vision.WitchDoctorVision.command())
                 .then(com.goosethings.tools.meeting.MeetingAlertServer.command())

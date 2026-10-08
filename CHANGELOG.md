@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.14.0+Alpha0.24 - 2026-10-08
+
+- Added five dedicated GUI task trials: a rotating timing dial, four-wire matching, timed card swiping, draggable garbage and three-knob calibration. Each panel includes localized instructions, progress, completion time, retry feedback and a replay button.
+- Administrators can try them using `/goosetools tasks open <players> <timing|wires|swipe|garbage|knobs>` and close them with `/goosetools tasks close <players>`. These trials are independent of maps and do not award normal task progress, achievements or role rewards.
+- The server owns trial layouts and completion rules. Closing the panel, disconnecting, dying, changing dimensions or entering a meeting clears the session; reopening replaces the previous trial. Trial panels do not pause the game.
+- Install GooseTools 1.14.0+Alpha0.24 on the server/host and every client, then restart. Protocol increases from 28 to 29 for the task messages. Minecraft 26.3, Xaero Minimap 26.5.3, World Map 1.46.4, GooseThings 1.14.0+Alpha0.43 and the existing data pack remain compatible; the trials require no new GooseThings or Full Blood DLC features.
+
 ## 1.14.0+Alpha0.23 - 2026-10-07
 
 - Automatic client updates now use existing Java HTTP/HTTPS proxy settings or the standard `HTTPS_PROXY` / `HTTP_PROXY` environment configuration, and respect `NO_PROXY`. This allows official GitHub release downloads through an already configured HTTP proxy without changing the system proxy or using unofficial mirrors.

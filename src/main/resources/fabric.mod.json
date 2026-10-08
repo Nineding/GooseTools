@@ -9,7 +9,7 @@
   "icon": "assets/goosetools/icon.png",
   "environment": "*",
   "custom": {
-    "goosetools:protocol": 28
+    "goosetools:protocol": 29
   },
   "entrypoints": {
     "main": [
