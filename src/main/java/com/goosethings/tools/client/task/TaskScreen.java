@@ -11,14 +11,19 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 import java.util.Locale;
 
 /** A dedicated, non-pausing task panel with one virtual coordinate space for drawing and input. */
 public final class TaskScreen extends Screen {
-    private static final int INK = 0xFFECF2FF, MUTED = 0xFFA5B4D0, GREEN = 0xFF60E5A5,
-            RED = 0xFFFF7082, EDGE = 0xFF647396;
+    private static final int INK = 0xFFF0F0EA, MUTED = 0xFFB3BCC1, GREEN = 0xFF7BCF77,
+            RED = 0xFFE77969, EDGE = 0xFF7C8A91;
+    private static final Identifier DIAL = texture("dial"), READER = texture("reader"),
+            BIN = texture("bin"), KNOB = texture("knob"), CARD = texture("key_card");
     private static final int[] WIRE_COLORS = {0xFFFF7588, 0xFF67BAFF, 0xFFFFD066, 0xFFBB91FF};
     private static final String[] FEEDBACK = {"waiting", "play", "success", "miss", "wrong_wire", "insert_card",
             "card_ready", "too_fast", "too_slow", "incomplete_swipe", "drop_in_bin", "align_knob"};
@@ -36,6 +41,7 @@ public final class TaskScreen extends Screen {
     private double pointerX, pointerY, grabX, grabY, cardX = 65;
     private long localStart, lastMove, feedbackAt, localKnobSince = -1;
     private int previousProgress;
+    private ItemStack[] trashItems;
 
     public TaskScreen(TaskPackets.Open open) {
         super(Component.translatableWithFallback("task.goosetools." + TaskType.values()[open.task()].id + ".title",
@@ -76,20 +82,20 @@ public final class TaskScreen extends Screen {
     }
 
     @Override public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-        graphics.fill(0, 0, width, height, 0xAE080C18);
+        graphics.fill(0, 0, width, height, 0xAE101416);
         Transform transform = transform();
         graphics.pose().pushMatrix();
         graphics.pose().translate((float) transform.x, (float) transform.y);
         graphics.pose().scale((float) transform.scale, (float) transform.scale);
         double mx = transform.virtualX(mouseX), my = transform.virtualY(mouseY);
         graphics.fill(3, 5, 423, 325, 0x66000000);
-        graphics.fill(0, 0, 420, 320, 0xFF202C49);
-        graphics.outline(0, 0, 420, 320, EDGE);
-        graphics.fill(1, 1, 419, 46, 0xFF172039);
-        graphics.fill(1, 46, 419, 48, 0xFFB294E8);
+        bevel(graphics, 0, 0, 420, 320, 0xFF3C474D);
+        bevel(graphics, 8, 8, 404, 40, 0xFF293136);
+        graphics.fill(18, 46, 402, 48, 0xFFBD9563);
+        for (int x : new int[]{4, 413}) for (int y : new int[]{4, 312}) screw(graphics, x, y);
         graphics.text(font, getTitle(), 18, 14, INK, false);
         graphics.text(font, text("trial", "Task trial"), 18, 29, MUTED, false);
-        graphics.fill(382, 12, 407, 36, TaskLayout.CLOSE.contains(mx, my) ? 0xFFBC546E : 0xFF7C3E58);
+        bevel(graphics, 382, 12, 25, 24, TaskLayout.CLOSE.contains(mx, my) ? 0xFFB86459 : 0xFF79473F);
         center(graphics, text("close", "×"), 394, 19, INK);
         String elapsed = String.format(Locale.ROOT, "%.1f", elapsed() / 1000.0);
         Component timer = text("time", "%s s", elapsed);
@@ -106,8 +112,7 @@ public final class TaskScreen extends Screen {
                 "task.goosetools." + type.id + ".help", help), 382)) {
             graphics.text(font, line, 18, helpY, MUTED, false); helpY += 10;
         }
-        graphics.fill(18, 80, 402, 265, 0xFF151E34);
-        graphics.outline(18, 80, 384, 185, 0xFF3F4E70);
+        bevel(graphics, 18, 80, 384, 185, 0xFF1D252A);
         switch (type) {
             case TIMING -> drawTiming(graphics, mx, my);
             case WIRES -> drawWires(graphics);
@@ -122,7 +127,7 @@ public final class TaskScreen extends Screen {
                 && type != TaskType.SWIPE && feedback != TaskSession.WAITING) { feedback = TaskSession.PLAY; color = MUTED; }
         center(graphics, text(FEEDBACK[feedback], FALLBACK[feedback]), 210, 274, color);
         int progress = state == null ? 0 : state.progress();
-        graphics.fill(18, 296, 335, 306, 0xFF0D1426);
+        bevel(graphics, 18, 295, 317, 12, 0xFF151C20);
         graphics.fill(19, 297, 19 + (int) (315.0 * progress / type.total), 305, GREEN);
         graphics.text(font, text("progress", "%s / %s", progress, type.total), 348, 296, INK, false);
         if (state != null && state.complete()) drawSuccess(graphics, mx, my);
@@ -130,31 +135,31 @@ public final class TaskScreen extends Screen {
     }
 
     private void drawTiming(GuiGraphicsExtractor g, double mx, double my) {
-        circle(g, 173, 164, 78, 0xFF101728);
-        circle(g, 173, 164, 74, EDGE);
-        circle(g, 173, 164, 70, 0xFF415074);
+        sprite(g, DIAL, 95, 86, 156, 156);
         for (int degrees = 0; degrees < 360; degrees += 2) {
+            if (!TaskLayout.inGreen(degrees)) continue;
             double rad = Math.toRadians(degrees - 90);
             int x = 173 + (int) (Math.cos(rad) * 61), y = 164 + (int) (Math.sin(rad) * 61);
-            g.fill(x - 5, y - 5, x + 5, y + 5, TaskLayout.inGreen(degrees) ? GREEN : 0xFF273453);
+            g.fill(x - 3, y - 3, x + 4, y + 4, GREEN);
         }
-        circle(g, 173, 164, 53, 0xFF415074);
         double angle = Math.toRadians(layout.timingAngle(elapsed()) - 90);
         int tipX = 173 + (int) (Math.cos(angle) * 57), tipY = 164 + (int) (Math.sin(angle) * 57);
-        line(g, 173, 164, tipX, tipY, 3, INK);
-        circle(g, 173, 164, 8, 0xFF101728); circle(g, 173, 164, 5, 0xFFB294E8);
+        line(g, 175, 166, tipX + 2, tipY + 2, 2, 0xFF101619);
+        line(g, 173, 164, tipX, tipY, 1, INK);
+        circle(g, 173, 164, 6, 0xFF101619); circle(g, 172, 163, 4, 0xFFBD9563);
         boolean hover = TaskLayout.near(mx, my, 173, 243, 17);
-        circle(g, 173, 243, 18, EDGE);
-        circle(g, 173, 243, 14, hover ? 0xFFFF829B : 0xFFAA4769);
-        g.fill(153, 258, 193, 259, 0xFF573F60);
-        g.fill(309, 91, 350, 252, EDGE); g.fill(313, 95, 346, 248, 0xFF0D1426);
+        sprite(g, KNOB, 155, 225, 36, 36);
+        circle(g, 173, 243, 12, 0xFF542E35);
+        circle(g, 172, 242, 10, hover ? 0xFFF4929C : 0xFFBB6576);
+        bevel(g, 309, 91, 41, 161, 0xFF59666C); g.fill(313, 95, 346, 248, 0xFF11191C);
         int progress = state == null ? 0 : state.progress();
         g.fill(315, 246 - 149 * progress / type.total, 344, 246, GREEN);
         for (int i = 1; i < type.total; i++) g.fill(313, 246 - 149 * i / type.total, 346, 247 - 149 * i / type.total, 0xFF253148);
     }
 
     private void drawWires(GuiGraphicsExtractor g) {
-        g.fill(41, 91, 89, 250, 0xFF2A3654); g.fill(331, 91, 379, 250, 0xFF2A3654);
+        bevel(g, 41, 91, 48, 159, 0xFF59666C); bevel(g, 331, 91, 48, 159, 0xFF59666C);
+        screw(g, 44, 94); screw(g, 82, 241); screw(g, 334, 94); screw(g, 372, 241);
         for (int left = 0; left < 4; left++) {
             if (masked(left)) {
                 for (int right = 0; right < 4; right++) if (layout.rightWires[right] == left)
@@ -169,23 +174,22 @@ public final class TaskScreen extends Screen {
     }
 
     private void terminal(GuiGraphicsExtractor g, int x, int y, int index, boolean done) {
-        circle(g, x, y, 13, 0xFF091021); circle(g, x, y, 10, WIRE_COLORS[index]);
-        center(g, Component.literal(Integer.toString(index + 1)), x, y - 4, 0xFF162039);
+        bevel(g, x - 14, y - 13, 28, 26, 0xFF242E33);
+        bevel(g, x - 11, y - 10, 22, 20, WIRE_COLORS[index]);
+        center(g, Component.literal(Integer.toString(index + 1)), x, y - 4, 0xFF162027);
         if (done) circle(g, x + 15, y - 10, 3, GREEN);
     }
 
     private void wire(GuiGraphicsExtractor g, int x1, int y1, int x2, int y2, int color) {
-        line(g, x1, y1, x2, y2, 5, 0xFF080E1C); line(g, x1, y1, x2, y2, 2, color);
+        line(g, x1, y1 + 2, x2, y2 + 2, 5, 0xFF11191C);
+        line(g, x1, y1, x2, y2, 3, shade(color, 0.6));
+        line(g, x1, y1 - 1, x2, y2 - 1, 1, color);
     }
 
     private void drawSwipe(GuiGraphicsExtractor g) {
-        g.fill(49, 104, 371, 185, 0xFF364563); g.outline(49, 104, 322, 81, EDGE);
-        g.fill(63, 133, 357, 179, 0xFF090F1F);
-        for (int x = 130; x < 340; x += 24) {
-            line(g, x, 152, x + 7, 158, 1, 0xFF687895); line(g, x + 7, 158, x, 164, 1, 0xFF687895);
-        }
-        center(g, text("reader", "ACCESS READER"), 210, 115, MUTED);
-        circle(g, 350, 118, 4, state != null && state.complete() ? GREEN : 0xFFFFD066);
+        sprite(g, READER, 50, 97, 320, 100);
+        center(g, text("reader", "ACCESS READER"), 210, 112, INK);
+        bevel(g, 314, 113, 8, 8, state != null && state.complete() ? GREEN : 0xFFCDB570);
         boolean inserted = state != null && state.cardInserted();
         if (inserted) drawCard(g, (int) cardX, 139, 54, 32);
         else drawCard(g, 44, 190, 90, 54);
@@ -197,55 +201,45 @@ public final class TaskScreen extends Screen {
     }
 
     private void drawCard(GuiGraphicsExtractor g, int x, int y, int w, int h) {
-        g.fill(x, y, x + w, y + h, 0xFFE2E8F5); g.outline(x, y, w, h, 0xFF92A5C8);
-        g.fill(x + 2, y + 6, x + w - 2, y + 13, 0xFF243047);
-        g.fill(x + 9, y + 18, x + 18, y + 26, 0xFFC9A45F);
-        g.fill(x + 24, y + 20, x + w - 7, y + 23, 0xFF7586A5);
-        if (h > 40) g.text(font, text("card", "ID CARD"), x + 8, y + 36, 0xFF394762, false);
+        // Keep the existing key-card sprite square so its pixels are not distorted.
+        sprite(g, CARD, x + (w - h) / 2, y, h, h);
     }
 
     private void drawGarbage(GuiGraphicsExtractor g) {
-        g.fill(313, 108, 381, 226, 0xFF334962); g.outline(313, 108, 68, 118, EDGE);
-        g.fill(305, 101, 389, 116, 0xFF67BAFF); g.fill(319, 104, 375, 112, 0xFF0D1527);
-        for (int x = 324; x <= 366; x += 14) g.fill(x, 134, x + 3, 211, 0xFF243650);
-        center(g, text("bin", "BIN"), 347, 169, INK);
+        sprite(g, BIN, 303, 94, 88, 135);
+        if (dragging >= 0 && TaskLayout.BIN.contains(garbageX[dragging], garbageY[dragging]))
+            g.outline(314, 100, 66, 126, GREEN);
         center(g, text("drop_here", "DROP HERE"), 347, 237, MUTED);
         for (int i = 0; i < 6; i++) if (!masked(i) && i != dragging) drawTrash(g, i, (int) garbageX[i], (int) garbageY[i]);
         if (dragging >= 0) drawTrash(g, dragging, (int) garbageX[dragging], (int) garbageY[dragging]);
     }
 
     private void drawTrash(GuiGraphicsExtractor g, int i, int x, int y) {
-        int color = WIRE_COLORS[i % 4];
-        if (i % 3 == 0) {
-            g.fill(x - 7, y - 13, x + 8, y + 13, color); g.fill(x - 4, y - 18, x + 5, y - 12, 0xFFE2E8F5);
-            g.fill(x - 7, y - 1, x + 8, y + 5, 0xFF31476A);
-        } else if (i % 3 == 1) {
-            g.fill(x - 12, y - 12, x + 12, y + 13, 0xFFE2E8F5);
-            line(g, x - 7, y - 4, x + 7, y - 4, 1, 0xFF8393AF);
-            line(g, x - 7, y + 3, x + 4, y + 3, 1, 0xFF8393AF);
-        } else {
-            circle(g, x, y, 13, color); circle(g, x - 3, y - 3, 5, 0xFF344360);
-            g.fill(x + 7, y - 15, x + 14, y - 9, 0xFF60E5A5);
-        }
+        if (trashItems == null) trashItems = new ItemStack[]{new ItemStack(Items.GLASS_BOTTLE),
+                new ItemStack(Items.PAPER), new ItemStack(Items.ROTTEN_FLESH), new ItemStack(Items.BONE),
+                new ItemStack(Items.POISONOUS_POTATO), new ItemStack(Items.STICK)};
+        g.fill(x - 12, y + 12, x + 13, y + 16, 0x55000000);
+        g.pose().pushMatrix();
+        g.pose().translate(x - 16.0F, y - 16.0F);
+        g.pose().scale(2.0F, 2.0F);
+        g.item(trashItems[i], 0, 0, i);
+        g.pose().popMatrix();
     }
 
     private void drawKnobs(GuiGraphicsExtractor g) {
         for (int i = 0; i < 3; i++) {
             int cx = TaskLayout.knobX(i), cy = 162;
-            for (int angle = 0; angle < 360; angle += 30) {
-                double rad = Math.toRadians(angle - 90);
-                line(g, cx + (int) (Math.cos(rad) * 43), cy + (int) (Math.sin(rad) * 43),
-                        cx + (int) (Math.cos(rad) * 48), cy + (int) (Math.sin(rad) * 48), 1, EDGE);
-            }
+            sprite(g, KNOB, cx - 48, cy - 48, 96, 96);
             for (int angle = -8; angle <= 8; angle += 2) {
                 double rad = Math.toRadians(layout.knobTargets[i] + angle - 90);
                 g.fill(cx + (int) (Math.cos(rad) * 45) - 2, cy + (int) (Math.sin(rad) * 45) - 2,
                         cx + (int) (Math.cos(rad) * 45) + 3, cy + (int) (Math.sin(rad) * 45) + 3, GREEN);
             }
-            circle(g, cx, cy, 36, EDGE); circle(g, cx, cy, 32, masked(i) ? 0xFF285A50 : 0xFF364563);
             double rad = Math.toRadians(knobAngles[i] - 90);
-            line(g, cx, cy, cx + (int) (Math.cos(rad) * 26), cy + (int) (Math.sin(rad) * 26), 2, masked(i) ? GREEN : INK);
-            circle(g, cx, cy, 5, 0xFF0D1426);
+            int tipX = cx + (int) (Math.cos(rad) * 28), tipY = cy + (int) (Math.sin(rad) * 28);
+            line(g, cx + 1, cy + 1, tipX + 1, tipY + 1, 2, 0xFF11191C);
+            line(g, cx, cy, tipX, tipY, 1, masked(i) ? GREEN : INK);
+            circle(g, cx, cy, 5, 0xFF141B1F); circle(g, cx - 1, cy - 1, 3, masked(i) ? GREEN : 0xFFBD9563);
             center(g, text(masked(i) ? "locked" : "knob_number", masked(i) ? "LOCKED" : "KNOB %s", i + 1), cx, 222,
                     masked(i) ? GREEN : MUTED);
             g.fill(cx - 34, 240, cx + 34, 245, 0xFF0D1426);
@@ -255,13 +249,12 @@ public final class TaskScreen extends Screen {
     }
 
     private void drawSuccess(GuiGraphicsExtractor g, double mx, double my) {
-        g.fill(19, 81, 401, 265, 0xED101C30);
+        g.fill(19, 81, 401, 265, 0xED182125);
         circle(g, 210, 134, 25, 0xFF27564B);
         line(g, 197, 134, 207, 144, 2, GREEN); line(g, 207, 144, 224, 122, 2, GREEN);
         center(g, text("success", "Task complete!"), 210, 171, GREEN);
         center(g, text("result", "Completed in %s s", String.format(Locale.ROOT, "%.1f", state.elapsed() / 1000.0)), 210, 189, INK);
-        g.fill(142, 218, 278, 248, TaskLayout.REPLAY.contains(mx, my) ? 0xFF456B83 : 0xFF304863);
-        g.outline(142, 218, 136, 30, EDGE);
+        bevel(g, 142, 218, 136, 30, TaskLayout.REPLAY.contains(mx, my) ? 0xFF627B69 : 0xFF475B4D);
         center(g, text("replay", "Try again"), 210, 229, INK);
     }
 
@@ -371,6 +364,30 @@ public final class TaskScreen extends Screen {
     }
     private void center(GuiGraphicsExtractor g, Component text, int x, int y, int color) {
         g.text(font, text, x - font.width(text) / 2, y, color, false);
+    }
+    private static Identifier texture(String name) {
+        return Identifier.fromNamespaceAndPath("goosetools", "textures/gui/tasks/" + name + ".png");
+    }
+    private static void sprite(GuiGraphicsExtractor g, Identifier texture, int x, int y, int w, int h) {
+        g.blit(texture, x, y, x + w, y + h, 0.0F, 1.0F, 0.0F, 1.0F);
+    }
+    private static void bevel(GuiGraphicsExtractor g, int x, int y, int w, int h, int color) {
+        g.fill(x, y, x + w, y + h, 0xFF11181B);
+        g.fill(x + 1, y + 1, x + w - 1, y + h - 1, color);
+        g.fill(x + 1, y + 1, x + w - 1, y + 3, shade(color, 1.4));
+        g.fill(x + 1, y + 3, x + 3, y + h - 2, shade(color, 1.2));
+        g.fill(x + 2, y + h - 3, x + w - 1, y + h - 1, shade(color, 0.55));
+        g.fill(x + w - 3, y + 3, x + w - 1, y + h - 3, shade(color, 0.7));
+    }
+    private static int shade(int color, double factor) {
+        return 0xFF000000 | (Math.min(255, (int) (((color >> 16) & 255) * factor)) << 16)
+                | (Math.min(255, (int) (((color >> 8) & 255) * factor)) << 8)
+                | Math.min(255, (int) ((color & 255) * factor));
+    }
+    private static void screw(GuiGraphicsExtractor g, int x, int y) {
+        g.fill(x, y, x + 4, y + 4, 0xFF161D20);
+        g.fill(x, y, x + 3, y + 3, 0xFFA2ABB0);
+        g.fill(x, y + 1, x + 3, y + 2, 0xFF515B62);
     }
     private static void circle(GuiGraphicsExtractor g, int x, int y, int radius, int color) {
         for (int row = -radius; row <= radius; row++) {

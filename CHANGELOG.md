@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.14.0+Alpha0.26 - 2026-10-08
+
+- Refined all five task trial interfaces with iron pixel textures, shaded frames, fasteners, connectors and buttons. Timing dials, access readers, bins and calibration knobs share custom sprites processed with ComfyUI PerfectPixel; animated indicators remain clearly visible.
+- Garbage now uses Minecraft item rendering, including bottles, paper, bones and discarded food. Card swiping reuses Whoiskiller's existing key-card texture, bundled with GooseTools so the trial works without an external resource pack. Device textures use nearest sampling and are included in the JAR; playing requires no image generator or ComfyUI.
+- Trial commands, task rules, difficulty and map independence remain unchanged. Install GooseTools 1.14.0+Alpha0.26 on the server/host and every client, then restart. Protocol remains 29; Minecraft 26.3, Xaero Minimap 26.5.3, World Map 1.46.4, GooseThings 1.14.0+Alpha0.43 and the existing data pack remain compatible.
+
 ## 1.14.0+Alpha0.24 - 2026-10-08
 
 - Added five dedicated GUI task trials: a rotating timing dial, four-wire matching, timed card swiping, draggable garbage and three-knob calibration. Each panel includes localized instructions, progress, completion time, retry feedback and a replay button.
