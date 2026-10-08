@@ -80,7 +80,7 @@ final class NameTagAttachmentConfigTest {
     }
 
     @Test
-    void magpieIconIsPublicOnlyForLivingGuessedMeetingTargets() {
+    void magpieIconIsPrivateToMagpieAndRoleVisibleSpectators() {
         var magpie = NameTagAttachmentConfig.defaults().attachments().stream()
                 .filter(attachment -> attachment.id().equals("magpie_guessed"))
                 .findFirst()
@@ -88,7 +88,7 @@ final class NameTagAttachmentConfigTest {
 
         assertTrue(magpie.visible(
                 false,
-                Set.of("spectator"),
+                Set.of("Magpie", "players"),
                 Set.of("players"),
                 Set.of("players", "inTalk", "magpieGuessedThisMeeting"),
                 true));
@@ -122,6 +122,12 @@ final class NameTagAttachmentConfigTest {
                 Set.of("players"),
                 Set.of("players", "inTalk", "magpieGuessedThisMeeting"),
                 true));
+        assertTrue(magpie.visible(false, Set.of("spectator", "dlcDeadViewer"),
+                Set.of("players"), Set.of("players", "inTalk", "magpieGuessedThisMeeting"), true, true));
+        for (String role : Set.of("Goose", "Assassin", "Raven", "Detective")) {
+            assertFalse(magpie.visible(false, Set.of("players", "inTalk", role),
+                    Set.of("players"), Set.of("players", "inTalk", "magpieGuessedThisMeeting"), true));
+        }
     }
 
     @Test

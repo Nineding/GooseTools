@@ -32,7 +32,7 @@
     {
       "id": "magpie_guessed",
       "texture": "minecraft:textures/item/fan_true.png",
-      "viewer_tags_all": [],
+      "viewer_tags_all": ["Magpie"],
       "viewer_tags_none": [],
       "target_tags_all": ["players", "inTalk", "magpieGuessedThisMeeting"],
       "target_tags_none": ["spectator", "deadInMap", "endGame"],

@@ -52,6 +52,8 @@ public final class DreamStandInServer {
     private static final int SCENE_HEARTBEAT_TICKS = 20;
 
     private static final Map<UUID, PlayerSnapshot> SNAPSHOTS = new HashMap<>();
+    private static final Map<UUID, PlayerSnapshot> MAP_SNAPSHOTS = new HashMap<>();
+    private static int mapSnapshotGame = -1;
     private static final List<CorpseSnapshot> CORPSES = new ArrayList<>();
     private static final Map<UUID, Session> SESSIONS = new HashMap<>();
     private static final Map<UUID, PlayerSnapshot> PENDING_WAKES = new HashMap<>();
@@ -75,7 +77,8 @@ public final class DreamStandInServer {
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             UUID playerId = handler.player.getUUID();
-            SNAPSHOTS.remove(playerId);
+            Session departing = SESSIONS.get(playerId);
+            if (departing != null) SNAPSHOTS.put(playerId, PlayerSnapshot.capture(handler.player));
             SESSIONS.remove(playerId);
             PENDING_WAKES.remove(playerId);
             RETIRING.remove(playerId);
@@ -151,6 +154,11 @@ public final class DreamStandInServer {
             SNAPSHOTS.put(player.getUUID(), PlayerSnapshot.capture(player));
             count++;
         }
+        MAP_SNAPSHOTS.forEach((uuid, cached) -> {
+            if (server.getPlayerList().getPlayer(uuid) == null && MeetingParticipantBridge.living(server, uuid)) {
+                SNAPSHOTS.put(uuid, cached);
+            }
+        });
         snapshotCorpses(server);
         dirty = true;
         syncAll(server);
@@ -267,6 +275,19 @@ public final class DreamStandInServer {
     private static void tick(MinecraftServer server) {
         boolean changed = false;
         int tick = server.getTickCount();
+        int game = dummyScore(server, "#Global", "ggdGameId");
+        if (mapSnapshotGame != game) {
+            MAP_SNAPSHOTS.clear();
+            mapSnapshotGame = game;
+        }
+        if (tick % 20 == 0 && dummyScore(server, "#MeetingPhase", "ggdSession") == 0) {
+            for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+                if (player.entityTags().contains("gamingGGD") && !player.entityTags().contains("spectator")
+                        && !player.entityTags().contains("inTalk") && !player.entityTags().contains("inDream")) {
+                    MAP_SNAPSHOTS.put(player.getUUID(), PlayerSnapshot.capture(player));
+                }
+            }
+        }
 
         for (Session session : List.copyOf(SESSIONS.values())) {
             ServerPlayer player = server.getPlayerList().getPlayer(session.playerId);
@@ -394,6 +415,7 @@ public final class DreamStandInServer {
                 .sorted(Comparator.comparing(snapshot -> snapshot.playerId))
                 .filter(snapshot -> !snapshot.playerId.equals(viewer.getUUID()))
                 .filter(snapshot -> !SESSIONS.containsKey(snapshot.playerId))
+                .filter(snapshot -> MeetingParticipantBridge.living(server, snapshot.playerId))
                 .map(snapshot -> mapBody(viewer, ownSession.type, snapshot))
                 .forEach(result::add);
 
@@ -565,6 +587,13 @@ public final class DreamStandInServer {
     private enum DreamType {
         LUCID,
         RAVEN
+    }
+
+    private static int dummyScore(MinecraftServer server, String holder, String name) {
+        Objective objective = server.getScoreboard().getObjective(name);
+        ReadOnlyScoreInfo info = objective == null ? null : server.getScoreboard()
+                .getPlayerScoreInfo(ScoreHolder.forNameOnly(holder), objective);
+        return info == null ? -1 : info.value();
     }
 
     private record PlayerSnapshot(
