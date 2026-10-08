@@ -12,6 +12,9 @@ public record GameMapBounds(String id, double minX, double maxX, double minZ, do
     public static final GameMapBounds POLUS =
             new GameMapBounds("polus", -905.0D, -821.0D, 779.0D, 909.0D);
 
+    public static final GameMapBounds EAGLETON_SIMPLIFY =
+            new GameMapBounds("eagleton_simplify", -1702.0D, -1566.0D, -564.0D, -478.0D);
+
     public static GameMapBounds at(double x, double z) {
         if (ANTIQUE.contains(x, z)) {
             return ANTIQUE;
@@ -28,6 +31,9 @@ public record GameMapBounds(String id, double minX, double maxX, double minZ, do
         if (POLUS.contains(x, z)) {
             return POLUS;
         }
+        if (EAGLETON_SIMPLIFY.contains(x, z)) {
+            return EAGLETON_SIMPLIFY;
+        }
         return null;
     }
 
@@ -36,7 +42,7 @@ public record GameMapBounds(String id, double minX, double maxX, double minZ, do
     }
 
     public boolean usesCaveMode() {
-        return "goosechapel".equals(id) || "gooseship".equals(id) || "polus".equals(id);
+        return "goosechapel".equals(id) || "gooseship".equals(id) || "polus".equals(id) || "eagleton_simplify".equals(id);
     }
 
     public double width() {

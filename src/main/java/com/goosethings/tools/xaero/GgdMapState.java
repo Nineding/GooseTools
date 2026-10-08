@@ -38,11 +38,14 @@ public final class GgdMapState {
         }
 
         Vec3 playerPosition = minecraft.player.position();
+        Marker meetingPosition = findMarker(minecraft, MEETING_LAST_POSITION);
+        if (isEagletonMeetingPosition(playerPosition, meetingPosition)) {
+            return meetingPosition.position();
+        }
         if (GameMapBounds.at(playerPosition.x, playerPosition.z) != null) {
             return playerPosition;
         }
 
-        Marker meetingPosition = findMarker(minecraft, MEETING_LAST_POSITION);
         if (meetingPosition != null
                 && GameMapBounds.at(meetingPosition.position().x, meetingPosition.position().z) != null) {
             return meetingPosition.position();
@@ -74,14 +77,26 @@ public final class GgdMapState {
     }
 
     public static boolean isMeetingView(Minecraft minecraft) {
-        if (!isGameActive(minecraft)
-                || minecraft.player == null
-                || GameMapBounds.at(minecraft.player.getX(), minecraft.player.getZ()) != null) {
+        if (!isGameActive(minecraft) || minecraft.player == null) {
             return false;
         }
         Marker marker = findMarker(minecraft, MEETING_LAST_POSITION);
+        if (isEagletonMeetingPosition(minecraft.player.position(), marker)) {
+            return true;
+        }
+        if (GameMapBounds.at(minecraft.player.getX(), minecraft.player.getZ()) != null) {
+            return false;
+        }
         return marker != null
                 && GameMapBounds.at(marker.position().x, marker.position().z) != null;
+    }
+
+    static boolean isEagletonMeetingPosition(Vec3 playerPosition, Marker meetingPosition) {
+        return meetingPosition != null
+                && GameMapBounds.EAGLETON_SIMPLIFY.contains(meetingPosition.position().x, meetingPosition.position().z)
+                && playerPosition.x >= -1701 && playerPosition.x <= -1669
+                && playerPosition.y >= 78 && playerPosition.y <= 88
+                && playerPosition.z >= -563 && playerPosition.z <= -546;
     }
 
     public static boolean isPoolcoreAdvanced(Minecraft minecraft) {

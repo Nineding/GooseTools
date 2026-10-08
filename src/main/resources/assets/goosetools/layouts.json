@@ -109,6 +109,143 @@
         {"key": "room.ggd_xaero_map.polus_security", "x": -858, "z": 790, "areas": [{"minX": -861, "maxX": -854, "minY": 102, "maxY": 105, "minZ": 783, "maxZ": 797}]},
         {"key": "room.ggd_xaero_map.polus_dropship", "x": -832, "z": 834, "areas": [{"minX": -840, "maxX": -825, "minY": 101, "maxY": 111, "minZ": 828, "maxZ": 839}]}
       ]
+    },
+    {
+      "id": "eagleton_simplify",
+      "minX": -1702,
+      "maxX": -1566,
+      "minZ": -564,
+      "maxZ": -478,
+      "rooms": [
+        {
+          "key": "room.ggd_xaero_map.eagleton_police",
+          "x": -1684.5,
+          "z": -554.0,
+          "areas": [
+            {
+              "minX": -1702,
+              "maxX": -1667,
+              "minY": 71,
+              "maxY": 88,
+              "minZ": -563,
+              "maxZ": -545
+            }
+          ]
+        },
+        {
+          "key": "room.ggd_xaero_map.eagleton_secret_lab",
+          "x": -1639.0,
+          "z": -553.0,
+          "areas": [
+            {
+              "minX": -1664,
+              "maxX": -1614,
+              "minY": 71,
+              "maxY": 88,
+              "minZ": -563,
+              "maxZ": -543
+            },
+            {
+              "minX": -1660,
+              "maxX": -1640,
+              "minY": 70,
+              "maxY": 82,
+              "minZ": -542,
+              "maxZ": -539
+            }
+          ]
+        },
+        {
+          "key": "room.ggd_xaero_map.eagleton_restaurant",
+          "x": -1684.5,
+          "z": -531.5,
+          "areas": [
+            {
+              "minX": -1702,
+              "maxX": -1667,
+              "minY": 71,
+              "maxY": 85,
+              "minZ": -541,
+              "maxZ": -522
+            }
+          ]
+        },
+        {
+          "key": "room.ggd_xaero_map.eagleton_radio",
+          "x": -1627.5,
+          "z": -533.0,
+          "areas": [
+            {
+              "minX": -1640,
+              "maxX": -1615,
+              "minY": 72,
+              "maxY": 83,
+              "minZ": -542,
+              "maxZ": -524
+            }
+          ]
+        },
+        {
+          "key": "room.ggd_xaero_map.eagleton_school",
+          "x": -1583.5,
+          "z": -537.0,
+          "areas": [
+            {
+              "minX": -1601,
+              "maxX": -1566,
+              "minY": 71,
+              "maxY": 82,
+              "minZ": -564,
+              "maxZ": -510
+            }
+          ]
+        },
+        {
+          "key": "room.ggd_xaero_map.eagleton_arcade",
+          "x": -1684.5,
+          "z": -495.5,
+          "areas": [
+            {
+              "minX": -1702,
+              "maxX": -1667,
+              "minY": 71,
+              "maxY": 82,
+              "minZ": -510,
+              "maxZ": -481
+            }
+          ]
+        },
+        {
+          "key": "room.ggd_xaero_map.eagleton_power",
+          "x": -1639.0,
+          "z": -495.5,
+          "areas": [
+            {
+              "minX": -1663,
+              "maxX": -1615,
+              "minY": 71,
+              "maxY": 78,
+              "minZ": -510,
+              "maxZ": -481
+            }
+          ]
+        },
+        {
+          "key": "room.ggd_xaero_map.eagleton_park",
+          "x": -1591.0,
+          "z": -494.0,
+          "areas": [
+            {
+              "minX": -1614,
+              "maxX": -1568,
+              "minY": 71,
+              "maxY": 83,
+              "minZ": -510,
+              "maxZ": -478
+            }
+          ]
+        }
+      ]
     }
   ]
 }

@@ -328,5 +328,16 @@
   "screen.goosetools.update.hmcl_failed": "Could not connect HMCL. In-game updates remain available.",
   "screen.goosetools.update.bootstrap_finished": "GooseTools %s installed. Starting Minecraft...",
   "screen.goosetools.update.bootstrap_repair": "Retry recovery, or cancel this launch in HMCL.",
-  "screen.goosetools.update.bootstrap_busy": "Close the other running game, then retry; or cancel this launch in HMCL."
+  "screen.goosetools.update.bootstrap_busy": "Close the other running game, then retry; or cancel this launch in HMCL.",
+  "text.mapselect11": "Eagleton Springs·Simplify",
+  "text.ggd.start.players.eagleton.title": "Eagleton Springs Simplify supports 4-8 players",
+  "text.ggd.start.players.eagleton.subtitle": "Adjust the number of ready players and try again",
+  "room.ggd_xaero_map.eagleton_police": "Police Station",
+  "room.ggd_xaero_map.eagleton_secret_lab": "Secret Laboratory",
+  "room.ggd_xaero_map.eagleton_restaurant": "Restaurant",
+  "room.ggd_xaero_map.eagleton_radio": "Radio Station",
+  "room.ggd_xaero_map.eagleton_school": "School",
+  "room.ggd_xaero_map.eagleton_arcade": "Arcade",
+  "room.ggd_xaero_map.eagleton_power": "Power Station",
+  "room.ggd_xaero_map.eagleton_park": "Park"
 }

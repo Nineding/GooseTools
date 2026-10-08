@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.14.0+Alpha0.28 - 2026-10-08
+
+- 新增伊格尔顿泉·精简版的 Xaero 地图范围、八个区域名称与秘密实验室复合范围。
+- 支持该地图的紧急会议标注和地图身份显示；专属会议室沿用会议前地图位置。
+- 安装要求：房主/服务端与所有客户端同步更新至此版本，并搭配新增地图的数据包及资源包。网络协议未改变，双端版本锁保持生效。
+
 ## 1.14.0+Alpha0.27 - 2026-10-08
 
 - HMCL pre-launch updates now check Windows file sharing before installation, including older clients that do not yet record their running process. An in-use GooseTools JAR leaves the installed mod untouched and asks the player to close the other game before retrying.
