@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.14.0+Alpha0.27 - 2026-10-08
+
+- HMCL pre-launch updates now check Windows file sharing before installation, including older clients that do not yet record their running process. An in-use GooseTools JAR leaves the installed mod untouched and asks the player to close the other game before retrying.
+- Rollback preserves an intact old JAR when a failed replacement left it in place, so it can remove the staged new version without overwriting a file still used by another Minecraft process.
+- Includes the dedicated Minecraft update screen and HMCL progress window from Alpha0.25, plus the task materials from Alpha0.26. Automatic updates and Alpha / Pre-release updates remain enabled by default. Once connected, HMCL installs compatible official updates before Minecraft starts, with checksum verification, backups and startup confirmation.
+- Install GooseTools 1.14.0+Alpha0.27 once on every client and the server/host, then restart. Close any already running game before starting the HMCL update flow. Dedicated servers remain administrator-managed. Minecraft 26.3, Xaero Minimap 26.5.3, World Map 1.46.4, GooseThings 1.14.0+Alpha0.43 and the existing data pack remain compatible. Protocol remains 29; packet formats are unchanged.
+
 ## 1.14.0+Alpha0.26 - 2026-10-08
 
 - Refined all five task trial interfaces with iron pixel textures, shaded frames, fasteners, connectors and buttons. Timing dials, access readers, bins and calibration knobs share custom sprites processed with ComfyUI PerfectPixel; animated indicators remain clearly visible.

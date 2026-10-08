@@ -87,4 +87,25 @@ class BootstrapTransactionTest {
         prepare(false); BootstrapTransaction.install(game, manifest); Files.delete(target);
         assertTrue(BootstrapTransaction.recover(game)); assertEquals("previous verified mod", Files.readString(old));
     }
+    @Test void olderRunningClientWithoutPidReceiptIsProtectedOnWindows() throws Exception {
+        org.junit.jupiter.api.Assumptions.assumeTrue(System.getProperty("os.name").startsWith("Windows"));
+        prepare(false);
+        try (var reader = java.nio.channels.FileChannel.open(old, StandardOpenOption.READ,
+                com.sun.nio.file.ExtendedOpenOption.NOSHARE_WRITE)) {
+            assertThrows(BootstrapTransaction.BusyException.class, () -> BootstrapTransaction.install(game, manifest));
+            assertFalse(Files.exists(target)); assertFalse(Files.exists(ledger()));
+            assertEquals("previous verified mod", Files.readString(old));
+        }
+    }
+    @Test void intactOldJarIsNotOverwrittenDuringRollback() throws Exception {
+        prepare(false); BootstrapTransaction.install(game, manifest);
+        Files.writeString(old, "previous verified mod");
+        if (System.getProperty("os.name").startsWith("Windows")) {
+            try (var reader = java.nio.channels.FileChannel.open(old, StandardOpenOption.READ,
+                    com.sun.nio.file.ExtendedOpenOption.NOSHARE_WRITE)) {
+                assertTrue(BootstrapTransaction.recover(game));
+            }
+        } else assertTrue(BootstrapTransaction.recover(game));
+        assertFalse(Files.exists(target)); assertEquals("previous verified mod", Files.readString(old));
+    }
 }

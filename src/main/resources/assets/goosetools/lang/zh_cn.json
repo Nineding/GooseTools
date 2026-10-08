@@ -327,5 +327,6 @@
   "screen.goosetools.update.hmcl_missing": "请通过 HMCL 打开此实例以接入启动前更新。",
   "screen.goosetools.update.hmcl_failed": "HMCL 接入失败，仍可使用游戏内自动更新。",
   "screen.goosetools.update.bootstrap_finished": "GooseTools %s 已安装，正在启动 Minecraft…",
-  "screen.goosetools.update.bootstrap_repair": "请重试恢复，或在 HMCL 中取消本次启动。"
+  "screen.goosetools.update.bootstrap_repair": "请重试恢复，或在 HMCL 中取消本次启动。",
+  "screen.goosetools.update.bootstrap_busy": "请先关闭其它正在运行的游戏后重试，或在 HMCL 取消本次启动。"
 }

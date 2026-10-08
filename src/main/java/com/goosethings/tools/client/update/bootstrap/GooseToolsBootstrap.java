@@ -42,10 +42,10 @@ public final class GooseToolsBootstrap {
                     monitor.update(UpdateMonitor.Phase.FAILED, "", 0, 0);
                     exitCode = Files.exists(directory.resolve("pending-startup.properties"))
                             || failure instanceof BootstrapTransaction.BusyException ? 2 : 0;
-                    if (window[0] != null) window[0].blocked(exitCode != 0);
+                    if (window[0] != null) window[0].blocked(exitCode != 0, failure instanceof BootstrapTransaction.BusyException);
                     receipt(game, "", "failed");
                     if (window[0] != null && window[0].retry()) {
-                        monitor = new UpdateMonitor(); window[0].monitor(monitor); window[0].blocked(false); repeat = true;
+                        monitor = new UpdateMonitor(); window[0].monitor(monitor); window[0].blocked(false, false); repeat = true;
                     }
                 }
             } while (repeat);

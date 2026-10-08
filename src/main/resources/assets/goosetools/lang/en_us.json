@@ -327,5 +327,6 @@
   "screen.goosetools.update.hmcl_missing": "Open this instance with HMCL to connect its pre-launch updater.",
   "screen.goosetools.update.hmcl_failed": "Could not connect HMCL. In-game updates remain available.",
   "screen.goosetools.update.bootstrap_finished": "GooseTools %s installed. Starting Minecraft...",
-  "screen.goosetools.update.bootstrap_repair": "Retry recovery, or cancel this launch in HMCL."
+  "screen.goosetools.update.bootstrap_repair": "Retry recovery, or cancel this launch in HMCL.",
+  "screen.goosetools.update.bootstrap_busy": "Close the other running game, then retry; or cancel this launch in HMCL."
 }

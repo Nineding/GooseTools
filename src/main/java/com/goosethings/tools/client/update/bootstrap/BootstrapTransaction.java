@@ -39,7 +39,10 @@ public final class BootstrapTransaction {
                 && !(target.equals(original) && BootstrapFiles.digest(target).equals(value.getProperty("old.sha256")))) {
             throw new SecurityException("Installed update has changed; automatic rollback stopped");
         }
-        Files.copy(backup, original, StandardCopyOption.REPLACE_EXISTING);
+        // A failed deletion can leave the old JAR intact and in use. Preserve that valid file.
+        if (!Files.isRegularFile(original) || !BootstrapFiles.digest(original).equals(value.getProperty("old.sha256"))) {
+            Files.copy(backup, original, StandardCopyOption.REPLACE_EXISTING);
+        }
         if (!target.equals(original)) Files.deleteIfExists(target);
         Files.writeString(game.resolve("config/goosetools/failed-update-version"), value.getProperty("version"));
         Files.delete(ledger(game));
@@ -60,6 +63,18 @@ public final class BootstrapTransaction {
         String hash = manifest.getProperty("artifact.0.sha256");
         if (hash == null || !hash.equals(BootstrapFiles.digest(source)) || !Files.isRegularFile(original)
                 || (Files.exists(target) && !target.equals(original))) throw new SecurityException("Invalid update files");
+        if (System.getProperty("os.name", "").startsWith("Windows")) {
+            // Older installed clients have no active-PID receipt. Check sharing before creating a
+            // ledger or second mod JAR, instead of discovering their open handle during deletion.
+            try (var probe = java.nio.channels.FileChannel.open(original, StandardOpenOption.READ,
+                    com.sun.nio.file.ExtendedOpenOption.NOSHARE_READ,
+                    com.sun.nio.file.ExtendedOpenOption.NOSHARE_WRITE,
+                    com.sun.nio.file.ExtendedOpenOption.NOSHARE_DELETE)) {
+                // Close the exclusive probe before moving files in the transaction.
+            } catch (java.io.IOException busy) {
+                throw new BusyException("The installed GooseTools JAR is in use; close this game before launching again");
+            }
+        }
         String version = manifest.getProperty("update.version");
         com.goosethings.tools.client.update.UpdateVersion.parse(version);
         Path backup = game.resolve("config/goosetools/update-backups").resolve(UUID.randomUUID().toString()).resolve(original.getFileName());

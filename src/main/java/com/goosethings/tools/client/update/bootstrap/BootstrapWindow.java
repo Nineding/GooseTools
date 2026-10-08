@@ -20,6 +20,7 @@ final class BootstrapWindow {
     private volatile UpdateMonitor monitor;
     private volatile CompletableFuture<Boolean> decision;
     private volatile boolean blocked;
+    private volatile boolean busy;
 
     BootstrapWindow(Path game, UpdateMonitor monitor) {
         this.monitor = monitor;
@@ -63,7 +64,8 @@ final class BootstrapWindow {
         status.setText(value.phase() == UpdateMonitor.Phase.READY
                 ? text.text("bootstrap_finished", "GooseTools %s installed. Starting Minecraft...", value.version())
                 : text.text("phase_" + value.phase().name().toLowerCase(java.util.Locale.ROOT), value.phase().name()));
-        detail.setText(blocked ? text.text("bootstrap_repair", "Retry recovery, or cancel this launch in HMCL.")
+        detail.setText(blocked ? busy ? text.text("bootstrap_busy", "Close the other running game, then retry; or cancel this launch in HMCL.")
+                : text.text("bootstrap_repair", "Retry recovery, or cancel this launch in HMCL.")
                 : value.total() > 0 ? text.text("bytes", "%s / %s MiB", mib(value.downloaded()), mib(value.total()))
                 : text.text("bootstrap_hint", "Updates finish before Minecraft loads. Alpha releases are included by default."));
         proceed.setText(text.text("continue", "Continue to game"));
@@ -78,6 +80,6 @@ final class BootstrapWindow {
         finally { decision = null; }
     }
     void monitor(UpdateMonitor value) { monitor = value; }
-    void blocked(boolean value) { blocked = value; }
+    void blocked(boolean value, boolean inUse) { busy = inUse; blocked = value; }
     void close() throws Exception { SwingUtilities.invokeAndWait(() -> { timer.stop(); frame.dispose(); }); }
 }
