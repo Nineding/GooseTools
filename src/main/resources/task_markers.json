@@ -506,6 +506,36 @@
       "translation_key": "item.task.adjustsample.available",
       "category": "normal",
       "fallback": "Adjust Sample"
+    },
+    "testdrive": {
+      "translation_key": "item.task.testdrive.available",
+      "fallback": "Test Drive",
+      "category": "normal"
+    },
+    "unclogpipes": {
+      "translation_key": "item.task.unclogpipes.available",
+      "fallback": "Unclog Pipes",
+      "category": "normal"
+    },
+    "calibratevoltage": {
+      "translation_key": "item.task.calibratevoltage.available",
+      "fallback": "Calibrate Voltage",
+      "category": "normal"
+    },
+    "powercontrol": {
+      "translation_key": "item.task.powercontrol.available",
+      "fallback": "Power Control",
+      "category": "normal"
+    },
+    "arcadefan": {
+      "translation_key": "item.task.arcadefan.available",
+      "fallback": "Arcade Fan",
+      "category": "normal"
+    },
+    "whackmoles": {
+      "translation_key": "item.task.whackmoles.available",
+      "fallback": "Whac-A-Mole",
+      "category": "normal"
     }
   }
 }

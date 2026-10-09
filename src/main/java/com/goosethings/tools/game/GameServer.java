@@ -31,9 +31,9 @@ public final class GameServer {
     private static GameRecords records;
     private static long lastSave;
     private static final class Playing {
-        final GameSession game; final ResourceKey<Level> dimension;
+        final GameSession game; final ResourceKey<Level> dimension; final boolean station;
         long sentAt, deliveredActive; int deliveredPhase = -1;
-        Playing(GameSession game, ResourceKey<Level> dimension) { this.game = game; this.dimension = dimension; }
+        Playing(GameSession game, ResourceKey<Level> dimension, boolean station) { this.game = game; this.dimension = dimension; this.station = station; }
     }
     private GameServer() {}
     public static void register() {
@@ -50,14 +50,7 @@ public final class GameServer {
         for (GameType type : GameType.values()) players.then(Commands.literal(type.id).executes(ctx -> {
             int count = 0;
             for (ServerPlayer player : EntityArgument.getPlayers(ctx, "players")) {
-                if (!MandatoryHandshake.isVerified(player) || !ServerPlayNetworking.canSend(player, GamePackets.Open.TYPE)) {
-                    ctx.getSource().sendFailure(text("unavailable", "%s needs matching GooseTools", player.getName())); continue;
-                }
-                if (!available(player)) { ctx.getSource().sendFailure(text("busy", "%s cannot play now", player.getName())); continue; }
-                TaskServer.close(player); close(player);
-                GameSession game = new GameSession(ids.getAndIncrement(), type, ThreadLocalRandom.current().nextLong(), TaskServer.now());
-                Playing p = new Playing(game, player.level().dimension()); sessions.put(player.getUUID(), p);
-                ServerPlayNetworking.send(player, new GamePackets.Open(game.id, type.ordinal())); send(player, p); count++;
+                if (open(player, type, false, false) != null) count++;
             }
             final int n = count;
             ctx.getSource().sendSuccess(() -> text("opened", "Opened %s arcade game(s)", n), false); return n;
@@ -68,12 +61,26 @@ public final class GameServer {
                     final int count = n; ctx.getSource().sendSuccess(() -> text("closed", "Closed %s arcade game(s)", count), false); return count;
                 })));
     }
+    public static GameSession openBound(ServerPlayer player, GameType type, boolean challenge) {
+        return open(player, type, challenge, !challenge);
+    }
+    private static GameSession open(ServerPlayer player, GameType type, boolean challenge, boolean station) {
+        if (!MandatoryHandshake.isVerified(player) || !ServerPlayNetworking.canSend(player, GamePackets.Open.TYPE)
+                || !available(player)) return null;
+        TaskServer.close(player); close(player);
+        GameSession game = new GameSession(ids.getAndIncrement(), type, ThreadLocalRandom.current().nextLong(), TaskServer.now());
+        if (challenge) game.startChallenge(TaskServer.now());
+        Playing p = new Playing(game, player.level().dimension(), station); sessions.put(player.getUUID(), p);
+        ServerPlayNetworking.send(player, new GamePackets.Open(game.id, type.ordinal())); send(player, p);
+        return game;
+    }
     private static boolean available(ServerPlayer p) { return p.isAlive() && !TaskServer.meeting(p.level().getServer(), p); }
     private static void input(ServerPlayer player, GamePackets.Input input) {
         if (!input.valid() || !MandatoryHandshake.isVerified(player)) return;
         Playing p = sessions.get(player.getUUID()); if (p == null || p.game.id != input.sessionId()) return;
         if (input.action() == GameSession.CANCEL) { close(player); return; }
         if (!available(player) || !p.dimension.equals(player.level().dimension())) { close(player); return; }
+        if (p.game.challenge() && input.action() == GameSession.RETRY) { close(player); return; }
         record(player, p);
         if (p.game.apply(input.sequence(), input.action(), input.value(), input.x(), input.y(), TaskServer.now())) { activity(player, p); record(player, p); send(player, p); }
     }
@@ -92,6 +99,7 @@ public final class GameServer {
         if (now - lastSave > 30_000) { if (records != null) records.save(); lastSave = now; }
     }
     private static void activity(ServerPlayer player, Playing p) {
+        com.goosethings.tools.task.GuiTaskBridge.gameProgress(player, p.game, p.station);
         long active = p.game.totalActiveMillis(), delta = active - p.deliveredActive; int phase = p.game.phase();
         if (delta > 0 || phase != p.deliveredPhase) { ACTIVITY.invoker().onActivity(player, p.game.type, p.game.id, delta, phase); p.deliveredActive = active; p.deliveredPhase = phase; }
     }
@@ -103,6 +111,7 @@ public final class GameServer {
     public static boolean close(ServerPlayer player) {
         Playing p = sessions.remove(player.getUUID()); if (p == null) return false;
         p.game.tick(TaskServer.now()); activity(player, p); record(player, p); if (records != null) records.save();
+        com.goosethings.tools.task.GuiTaskBridge.gameClosed(player, p.game.id);
         ACTIVITY.invoker().onActivity(player, p.game.type, p.game.id, 0, -1);
         if (ServerPlayNetworking.canSend(player, GamePackets.Close.TYPE)) ServerPlayNetworking.send(player, new GamePackets.Close(p.game.id)); return true;
     }

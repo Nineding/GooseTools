@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.14.0+Alpha0.35 - 2026-10-09
+
+- Added authoritative GUI map-task sessions for Eagleton Springs: hard Traffic Dodge starts immediately and succeeds after 30 seconds of active survival; hard Whac-A-Mole starts immediately and succeeds on the twentieth valid hit. Difficulty is locked, pause excludes time, and early loss, exit or restart fails the current attempt.
+- Added bound Pipes, Knobs and Timing puzzle sessions, with server-validated completion and cancellation. Independent player/session binding prevents stale inputs, command trials and other players from awarding map progress. Datapack controls remain responsible for task assignment, map rules, normal completion and cleanup.
+- Added four exact-block arcade entrances for 2048, Flappy Bird, Snake and Minesweeper in Eagleton Springs. The Arcade Fan task counts 30 seconds across station sessions; menus, pause, results and unrelated command trials do not count. Closing, changing machines and game loss preserve the accumulated time inside the arcade; leaving resets the attempt. Completed Arcade Fan games remain playable.
+- Install GooseTools 1.14.0+Alpha0.35 on the server/host and every client with the matching Whoiskiller task data/resource pack, then restart. Protocol remains 30 and existing payload layouts are unchanged. Minecraft 26.3, Xaero Minimap 26.5.3, World Map 1.46.4 and existing GooseThings remain compatible; no new Full Blood DLC requirement. Existing professional trials, Traffic Dodge, power-station trial and InvMove input protection remain available.
+
+
 ## 1.14.0+Alpha0.33 - 2026-10-09
 
 - Added Traffic Dodge, a standalone three-lane endless driving game with original pixel vehicles, scrolling roadworks, smooth lane changes, held braking, rising bounded speed, collision effects, three traffic difficulties, pause, replay and distance records. Try `/goosetools games open @s traffic`; A/D or Left/Right change lanes, S/Down brakes, and P pauses. The server owns collisions and scoring; every obstacle wave leaves an open lane and enough travel time to switch across the road.

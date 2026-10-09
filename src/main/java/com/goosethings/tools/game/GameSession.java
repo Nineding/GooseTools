@@ -10,7 +10,9 @@ public final class GameSession {
     private final long seed;
     ArcadeGame game;
     private int phase = MENU, mode, difficulty = 1, sequence = -1, rateCount, remainder, wins;
-    private long lastTick, active, totalActive, rateAt, revision, generation;
+    private long lastTick, active, totalActive, rateAt, revision, generation, taskDelivered;
+    private boolean challenge, challengeComplete;
+    private long survivalGoal, hitGoal;
     public GameSession(long id, GameType type, long seed, long now) {
         this.id = id; this.type = type; this.seed = seed; lastTick = now;
         if (type == GameType.MINES) difficulty = 0;
@@ -24,6 +26,7 @@ public final class GameSession {
         sequence = seq;
         tick(now);
         boolean changed = false;
+        if (challenge && (action == OPTIONS || action == RETRY)) return false;
         if (action == OPTIONS && phase == MENU && value >= 0 && value <= 5) {
             difficulty = value % 3;
             mode = value / 3;
@@ -45,6 +48,7 @@ public final class GameSession {
         } else if (phase == RUNNING) {
             changed = game.input(action, value, x, y); phase = game.phase;
         }
+        checkChallenge();
         if (changed) revision++;
         return changed;
     }
@@ -59,6 +63,7 @@ public final class GameSession {
         while (remainder >= 10 && phase == RUNNING) {
             remainder -= 10; active = ArcadeGame.add(active, 10); totalActive = ArcadeGame.add(totalActive, 10);
             game.tick(10); phase = game.phase;
+            checkChallenge();
         }
         revision++; return true;
     }
@@ -66,6 +71,26 @@ public final class GameSession {
         return new GameSnapshot(phase, mode, difficulty, game.cols, game.rows,
                 game.score, game.opponent, game.lives, active, game.clock, game.event,
                 game.effect, game.detail, best, bestTime, wins, game.board(), game.actors(), game.moves());
+    }
+    public void startChallenge(long now) {
+        if (type != GameType.TRAFFIC && type != GameType.WHACK) throw new IllegalArgumentException("Unsupported challenge");
+        challenge = true; difficulty = 2; mode = 0;
+        game = ArcadeGame.create(type, seed, mode, difficulty);
+        survivalGoal = type == GameType.TRAFFIC ? 30_000 : 0;
+        hitGoal = type == GameType.WHACK ? 20 : 0;
+        phase = RUNNING; lastTick = now;
+    }
+    private void checkChallenge() {
+        if (!challenge || phase == LOST) return;
+        if (survivalGoal > 0 && active >= survivalGoal || hitGoal > 0 && game.score >= hitGoal) {
+            challengeComplete = true; phase = WON;
+        }
+    }
+    public boolean challenge() { return challenge; }
+    public boolean challengeComplete() { return challengeComplete; }
+    public long score() { return game.score; }
+    public long takeTaskActiveDelta() {
+        long delta = totalActive - taskDelivered; taskDelivered = totalActive; return delta;
     }
     public int phase() { return phase; }
     public int mode() { return mode; }

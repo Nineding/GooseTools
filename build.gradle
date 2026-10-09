@@ -339,3 +339,40 @@ processResources {
         expand "version": inputs.properties.version
     }
 }
+
+sourceSets { guiMapRegressionTest {
+    compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+    runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+} }
+configurations {
+    guiMapRegressionTestImplementation.extendsFrom implementation
+    guiMapRegressionTestRuntimeOnly.extendsFrom runtimeOnly
+}
+loom {
+    mods { goosetools_gui_map_test { sourceSet sourceSets.guiMapRegressionTest } }
+    runs { guiMapRegressionTest {
+        client()
+        source sourceSets.guiMapRegressionTest
+        runDir 'build/gui-map-regression-test'
+        vmArg '-Dgoosetools.guiScenario=' + providers.gradleProperty('guiScenario').getOrElse('0')
+        vmArg '-Dgoosetools.guiDatapack=' + file('../saves/Whoiskiller/datapacks/Whoiskiller').absolutePath
+        programArg '--width'
+        programArg '1280'
+        programArg '--height'
+        programArg '900'
+    } }
+}
+tasks.named('runGuiMapRegressionTest') {
+    timeout = java.time.Duration.ofMinutes(10)
+    doFirst {
+        def directory = layout.buildDirectory.dir('gui-map-regression-test').get().asFile
+        directory.mkdirs()
+        new File(directory, 'result.txt').delete()
+        new File(directory, 'options.txt').text = 'lang:zh_cn\nguiScale:2\npauseOnLostFocus:false\ntutorialStep:none\n'
+    }
+    doLast {
+        def result = layout.buildDirectory.file('gui-map-regression-test/result.txt').get().asFile
+        if (!result.isFile() || !result.text.startsWith('PASS ')) throw new GradleException('GUI map integration failed: inspect result.txt / logs/latest.log')
+        logger.lifecycle(result.text)
+    }
+}

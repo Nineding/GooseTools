@@ -88,12 +88,19 @@ public final class TaskServer {
         return count;
     }
 
-    private static void open(ServerPlayer player, TaskType type) {
+    private static long open(ServerPlayer player, TaskType type) {
         com.goosethings.tools.game.GameServer.close(player);
         close(player);
         TaskSession session = new TaskSession(IDS.getAndIncrement(), type, ThreadLocalRandom.current().nextLong(), now());
         SESSIONS.put(player.getUUID(), new Trial(session, player.level().dimension()));
         ServerPlayNetworking.send(player, new TaskPackets.Open(session.id, type.ordinal(), session.seed));
+        return session.id;
+    }
+
+    public static long openBound(ServerPlayer player, TaskType type) {
+        if (!MandatoryHandshake.isVerified(player) || !ServerPlayNetworking.canSend(player, TaskPackets.Open.TYPE)
+                || !player.isAlive() || meeting(player.level().getServer(), player)) return 0;
+        return open(player, type);
     }
 
     private static void action(ServerPlayer player, TaskPackets.Action packet) {
@@ -130,6 +137,7 @@ public final class TaskServer {
         else ServerPlayNetworking.send(player, new TaskPackets.State(session.id, session.progress(), session.mask(), session.feedback(),
                 session.started(), session.complete(), session.cardInserted(), session.elapsed(now()),
                 session.stage(), session.cursor(), session.phaseAt(), session.pipeBits(), session.cleaned()));
+        GuiTaskBridge.taskProgress(player, session.id, session.complete());
         if (session.complete() && !trial.delivered) {
             trial.delivered = true;
             player.sendSystemMessage(message("completed", "%s completed in %s s (trial)",
@@ -142,6 +150,7 @@ public final class TaskServer {
     public static boolean close(ServerPlayer player) {
         Trial removed = SESSIONS.remove(player.getUUID());
         if (removed == null) return false;
+        GuiTaskBridge.taskClosed(player, removed.session.id);
         if (ServerPlayNetworking.canSend(player, TaskPackets.Close.TYPE))
             ServerPlayNetworking.send(player, new TaskPackets.Close(removed.session.id));
         return true;
