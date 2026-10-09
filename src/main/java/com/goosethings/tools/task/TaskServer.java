@@ -41,6 +41,9 @@ public final class TaskServer {
     public static void register() {
         TaskPackets.registerTypes();
         PowerStationPackets.register();
+        com.goosethings.tools.task.profession.ProfessionPackets.register();
+        ServerPlayNetworking.registerGlobalReceiver(com.goosethings.tools.task.profession.ProfessionPackets.Input.TYPE,
+                (payload, context) -> context.server().execute(() -> professionAction(context.player(), payload)));
         ServerPlayNetworking.registerGlobalReceiver(PowerStationPackets.Input.TYPE,
                 (payload, context) -> context.server().execute(() -> stationAction(context.player(), payload)));
         ServerPlayNetworking.registerGlobalReceiver(TaskPackets.Action.TYPE,
@@ -125,7 +128,7 @@ public final class TaskServer {
             ServerPlayer player = server.getPlayerList().getPlayer(id);
             if (player == null) { SESSIONS.remove(id); continue; }
             if (!player.isAlive() || !trial.dimension.equals(player.level().dimension()) || meeting(server, player)
-                    || now - trial.session.createdAt > (trial.session.type == TaskType.POWERSTATION ? 3_600_000 : 600_000)
+                    || now - trial.session.createdAt > (trial.session.type == TaskType.POWERSTATION || trial.session.type.profession() ? 3_600_000 : 600_000)
                     || (!trial.session.started() && now - trial.session.createdAt > 15_000)) { close(player); continue; }
             if (trial.session.tick(now)) sendState(player, trial);
         }
@@ -133,7 +136,8 @@ public final class TaskServer {
 
     private static void sendState(ServerPlayer player, Trial trial) {
         TaskSession session = trial.session;
-        if (session.station() != null) ServerPlayNetworking.send(player, new PowerStationPackets.State(session.id, session.station().snapshot(now())));
+        if (session.profession() != null) ServerPlayNetworking.send(player, new com.goosethings.tools.task.profession.ProfessionPackets.State(session.id, session.profession().snapshot(now())));
+        else if (session.station() != null) ServerPlayNetworking.send(player, new PowerStationPackets.State(session.id, session.station().snapshot(now())));
         else ServerPlayNetworking.send(player, new TaskPackets.State(session.id, session.progress(), session.mask(), session.feedback(),
                 session.started(), session.complete(), session.cardInserted(), session.elapsed(now()),
                 session.stage(), session.cursor(), session.phaseAt(), session.pipeBits(), session.cleaned()));
@@ -162,6 +166,14 @@ public final class TaskServer {
         if (trial == null || trial.session.id != packet.sessionId() || trial.session.station() == null) return;
         if (!player.isAlive() || !trial.dimension.equals(player.level().dimension()) || meeting(player.level().getServer(), player)) { close(player); return; }
         if (trial.session.station().apply(packet.sequence(), packet.action(), packet.item(), packet.a(), packet.b(), now())) sendState(player, trial);
+    }
+
+    private static void professionAction(ServerPlayer player, com.goosethings.tools.task.profession.ProfessionPackets.Input packet) {
+        if (!packet.valid() || !MandatoryHandshake.isVerified(player)) return;
+        Trial trial = SESSIONS.get(player.getUUID());
+        if (trial == null || trial.session.id != packet.sessionId() || trial.session.profession() == null) return;
+        if (!player.isAlive() || !trial.dimension.equals(player.level().dimension()) || meeting(player.level().getServer(), player)) { close(player); return; }
+        if (trial.session.profession().apply(packet.sequence(), packet.stage(), packet.action(), packet.slot(), packet.a(), packet.b(), packet.c(), now())) sendState(player, trial);
     }
 
     public static boolean meeting(MinecraftServer server, ServerPlayer player) {

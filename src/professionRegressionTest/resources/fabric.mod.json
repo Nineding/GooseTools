@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "goosetools_profession_test",
+  "version": "1.0.0",
+  "name": "Professional trial client regression",
+  "environment": "client",
+  "entrypoints": {"client": ["com.goosethings.tools.task.ProfessionGuiRegression"]},
+  "depends": {"goosetools": "*"}
+}
