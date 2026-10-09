@@ -26,7 +26,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.ThreadLocalRandom;
 
-/** Independent command-driven trials. No task scores, map registrations or achievements are changed. */
+/** Authoritative puzzle sessions; map progress is published only through explicit GUI bindings. */
 public final class TaskServer {
     private static final Map<UUID, Trial> SESSIONS = new HashMap<>();
     private static final AtomicLong IDS = new AtomicLong(1);
@@ -144,7 +144,7 @@ public final class TaskServer {
         GuiTaskBridge.taskProgress(player, session.id, session.complete());
         if (session.complete() && !trial.delivered) {
             trial.delivered = true;
-            player.sendSystemMessage(message("completed", "%s completed in %s s (trial)",
+            if (!GuiTaskBridge.taskBound(player, session.id)) player.sendSystemMessage(message("completed", "%s completed in %s s (trial)",
                     Component.translatableWithFallback("task.goosetools." + session.type.id + ".title", session.type.fallback),
                     String.format(java.util.Locale.ROOT, "%.1f", session.elapsed(now()) / 1000.0)));
             COMPLETED.invoker().onComplete(player, session.type, session.elapsed(now()));

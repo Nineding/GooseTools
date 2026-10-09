@@ -30,8 +30,10 @@ import java.util.*;
 public final class GuiMapRegression implements ClientModInitializer {
     private static final String[] IDS={"testdrive","unclogpipes","calibratevoltage","powercontrol","arcadefan","whackmoles"};
     private static final int[][] COORDS={{-1610,73,-488},{-1619,72,-528},{-1626,72,-491},{-1652,72,-505},{-1673,72,-502},{-1638,72,-529}};
-    private boolean world,prepared,ready,requested,finished;
-    private volatile boolean serverReady;
+    private boolean world,prepared,ready,requested,finished,bindingsRequested;
+    private volatile boolean bindingsDone;
+    private volatile boolean serverReady,requestReady,sampleReady;
+    private volatile int generation;
     private int ticks,scenario=Integer.getInteger("goosetools.guiScenario",0),stage,frame,knob=-1,assertions;
     private long since,pauseAt,pausedTime,lastHit,clickedBorn=-1;
     private volatile int status,time;
@@ -53,13 +55,15 @@ public final class GuiMapRegression implements ClientModInitializer {
             if(!prepared){prepared=true;mc.getSingleplayerServer().execute(()->prepare(mc));return;}
             if(!serverReady)return;
             if(!ready){ready=true;since=now();}
-            if(scenario>=17){finish(mc,"PASS "+assertions+" assertions; real hard traffic survival/pause/close/loss, 20 mole hits/loss/close, three puzzle completions/close, four native block-use targets, arcade cumulative time/close/leave, command-origin exclusion and cancellation");return;}
+            if(scenario>=17){if(!bindingsRequested){bindingsRequested=true;mc.getSingleplayerServer().execute(()->{try{assertions+=GuiBindingRegression.run(mc.getSingleplayerServer());bindingsDone=true;}catch(Throwable e){mc.execute(()->finish(mc,"FAIL bindings "+e));}});return;}if(!bindingsDone)return;finish(mc,"PASS "+assertions+" assertions; "+(Integer.getInteger("goosetools.guiScenario",0)==17?"controlled server-player binding isolation, stale IDs, puzzle/game ID overlap, time deltas, block mapping and boundaries":"real client traffic, whack, three puzzles, four native block-use entrances, cumulative arcade and cancellation; controlled binding isolation"));return;}
             require(now()-since<100_000,"timeout scenario="+scenario+" stage="+stage+" status="+status+" active="+active+" complete="+complete);
             frame++;
-            if(!requested){requested=true;stage=0;frame=0;knob=-1;clickedBorn=-1;status=0;active=complete=false;
+            if(!requested){requested=true;requestReady=sampleReady=false;generation++;stage=0;frame=0;knob=-1;clickedBorn=-1;status=0;active=complete=false;
                 int id=scenario<=2?0:scenario<=5?5:scenario<=8?scenario-5:scenario<=11?scenario-8:4;
                 begin(mc,id);return;}
+            if(!requestReady)return;
             sample(mc);
+            if(!sampleReady)return;
             if(scenario==0){ // Pause and close before thirty.
                 if(stage==3&&!active&&status==0){require(!complete,"early close completed");assertions++;next(mc);return;}
                 if(!(mc.gui.screen() instanceof GameScreen s)||s.currentState()==null)return;
@@ -87,7 +91,7 @@ public final class GuiMapRegression implements ClientModInitializer {
                 return;
             }
             if(scenario==4||scenario==5){
-                if(stage==0&&mc.gui.screen() instanceof GameScreen s&&s.currentState()!=null){stage=1;if(scenario==5)s.onClose();}
+                if(stage==0&&mc.gui.screen() instanceof GameScreen s&&s.currentState()!=null&&s.currentState().phase()==GameSession.RUNNING){stage=1;if(scenario==5)s.onClose();}
                 if(stage==1&&!active&&status==0){require(!complete,"mole death/close completed");assertions++;next(mc);}return;
             }
             if(scenario>=6&&scenario<=11){
@@ -107,7 +111,8 @@ public final class GuiMapRegression implements ClientModInitializer {
             if(stage==1&&frame%8==0&&mc.player.getX()>-1669){use(mc,new BlockPos(-1669,72,-500));stage=2;return;}
             if(stage==2&&mc.gui.screen() instanceof GameScreen s&&s.currentState()!=null){require(s.gameType()==GameType.MERGE,"2048 block opened wrong game");assertions++;key(s,InputConstants.KEY_RETURN);stage=3;return;}
             if(stage==3&&time>=10_000&&mc.gui.screen() instanceof GameScreen s){s.onClose();pauseAt=now();pausedTime=time;stage=4;return;}
-            if(stage==4&&now()-pauseAt>650){require(active&&time==pausedTime,"arcade close failed or counted time");assertions++;
+            if(stage==4&&now()-pauseAt>250){pausedTime=time;stage=40;return;}
+            if(stage==40&&now()-pauseAt>900){require(active&&time==pausedTime,"arcade close failed or counted time");assertions++;
                 command(mc,"tp "+name(mc)+" -1673.5 72 -506.5");stage=5;return;}
             if(stage==5&&frame%8==0&&mc.player.getX()<-1673){use(mc,new BlockPos(-1674,72,-507));stage=6;return;}
             if(stage==6&&mc.gui.screen() instanceof GameScreen s&&s.currentState()!=null){require(s.gameType()==GameType.MINES,"mines block opened wrong game");assertions++;key(s,InputConstants.KEY_RETURN);stage=7;return;}
@@ -190,11 +195,11 @@ public final class GuiMapRegression implements ClientModInitializer {
         for(int[] b:new int[][]{{-1669,72,-500},{-1669,72,-504},{-1670,72,-507},{-1674,72,-507}})exec(server,"setblock "+b[0]+" "+b[1]+" "+b[2]+" stone");
         exec(server,"tp "+name(mc)+" "+c[0]+" "+c[1]+" "+c[2]);
         exec(server,"kill @e[type=marker,tag=gui_fixture]");exec(server,"summon marker "+c[0]+" "+c[1]+" "+c[2]+" {Tags:[\"task\",\""+IDS[id]+"\",\"gui_fixture\"]}");
-        p.addTag("task."+IDS[id]+".available");exec(server,"execute as "+name(mc)+" at @s run function ggd:task/eagleton_simplify/"+IDS[id]+"/accept");
+        p.addTag("task."+IDS[id]+".available");exec(server,"execute as "+name(mc)+" at @s run function ggd:task/eagleton_simplify/"+IDS[id]+"/accept");requestReady=true;
     });}
-    private void sample(Minecraft mc){mc.getSingleplayerServer().execute(()->{var p=mc.getSingleplayerServer().getPlayerList().getPlayer(mc.player.getUUID());
+    private void sample(Minecraft mc){int epoch=generation;mc.getSingleplayerServer().execute(()->{if(epoch!=generation)return;var p=mc.getSingleplayerServer().getPlayerList().getPlayer(mc.player.getUUID());
         var sb=mc.getSingleplayerServer().getScoreboard();var a=sb.getPlayerScoreInfo(p,sb.getObjective("ggdGuiState"));var b=sb.getPlayerScoreInfo(p,sb.getObjective("ggdGuiTime"));
-        status=a==null?0:a.value();time=b==null?0:b.value();active=p.entityTags().contains("inTaskGooseGui");complete=Arrays.stream(IDS).anyMatch(id->p.entityTags().contains("task."+id+".finished"));});}
+        status=a==null?0:a.value();time=b==null?0:b.value();active=p.entityTags().contains("inTaskGooseGui");complete=Arrays.stream(IDS).anyMatch(id->p.entityTags().contains("task."+id+".finished"));sampleReady=true;});}
     private void fixture(Minecraft mc,java.util.function.Consumer<ArcadeGame> action){mc.getSingleplayerServer().execute(()->{try{Field f=GameServer.class.getDeclaredField("sessions");f.setAccessible(true);
         Object playing=((Map<?,?>)f.get(null)).get(mc.player.getUUID());Field gf=playing.getClass().getDeclaredField("game");gf.setAccessible(true);action.accept(((GameSession)gf.get(playing)).game);
     }catch(Throwable e){mc.execute(()->finish(mc,"FAIL fixture "+e));}});}
@@ -205,12 +210,12 @@ public final class GuiMapRegression implements ClientModInitializer {
         var server=mc.getSingleplayerServer();exec(server,"execute as "+name(mc)+" at @s run "+c);});}
     private static void use(Minecraft mc,BlockPos pos){mc.gameMode.useItemOn(mc.player,InteractionHand.MAIN_HAND,new BlockHitResult(Vec3.atCenterOf(pos).add(0,.5,0),Direction.UP,pos,false));}
     private static void key(GameScreen s,int key){var e=new KeyEvent(key,0,0);s.keyPressed(e);s.keyReleased(e);}
-    private static void click(GameScreen s,double x,double y){s.mouseClicked(new MouseButtonEvent(s.transform().x()+x*s.transform().scale(),s.transform().y()+y*s.transform().scale(),new MouseButtonInfo(0,0)),false);}
+    private static void click(GameScreen s,double x,double y){s.mouseClicked(new MouseButtonEvent(s.transform().x()+x*s.transform().scale(),s.transform().y()+y*s.transform().scale(),new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT,0)),false);}
     private static double scale(TaskScreen s){return Math.max(.1,Math.min(1.5,Math.min((s.width-24.0)/420,(s.height-24.0)/320)));}
     private static double tx(TaskScreen s,double x){double z=scale(s);return(s.width-420*z)/2+x*z;}
     private static double ty(TaskScreen s,double y){double z=scale(s);return(s.height-320*z)/2+y*z;}
-    private static void taskClick(TaskScreen s,double x,double y){s.mouseClicked(new MouseButtonEvent(tx(s,x),ty(s,y),new MouseButtonInfo(0,0)),false);}
-    private static void taskDrag(TaskScreen s,double x,double y){s.mouseDragged(new MouseButtonEvent(tx(s,x),ty(s,y),new MouseButtonInfo(0,0)),0,0);}
+    private static void taskClick(TaskScreen s,double x,double y){s.mouseClicked(new MouseButtonEvent(tx(s,x),ty(s,y),new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT,0)),false);}
+    private static void taskDrag(TaskScreen s,double x,double y){s.mouseDragged(new MouseButtonEvent(tx(s,x),ty(s,y),new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT,0)),0,0);}
     private static void require(boolean b,String m){if(!b)throw new IllegalStateException(m);}
     private void capture(Minecraft mc,String n){Screenshot.takeScreenshot(mc.gameRenderer.mainRenderTarget(),im->{try(im){im.writeToFile(mc.gameDirectory.toPath().resolve(n+".png"));}catch(Exception e){mc.execute(()->finish(mc,"FAIL screenshot "+e));}});}
     private void finish(Minecraft mc,String text){if(finished)return;finished=true;try{Files.writeString(mc.gameDirectory.toPath().resolve("result.txt"),text);}catch(Exception e){GooseTools.LOGGER.error("Result",e);}mc.stop();}

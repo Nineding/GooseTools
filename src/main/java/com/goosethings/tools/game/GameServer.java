@@ -21,7 +21,7 @@ import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
-/** Arcade sessions are independent from tasks. Activity is available for a future timed task. */
+/** Independent arcade games and explicitly bound map challenges share authoritative simulation. */
 public final class GameServer {
     public static final Event<Activity> ACTIVITY = EventFactory.createArrayBacked(Activity.class,
             listeners -> (player, type, sessionId, activeDelta, phase) -> { for (Activity l : listeners) l.onActivity(player, type, sessionId, activeDelta, phase); });
@@ -50,6 +50,10 @@ public final class GameServer {
         for (GameType type : GameType.values()) players.then(Commands.literal(type.id).executes(ctx -> {
             int count = 0;
             for (ServerPlayer player : EntityArgument.getPlayers(ctx, "players")) {
+                if (!MandatoryHandshake.isVerified(player) || !ServerPlayNetworking.canSend(player, GamePackets.Open.TYPE)) {
+                    ctx.getSource().sendFailure(text("unavailable", "%s needs matching GooseTools", player.getName())); continue;
+                }
+                if (!available(player)) { ctx.getSource().sendFailure(text("busy", "%s cannot play now", player.getName())); continue; }
                 if (open(player, type, false, false) != null) count++;
             }
             final int n = count;

@@ -111,6 +111,10 @@ public final class GuiTaskBridge {
         if (b != null && !b.ended && b.session == id && !b.kind.equals("traffic")
                 && !b.kind.equals("whack") && !b.kind.equals("arcade") && eligible(p) && complete) success(p, b);
     }
+    public static boolean taskBound(ServerPlayer p, long id) {
+        Binding b = bindings.get(p.getUUID());
+        return b != null && b.session == id && (b.kind.equals("pipes") || b.kind.equals("knobs") || b.kind.equals("timing"));
+    }
     public static void taskClosed(ServerPlayer p, long id) {
         Binding b = bindings.get(p.getUUID());
         if (b != null && !b.ended && b.session == id && !b.kind.equals("traffic")
