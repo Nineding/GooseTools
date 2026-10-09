@@ -86,6 +86,7 @@ public final class TaskServer {
     }
 
     private static void open(ServerPlayer player, TaskType type) {
+        com.goosethings.tools.game.GameServer.close(player);
         close(player);
         TaskSession session = new TaskSession(IDS.getAndIncrement(), type, ThreadLocalRandom.current().nextLong(), now());
         SESSIONS.put(player.getUUID(), new Trial(session, player.level().dimension()));
@@ -134,7 +135,7 @@ public final class TaskServer {
         }
     }
 
-    private static boolean close(ServerPlayer player) {
+    public static boolean close(ServerPlayer player) {
         Trial removed = SESSIONS.remove(player.getUUID());
         if (removed == null) return false;
         if (ServerPlayNetworking.canSend(player, TaskPackets.Close.TYPE))
@@ -142,7 +143,7 @@ public final class TaskServer {
         return true;
     }
 
-    private static boolean meeting(MinecraftServer server, ServerPlayer player) {
+    public static boolean meeting(MinecraftServer server, ServerPlayer player) {
         Objective objective = server.getScoreboard().getObjective("ggdSession");
         ReadOnlyScoreInfo score = objective == null ? null : server.getScoreboard()
                 .getPlayerScoreInfo(ScoreHolder.forNameOnly("#MeetingPhase"), objective);

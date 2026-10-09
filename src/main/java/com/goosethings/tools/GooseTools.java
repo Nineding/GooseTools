@@ -39,6 +39,7 @@ public final class GooseTools implements ModInitializer {
     public void onInitialize() {
         GooseToolsPayloads.registerTypes();
         com.goosethings.tools.task.TaskServer.register();
+        com.goosethings.tools.game.GameServer.register();
         AdventureNoClipService.register();
         ForcedFlightSync.register();
         AiReportServer.register();

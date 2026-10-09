@@ -78,6 +78,10 @@ tasks.named('jar') {
 
 // An isolated client mod exercises real GPU draws; it is never packaged in the release JAR.
 sourceSets {
+    gameRegressionTest {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
     updateRegressionTest {
         compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
         runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
@@ -100,6 +104,8 @@ sourceSets {
     }
 }
 configurations {
+    gameRegressionTestImplementation.extendsFrom implementation
+    gameRegressionTestRuntimeOnly.extendsFrom runtimeOnly
     updateRegressionTestImplementation.extendsFrom implementation
     updateRegressionTestRuntimeOnly.extendsFrom runtimeOnly
     taskRegressionTestImplementation.extendsFrom implementation
@@ -113,6 +119,7 @@ configurations {
 }
 loom {
     mods {
+        goosetools_game_test { sourceSet sourceSets.gameRegressionTest }
         goosetools_update_test { sourceSet sourceSets.updateRegressionTest }
         goosetools_task_test { sourceSet sourceSets.taskRegressionTest }
         goosetools { sourceSet sourceSets.main }
@@ -121,6 +128,16 @@ loom {
         goosetools_flight_test { sourceSet sourceSets.flightRegressionTest }
     }
     runs {
+        gameRegressionTest {
+            client()
+            source sourceSets.gameRegressionTest
+            runDir 'build/game-regression-test'
+            vmArg '-Dgoosetools.gameRegressionTest=true'
+            programArg '--width'
+            programArg '1280'
+            programArg '--height'
+            programArg '900'
+        }
         updateRegressionTest {
             client()
             source sourceSets.updateRegressionTest
@@ -198,6 +215,23 @@ tasks.named('runTaskRegressionTest') {
         def result = layout.buildDirectory.file('task-regression-test/result.txt').get().asFile
         if (!result.isFile() || !result.text.startsWith('PASS ')) {
             throw new GradleException('Task GUI regression failed; inspect build/task-regression-test/logs/latest.log and result.txt')
+        }
+        logger.lifecycle(result.text)
+    }
+}
+
+tasks.named('runGameRegressionTest') {
+    timeout = java.time.Duration.ofMinutes(8)
+    doFirst {
+        delete layout.buildDirectory.file('game-regression-test/result.txt')
+        def options = layout.buildDirectory.file('game-regression-test/options.txt').get().asFile
+        options.parentFile.mkdirs()
+        options.text = 'lang:zh_cn\nguiScale:2\npauseOnLostFocus:false\ntutorialStep:none\nskipMultiplayerWarning:true\n'
+    }
+    doLast {
+        def result = layout.buildDirectory.file('game-regression-test/result.txt').get().asFile
+        if (!result.isFile() || !result.text.startsWith('PASS ')) {
+            throw new GradleException('Arcade regression failed; inspect build/game-regression-test/logs/latest.log and result.txt')
         }
         logger.lifecycle(result.text)
     }

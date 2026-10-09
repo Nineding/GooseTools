@@ -40,6 +40,7 @@ public final class GooseToolsClient implements ClientModInitializer {
         ClientClickActions.register();
         ClientHandshake.register();
         com.goosethings.tools.client.task.TaskClient.register();
+        com.goosethings.tools.client.game.GameClient.register();
         AdventureNoClipClient.register();
         ForcedFlightClient.register();
         MeetingAlertHud.register();

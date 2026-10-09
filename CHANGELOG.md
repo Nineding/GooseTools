@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.14.0+Alpha0.31 - 2026-10-09
+
+- Added six standalone native arcade games: Flappy Bird, Snake, Pong against an AI, Whac-A-Mole, classic Minesweeper and 2048. Each has its own classic visual theme, original pixel artwork, animation, sounds, score records and replay controls. They are separate from task trials and do not award map-task progress, achievements or items.
+- Open games with `/goosetools games open <players> <flappy|snake|pong|whack|minesweeper|2048>` and close them with `/goosetools games close <players>`. Flappy and Snake continue until collision (Snake wins by filling its board); Whac-A-Mole has three lives and endless waves. Pong offers first-to-11 matches and endless practice, Minesweeper has three difficulties and consecutive boards, and 2048 can continue beyond its victory tile.
+- Server-owned simulation validates inputs, scores, collisions, mine reveals, tile merges and outcomes. Pause and result screens do not count as active play; long games have no fixed task-time or score cutoff. A server activity event is available for a future one-minute playing task. Opening a task or game replaces the previous session; disconnect, death, dimension changes and meetings clean it up.
+- Install GooseTools 1.14.0+Alpha0.31 on the server/host and every client, then restart. Protocol remains 30; existing task payloads are unchanged and arcade messages use separate channels. Minecraft 26.3, Xaero Minimap 26.5.3, World Map 1.46.4, GooseThings 1.14.0+Alpha0.43 and existing data/resource packs remain compatible. No additional GooseThings or Full Blood DLC features are required. The original nine task trials and customized dial/knob textures are retained.
+
 ## 1.14.0+Alpha0.30 - 2026-10-09
 
 - Added four independent GUI task trials: sort six Minecraft items into food/mineral/tool trays, repeat three rounds of flashing buttons, rotate a solvable 4x4 copper pipe board and test the water, and wipe six stains from a glass panel with a sponge. Category mistakes return the item; memory mistakes replay only the current round; pipes highlight disconnected/leaking segments; wiping keeps partial progress.

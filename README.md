@@ -14,16 +14,16 @@ GooseTools is the required Fabric client/server foundation for the Whoiskiller G
 - Fabric API 0.161.0+26.3
 - Xaero's Minimap 26.5.3
 - Xaero's World Map 1.46.4
-- GooseTools 1.14.0+Alpha0.27 on both the server and every client
+- GooseTools 1.14.0+Alpha0.31 on both the server and every client
 
-服务端和所有客户端必须安装完全相同的 GooseTools 版本。当前网络协议版本为 29；缺少模组、版本不同或协议不兼容的客户端会被服务器拒绝。
+服务端和所有客户端必须安装完全相同的 GooseTools 版本。当前网络协议版本为 30；缺少模组、版本不同或协议不兼容的客户端会被服务器拒绝。
 
-The server and every connecting client must use the exact same GooseTools version. The current network protocol is 29; clients with a missing, mismatched, or incompatible mod are rejected during login.
+The server and every connecting client must use the exact same GooseTools version. The current network protocol is 30; clients with a missing, mismatched, or incompatible mod are rejected during login.
 
 ## 安装 / Installation
 
 1. 安装 Minecraft 26.3、Fabric Loader 和上方列出的依赖。
-2. 从 [Releases](https://github.com/Nineding/GooseTools/releases) 下载 `goosetools-1.14.0+Alpha0.27.jar`。
+2. 从 [Releases](https://github.com/Nineding/GooseTools/releases) 下载 `goosetools-1.14.0+Alpha0.31.jar`。
 3. 将 GooseTools 及依赖 JAR 放入服务端和每位玩家客户端的 `mods` 目录。
 
 Install Minecraft 26.3 with Fabric Loader and the dependencies listed above, then place the GooseTools JAR in the `mods` directory on both the server and every client.
@@ -64,14 +64,40 @@ Administrators can open independent task panels using the commands below. Player
 /goosetools tasks open @s swipe
 /goosetools tasks open @s garbage
 /goosetools tasks open @s knobs
+/goosetools tasks open @s sorting
+/goosetools tasks open @s memory
+/goosetools tasks open @s pipes
+/goosetools tasks open @s cleaning
 /goosetools tasks close @s
 ```
 
-依次为指针转盘、接电线、刷卡、拖垃圾和旋钮校准。界面内显示操作说明；完成后可点击“再试一次”，ESC 可退出。试玩不暂停游戏，不接入地图，也不增加正式任务进度、成就或角色奖励。服务端负责判定完成，死亡、换维度、进入会议、断线或重新打开时清理旧会话。
+依次为指针转盘、接电线、刷卡、拖垃圾、旋钮校准、物品分类、记忆按钮、管道连接和擦拭污渍。界面内显示操作说明；完成后可点击“再试一次”，ESC 可退出。试玩不暂停游戏，不接入地图，也不增加正式任务进度、成就或角色奖励。服务端负责判定完成，死亡、换维度、进入会议、断线或重新打开时清理旧会话。
 
-The five trials are a timing dial, wire matching, card swiping, garbage dragging and knob calibration. Each panel displays instructions, offers replay after completion and closes with ESC. Trials do not pause the game, register map tasks or grant normal task progress, achievements or role rewards. The server confirms completion and clears the session on death, dimension changes, meetings, disconnect or replacement.
+The nine trials are a timing dial, wire matching, card swiping, garbage dragging, knob calibration, item sorting, memory buttons, pipe connection and stain wiping. Each panel displays instructions, offers replay after completion and closes with ESC. Trials do not pause the game, register map tasks or grant normal task progress, achievements or role rewards. The server confirms completion and clears the session on death, dimension changes, meetings, disconnect or replacement.
 
-With Java 25 and a graphics-capable desktop session, `gradlew runTaskRegressionTest` exercises all five panels using real commands, network packets and mouse/keyboard handlers in a new isolated save. Screenshots and results are written under `build/task-regression-test`.
+With Java 25 and a graphics-capable desktop session, `gradlew runTaskRegressionTest` exercises all nine panels using real commands, network packets and mouse/keyboard handlers in a new isolated save. Screenshots and results are written under `build/task-regression-test`.
+
+## 独立小游戏 / Standalone arcade games
+
+```mcfunction
+/goosetools games open @s flappy
+/goosetools games open @s snake
+/goosetools games open @s pong
+/goosetools games open @s whack
+/goosetools games open @s minesweeper
+/goosetools games open @s 2048
+/goosetools games close @s
+```
+
+六款分别为 Flappy Bird、贪吃蛇、单人对 AI 的 Pong、三生命无尽打地鼠、经典扫雷和 2048。Pong 可选抢 11 分经典对局或无尽练习；扫雷支持 9×9/10 雷、16×16/40 雷、30×16/99 雷，通关后可继续下一盘；2048 获胜后可继续合成更大数字。Flappy 和蛇碰撞结束，蛇填满棋盘获胜；游戏没有固定任务得分或时间上限。操作提示显示在界面底部，P 暂停/继续，Esc 退出；暂停不会停止 Minecraft 世界。
+
+The six games use independent classic themes, pixel artwork, animations, sounds and server-owned rules. They are separate from tasks and do not grant task progress. Pong offers first-to-11 and endless practice, Minesweeper offers three classic board sizes and continued boards, and 2048 can continue beyond 2048. Flappy/Snake end on collision, Snake wins with a full board, and Whac-A-Mole ends after three lost lives. No fixed task score or duration ends a run.
+
+材质位于 `src/main/resources/assets/goosetools/textures/gui/games/`，资源包可使用相同路径覆盖 PNG。每位玩家的最高分和扫雷最快时间按模式/难度保存在存档的 `data/goosetools/arcade-records.json`。服务端 `GameServer.ACTIVITY` 事件预留给之后的游玩一分钟任务，只累计运行阶段，菜单/暂停/结算不计时。本版不注册该任务。
+
+Pixel assets can be overridden at `assets/goosetools/textures/gui/games/`. Records persist per player, mode and difficulty. The server activity event exposes active-play deltas for a future timed task; menus, pause and results are excluded. No one-minute task is registered by this release.
+
+`gradlew runGameRegressionTest` runs an isolated client/server integration check with Chinese text, GUI scales 1/2/3, actual key/mouse input, wins/losses/continued play and cleanup. Screenshots and results are in `build/game-regression-test`; see [test details](src/gameRegressionTest/README.md).
 
 ## 指令式名称标签图标 / Command-managed nametag icons
 

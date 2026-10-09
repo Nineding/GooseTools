@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "goosetools_game_test",
+  "version": "1.0.0",
+  "name": "GooseTools arcade regression",
+  "environment": "client",
+  "entrypoints": { "client": ["com.goosethings.tools.game.GameGuiRegression"] },
+  "depends": { "goosetools": "*" }
+}
