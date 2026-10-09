@@ -1,6 +1,7 @@
 package com.goosethings.tools.client.task;
 
 import com.goosethings.tools.task.TaskLayout;
+import com.goosethings.tools.task.TaskExtraLayout;
 import com.goosethings.tools.task.TaskPackets;
 import com.goosethings.tools.task.TaskSession;
 import com.goosethings.tools.task.TaskType;
@@ -26,11 +27,14 @@ public final class TaskScreen extends Screen {
             BIN = texture("bin"), KNOB = texture("knob"), CARD = texture("key_card");
     private static final int[] WIRE_COLORS = {0xFFFF7588, 0xFF67BAFF, 0xFFFFD066, 0xFFBB91FF};
     private static final String[] FEEDBACK = {"waiting", "play", "success", "miss", "wrong_wire", "insert_card",
-            "card_ready", "too_fast", "too_slow", "incomplete_swipe", "drop_in_bin", "align_knob"};
+            "card_ready", "too_fast", "too_slow", "incomplete_swipe", "drop_in_bin", "align_knob",
+            "wrong_category", "watch_sequence", "repeat_sequence", "wrong_sequence", "pipe_leak", "water_flow", "wipe"};
     private static final String[] FALLBACK = {"Waiting for the server…", "Keep going!", "Task complete!",
             "Missed! Progress reset.", "Wrong connector. Try the matching symbol.", "Click the card to insert it.",
             "Drag the card right in 0.6–1.2 seconds.", "Too fast! Swipe more slowly.", "Too slow! Swipe faster.",
-            "Swipe all the way right along the slot.", "Drop the garbage inside the bin.", "Hold on the target for 0.6 seconds."};
+            "Swipe all the way right along the slot.", "Drop the garbage inside the bin.", "Hold on the target for 0.6 seconds.",
+            "Wrong category. Try another tray.", "Watch the lights, then repeat the order.", "Your turn: repeat the order.",
+            "Wrong button. Watch this round again.", "Pipe disconnected or leaking. Check red joints.", "Water is flowing…", "Hold and drag the sponge over the stains."};
     private final TaskPackets.Open open;
     private final TaskType type;
     private final TaskLayout layout;
@@ -42,6 +46,10 @@ public final class TaskScreen extends Screen {
     private long localStart, lastMove, feedbackAt, localKnobSince = -1;
     private int previousProgress;
     private ItemStack[] trashItems;
+    private ItemStack[] sortingItems;
+    private ItemStack sponge;
+    private int pressedMemory = -1;
+    private long pressedUntil;
 
     public TaskScreen(TaskPackets.Open open) {
         super(Component.translatableWithFallback("task.goosetools." + TaskType.values()[open.task()].id + ".title",
@@ -106,6 +114,10 @@ public final class TaskScreen extends Screen {
             case SWIPE -> "Insert the card, then drag it right at a steady speed.";
             case GARBAGE -> "Drag all six pieces of garbage into the bin.";
             case KNOBS -> "Drag around each knob; hold the target for 0.6 seconds.";
+            case SORTING -> "Drag six items into their food, mineral or tool trays.";
+            case MEMORY -> "Watch the flashing buttons, then repeat their order.";
+            case PIPES -> "Rotate copper pipes to connect IN to OUT, then test the water.";
+            case CLEANING -> "Hold the left mouse button and wipe every stain with the sponge.";
         };
         int helpY = 56;
         for (FormattedCharSequence line : font.split(Component.translatableWithFallback(
@@ -119,12 +131,18 @@ public final class TaskScreen extends Screen {
             case SWIPE -> drawSwipe(graphics);
             case GARBAGE -> drawGarbage(graphics);
             case KNOBS -> drawKnobs(graphics);
+            case SORTING -> drawSorting(graphics, mx, my);
+            case MEMORY -> drawMemory(graphics);
+            case PIPES -> drawPipes(graphics, mx, my);
+            case CLEANING -> drawCleaning(graphics, mx, my);
         }
         int feedback = state == null ? TaskSession.WAITING : state.feedback();
         int color = feedback == TaskSession.MISS || feedback == TaskSession.WRONG_WIRE
-                || (feedback >= TaskSession.TOO_FAST && feedback <= TaskSession.DROP_IN_BIN) ? RED : MUTED;
+                || (feedback >= TaskSession.TOO_FAST && feedback <= TaskSession.DROP_IN_BIN)
+                || feedback == TaskSession.WRONG_CATEGORY || feedback == TaskSession.WRONG_SEQUENCE || feedback == TaskSession.PIPE_LEAK ? RED : MUTED;
         if (now() - feedbackAt > 2200 && state != null && !state.complete()
-                && type != TaskType.SWIPE && feedback != TaskSession.WAITING) { feedback = TaskSession.PLAY; color = MUTED; }
+                && type != TaskType.SWIPE && type != TaskType.MEMORY && type != TaskType.CLEANING
+                && type != TaskType.PIPES && feedback != TaskSession.WAITING) { feedback = TaskSession.PLAY; color = MUTED; }
         center(graphics, text(FEEDBACK[feedback], FALLBACK[feedback]), 210, 274, color);
         int progress = state == null ? 0 : state.progress();
         bevel(graphics, 18, 295, 317, 12, 0xFF151C20);
@@ -258,6 +276,102 @@ public final class TaskScreen extends Screen {
         center(g, text("replay", "Try again"), 210, 229, INK);
     }
 
+    private void sortingItems() {
+        if (sortingItems == null) sortingItems = new ItemStack[]{new ItemStack(Items.APPLE), new ItemStack(Items.BREAD),
+                new ItemStack(Items.IRON_INGOT), new ItemStack(Items.DIAMOND), new ItemStack(Items.IRON_PICKAXE), new ItemStack(Items.IRON_SHOVEL)};
+    }
+    private static void item(GuiGraphicsExtractor g, ItemStack stack, int x, int y, float scale, int seed) {
+        g.pose().pushMatrix(); g.pose().translate(x - 8 * scale, y - 8 * scale); g.pose().scale(scale, scale);
+        g.item(stack, 0, 0, seed); g.pose().popMatrix();
+    }
+    private void drawSorting(GuiGraphicsExtractor g, double mx, double my) {
+        sortingItems();
+        String[] keys = {"food", "minerals", "tools"}, names = {"FOOD", "MINERALS", "TOOLS"};
+        for (int category = 0; category < 3; category++) {
+            TaskLayout.Rect tray = TaskExtraLayout.category(category); int x = (int) tray.x();
+            bevel(g, x, 178, 90, 74, 0xFF4B5146); bevel(g, x + 5, 198, 80, 48, 0xFF242B25);
+            center(g, text(keys[category], names[category]), x + 45, 184, INK);
+            int count = 0;
+            for (int i = 0; i < 6; i++) if (masked(i) && layout.extra.sortItems[i] / 2 == category)
+                item(g, sortingItems[layout.extra.sortItems[i]], x + 26 + 38 * count++, 221, 1.5F, i);
+            if (count == 0) item(g, sortingItems[category * 2], x + 45, 221, 1.0F, 30 + category);
+            if (dragging >= 0 && tray.contains(mx, my)) g.outline(x, 178, 90, 74, GREEN);
+        }
+        for (int i = 0; i < 6; i++) if (!masked(i) && i != dragging) {
+            int x = TaskExtraLayout.sortX(i);
+            bevel(g, x - 23, 96, 46, 46, 0xFF333C40);
+            item(g, sortingItems[layout.extra.sortItems[i]], x, TaskExtraLayout.SORT_Y, 2.0F, i);
+        }
+        if (dragging >= 0) item(g, sortingItems[layout.extra.sortItems[dragging]], (int) pointerX, (int) pointerY, 2.0F, dragging);
+    }
+    private void drawMemory(GuiGraphicsExtractor g) {
+        int round = state == null ? 0 : Math.min(2, state.progress());
+        int active = -1;
+        if (state != null && state.stage() == 0) {
+            long time = elapsed() - state.phaseAt(); int index = (int) (time / 650);
+            if (time >= 0 && index < layout.extra.memory[round].length && time % 650 < 450) active = layout.extra.memory[round][index];
+        } else if (now() < pressedUntil) active = pressedMemory;
+        for (int i = 0; i < 4; i++) {
+            TaskLayout.Rect button = TaskExtraLayout.memoryButton(i); int x = (int) button.x(), y = (int) button.y();
+            bevel(g, x - 4, y - 4, 108, 66, 0xFF566369);
+            bevel(g, x, y, 100, 58, shade(WIRE_COLORS[i], i == active ? 1.25 : 0.45));
+            center(g, Component.literal(Integer.toString(i + 1)), x + 50, y + 24, i == active ? 0xFF172128 : INK);
+        }
+        center(g, text("memory_round", "Round %s / 3", round + 1), 210, 88, MUTED);
+        center(g, text(state != null && state.stage() == 1 ? "memory_input" : "memory_watch",
+                state != null && state.stage() == 1 ? "REPEAT: %s / %s" : "WATCH: %s BUTTONS",
+                state != null && state.stage() == 1 ? state.cursor() : layout.extra.memory[round].length,
+                layout.extra.memory[round].length), 210, 244, state != null && state.stage() == 1 ? GREEN : MUTED);
+    }
+    private void drawPipes(GuiGraphicsExtractor g, double mx, double my) {
+        for (int cell = 0; cell < 16; cell++) {
+            int x = TaskExtraLayout.PIPE_X + cell % 4 * 40, y = TaskExtraLayout.PIPE_Y + cell / 4 * 40;
+            bevel(g, x, y, 40, 40, 0xFF3B4141);
+            int turn = state == null ? layout.extra.pipeInitial[cell] : (state.pipeBits() >>> (2 * cell)) & 3;
+            int openings = TaskExtraLayout.rotate(layout.extra.pipeMasks[cell], turn);
+            int color = 0xFFBA7956;
+            boolean marked = state != null && (state.mask() & (1 << cell)) != 0;
+            if (marked && state.cursor() == 1) color = RED;
+            else if (marked && state.stage() == 2 && elapsed() - state.phaseAt() > (cell % 4) * 180L) color = 0xFF67BAFF;
+            g.enableScissor(x, y, x + 40, y + 40);
+            for (int d = 0; d < 4; d++) if ((openings & (1 << d)) != 0) {
+                int dx = d == 1 ? 19 : d == 3 ? -19 : 0, dy = d == 2 ? 19 : d == 0 ? -19 : 0;
+                line(g, x + 20, y + 20, x + 20 + dx, y + 20 + dy, 8, 0xFF171E20);
+                line(g, x + 20, y + 20, x + 20 + dx, y + 20 + dy, 6, shade(color, 0.65));
+                line(g, x + 19, y + 18, x + 19 + dx, y + 18 + dy, 4, color);
+            }
+            if (!marked) sprite(g, Identifier.withDefaultNamespace("textures/block/copper_block.png"), x + 14, y + 14, 12, 12);
+            else g.fill(x + 17, y + 17, x + 23, y + 23, shade(color, 1.2));
+            g.disableScissor();
+            if (TaskExtraLayout.pipeCell(mx, my) == cell && (state == null || state.stage() == 0)) g.outline(x, y, 40, 40, INK);
+        }
+        int inY = 108 + layout.extra.inlet / 4 * 40, outY = 108 + layout.extra.outlet / 4 * 40;
+        bevel(g, 89, inY - 12, 40, 24, 0xFF487E8C); center(g, text("pipe_in", "IN →"), 107, inY - 4, INK);
+        bevel(g, 289, outY - 12, 51, 24, 0xFF6B7750); center(g, text("pipe_out", "→ OUT"), 314, outY - 4, INK);
+        bevel(g, 305, 244, 82, 16, TaskExtraLayout.FLOW.contains(mx, my) ? 0xFF687D68 : 0xFF475C50);
+        center(g, text("test_water", "TEST WATER"), 346, 248, INK);
+    }
+    private void drawCleaning(GuiGraphicsExtractor g, double mx, double my) {
+        bevel(g, 40, 92, 296, 152, 0xFF647F89);
+        g.fill(44, 96, 332, 240, 0xFF304F5B);
+        for (int x = 44; x < 332; x += 48) for (int y = 96; y < 240; y += 48)
+            sprite(g, Identifier.withDefaultNamespace("textures/block/glass.png"), x, y, 48, 48);
+        long[] bits = state == null ? new long[TaskExtraLayout.CLEAN_WORDS] : state.cleaned();
+        int cleared = 0;
+        for (int cell = 0; cell < TaskExtraLayout.CLEAN_CELLS; cell++) if (layout.extra.stains[cell] >= 0) {
+            if (TaskExtraLayout.cleaned(bits, cell)) { cleared++; continue; }
+            int x = 44 + cell % 24 * 12, y = 96 + cell / 24 * 12;
+            int patch = layout.extra.stains[cell];
+            g.fill(x, y, x + 12, y + 12, (cell + patch) % 3 == 0 ? 0xFF625342 : 0xFF786246);
+            if (cell % 2 == 0) g.fill(x + 2, y + 3, x + 6, y + 6, 0xFF96805A);
+            if (cell % 3 == 0) g.fill(x + 8, y + 8, x + 11, y + 11, 0xFF4C453A);
+        }
+        center(g, text("clean_percent", "Clean: %s%%", 100 * cleared / layout.extra.dirtyCells), 210, 251, GREEN);
+        if (sponge == null) sponge = new ItemStack(Items.SPONGE);
+        if (TaskExtraLayout.GLASS.contains(mx, my)) item(g, sponge, (int) mx + 9, (int) my + 9, 1.5F, 49);
+        else item(g, sponge, 366, 154, 2.5F, 49);
+    }
+
     @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (event.button() != InputConstants.MOUSE_BUTTON_LEFT) return super.mouseClicked(event, doubleClick);
         Transform t = transform(); double x = t.virtualX(event.x()), y = t.virtualY(event.y());
@@ -291,6 +405,23 @@ public final class TaskScreen extends Screen {
                     dragging = i; updateDrag(x, y); send(TaskSession.BEGIN, i, x, y); break;
                 }
             }
+            case SORTING -> {
+                for (int i = 0; i < 6; i++) if (!masked(i) && TaskLayout.near(x, y, TaskExtraLayout.sortX(i), TaskExtraLayout.SORT_Y, 22)) {
+                    dragging = i; send(TaskSession.BEGIN, i, x, y); break;
+                }
+            }
+            case MEMORY -> {
+                if (state.stage() == 1) for (int i = 0; i < 4; i++) if (TaskExtraLayout.memoryButton(i).contains(x, y)) {
+                    send(TaskSession.HIT, i, x, y); pressedMemory = i; pressedUntil = now() + 170; clickSound(); break;
+                }
+            }
+            case PIPES -> {
+                if (state.stage() == 0) {
+                    int cell = TaskExtraLayout.pipeCell(x, y);
+                    if (cell >= 0 || TaskExtraLayout.FLOW.contains(x, y)) { send(TaskSession.HIT, cell, x, y); clickSound(); }
+                }
+            }
+            case CLEANING -> { if (TaskExtraLayout.GLASS.contains(x, y)) { dragging = 0; send(TaskSession.BEGIN, 0, x, y); lastMove = now(); } }
         }
         return true;
     }
@@ -298,7 +429,7 @@ public final class TaskScreen extends Screen {
     @Override public boolean mouseDragged(MouseButtonEvent event, double deltaX, double deltaY) {
         if (event.button() != InputConstants.MOUSE_BUTTON_LEFT || dragging < 0) return super.mouseDragged(event, deltaX, deltaY);
         Transform t = transform(); updateDrag(t.virtualX(event.x()), t.virtualY(event.y()));
-        if ((type == TaskType.KNOBS || type == TaskType.SWIPE) && now() - lastMove >= 50) {
+        if ((type == TaskType.KNOBS || type == TaskType.SWIPE || type == TaskType.CLEANING) && now() - lastMove >= 35) {
             send(TaskSession.MOVE, dragging, pointerX, pointerY); lastMove = now();
         }
         return true;

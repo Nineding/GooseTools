@@ -3,7 +3,9 @@ package com.goosethings.tools.task;
 public enum TaskType {
     TIMING("timing", "Timing dial", 6), WIRES("wires", "Connect wires", 4),
     SWIPE("swipe", "Swipe card", 1), GARBAGE("garbage", "Clear garbage", 6),
-    KNOBS("knobs", "Calibrate knobs", 3);
+    KNOBS("knobs", "Calibrate knobs", 3), SORTING("sorting", "Sort items", 6),
+    MEMORY("memory", "Memory buttons", 3), PIPES("pipes", "Connect pipes", 1),
+    CLEANING("cleaning", "Wipe stains", 6);
 
     public final String id;
     public final String fallback;

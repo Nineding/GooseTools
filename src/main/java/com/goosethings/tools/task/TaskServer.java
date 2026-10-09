@@ -123,7 +123,8 @@ public final class TaskServer {
     private static void sendState(ServerPlayer player, Trial trial) {
         TaskSession session = trial.session;
         ServerPlayNetworking.send(player, new TaskPackets.State(session.id, session.progress(), session.mask(), session.feedback(),
-                session.started(), session.complete(), session.cardInserted(), session.elapsed(now())));
+                session.started(), session.complete(), session.cardInserted(), session.elapsed(now()),
+                session.stage(), session.cursor(), session.phaseAt(), session.pipeBits(), session.cleaned()));
         if (session.complete() && !trial.delivered) {
             trial.delivered = true;
             player.sendSystemMessage(message("completed", "%s completed in %s s (trial)",

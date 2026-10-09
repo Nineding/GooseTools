@@ -27,18 +27,33 @@ public final class TaskPackets {
         @Override public Type<Open> type() { return TYPE; }
     }
     public record State(long sessionId, int progress, int mask, int feedback,
-                        boolean started, boolean complete, boolean cardInserted, long elapsed) implements CustomPacketPayload {
-        public static final Type<State> TYPE = TaskPackets.type("task_state_v1");
+                        boolean started, boolean complete, boolean cardInserted, long elapsed,
+                        int stage, int cursor, long phaseAt, int pipeBits, long[] cleaned) implements CustomPacketPayload {
+        public static final Type<State> TYPE = TaskPackets.type("task_state_v2");
         public static final StreamCodec<RegistryFriendlyByteBuf, State> CODEC = StreamCodec.of(
                 (buffer, value) -> {
                     buffer.writeLong(value.sessionId); buffer.writeVarInt(value.progress); buffer.writeVarInt(value.mask);
                     buffer.writeVarInt(value.feedback); buffer.writeBoolean(value.started); buffer.writeBoolean(value.complete);
                     buffer.writeBoolean(value.cardInserted); buffer.writeLong(value.elapsed);
+                    buffer.writeVarInt(value.stage); buffer.writeVarInt(value.cursor); buffer.writeLong(value.phaseAt);
+                    buffer.writeInt(value.pipeBits);
+                    for (long word : value.cleaned) buffer.writeLong(word);
                 }, buffer -> new State(buffer.readLong(), buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(),
-                        buffer.readBoolean(), buffer.readBoolean(), buffer.readBoolean(), buffer.readLong()));
+                        buffer.readBoolean(), buffer.readBoolean(), buffer.readBoolean(), buffer.readLong(),
+                        buffer.readVarInt(), buffer.readVarInt(), buffer.readLong(), buffer.readInt(), readCleaned(buffer)));
         public State {
-            if (sessionId < 1 || progress < 0 || progress > 6 || mask < 0 || mask > 63
-                    || feedback < 0 || feedback > 11 || elapsed < 0 || elapsed > 600_000) throw new IllegalArgumentException("Invalid task state");
+            if (sessionId < 1 || progress < 0 || progress > 6 || mask < 0 || mask > 65535
+                    || feedback < 0 || feedback > TaskSession.WIPE || elapsed < 0 || elapsed > 600_000
+                    || stage < 0 || stage > 2 || cursor < 0 || cursor > 4 || phaseAt < 0 || phaseAt > 600_000
+                    || cleaned == null || cleaned.length != TaskExtraLayout.CLEAN_WORDS
+                    || (cleaned[4] >>> 32) != 0) throw new IllegalArgumentException("Invalid task state");
+            cleaned = cleaned.clone();
+        }
+        @Override public long[] cleaned() { return cleaned.clone(); }
+        private static long[] readCleaned(RegistryFriendlyByteBuf buffer) {
+            long[] words = new long[TaskExtraLayout.CLEAN_WORDS];
+            for (int i = 0; i < words.length; i++) words[i] = buffer.readLong();
+            return words;
         }
         @Override public Type<State> type() { return TYPE; }
     }
@@ -58,7 +73,7 @@ public final class TaskPackets {
                         buffer.readDouble(), buffer.readDouble(), buffer.readLong()));
         public boolean valid() {
             return sessionId > 0 && sequence >= 0 && sequence <= 100_000 && action >= 0 && action <= TaskSession.REPLAY
-                    && item >= -1 && item <= 5 && Double.isFinite(x) && Double.isFinite(y)
+                    && item >= -1 && item <= 15 && Double.isFinite(x) && Double.isFinite(y)
                     && x >= 0 && x <= TaskLayout.WIDTH && y >= 0 && y <= TaskLayout.HEIGHT
                     && elapsed >= 0 && elapsed <= 600_000;
         }

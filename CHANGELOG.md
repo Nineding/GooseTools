@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.14.0+Alpha0.30 - 2026-10-09
+
+- Added four independent GUI task trials: sort six Minecraft items into food/mineral/tool trays, repeat three rounds of flashing buttons, rotate a solvable 4x4 copper pipe board and test the water, and wipe six stains from a glass panel with a sponge. Category mistakes return the item; memory mistakes replay only the current round; pipes highlight disconnected/leaking segments; wiping keeps partial progress.
+- Administrators can open these trials with `/goosetools tasks open <players> <sorting|memory|pipes|cleaning>`. The original five task IDs, replay and close controls remain available. All nine trials stay independent of maps, normal task progress, achievements and inventory contents.
+- The server validates gestures, memory demonstration/input phases, pipe connectivity and brush coverage. GUI scaling uses the same coordinates for rendering and interaction. New panels reuse the iron pixel interface and vanilla item/copper/glass materials; existing customized dial and knob textures are retained.
+- Install GooseTools 1.14.0+Alpha0.30 on the server/host and every client, then restart. Protocol increases from 29 to 30 for the expanded task state message; incompatible clients are rejected by the existing version handshake. Minecraft 26.3, Xaero Minimap 26.5.3, World Map 1.46.4, GooseThings 1.14.0+Alpha0.43 and the existing data pack remain compatible. No new GooseThings or Full Blood DLC features are required.
+
 ## 1.14.0+Alpha0.29 - 2026-10-08
 
 - 喜鹊会议猜中图标仅向喜鹊和具备身份查看权限的旁观者显示，其他存活玩家不可见。已有服务器须将 nametag_attachments.json 的 magpie_guessed.viewer_tags_all 设置为 ["Magpie"]，并重新加载名牌配置。

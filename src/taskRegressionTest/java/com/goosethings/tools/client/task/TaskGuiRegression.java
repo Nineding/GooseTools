@@ -2,6 +2,7 @@ package com.goosethings.tools.client.task;
 
 import com.goosethings.tools.GooseTools;
 import com.goosethings.tools.task.TaskLayout;
+import com.goosethings.tools.task.TaskExtraLayout;
 import com.goosethings.tools.task.TaskSession;
 import com.goosethings.tools.task.TaskType;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -24,6 +25,7 @@ import java.nio.file.Files;
 /** Actual integrated server, commands, task packets, mouse events and GPU screenshots in a new save. */
 public final class TaskGuiRegression implements ClientModInitializer {
     private boolean openedWorld, requested, finished, captured;
+    private boolean languageRequested, languageReady;
     private int scenario, ticks, step, frame, captures, cleanupStage;
     private long lastHit, swipeAt, scenarioStart, oldId;
     @Override public void onInitializeClient() {
@@ -34,6 +36,17 @@ public final class TaskGuiRegression implements ClientModInitializer {
         if (finished || !mc.isGameLoadFinished()) return;
         try {
             if (!openedWorld) {
+                if (!languageRequested) {
+                    languageRequested = true;
+                    mc.options.languageCode = "zh_cn";
+                    mc.getLanguageManager().setSelected("zh_cn");
+                    mc.reloadResourcePacks().whenComplete((ignored, failure) -> mc.execute(() -> {
+                        if (failure != null) finish(mc, "FAIL Chinese resource reload " + failure);
+                        else languageReady = true;
+                    }));
+                    return;
+                }
+                if (!languageReady) return;
                 openedWorld = true;
                 mc.options.pauseOnLostFocus = false;
                 mc.options.languageCode = "zh_cn";
@@ -48,11 +61,11 @@ public final class TaskGuiRegression implements ClientModInitializer {
             }
             if (mc.player == null || !mc.player.connection.hasClientLoaded() || mc.getSingleplayerServer() == null) return;
             if (++ticks < 40) return;
-            if (scenario >= 5) { cleanup(mc); return; }
+            if (scenario >= TaskType.values().length) { cleanup(mc); return; }
             TaskType type = TaskType.values()[scenario];
             if (!requested) {
                 requested = true; scenarioStart = now(); frame = 0; step = 0; captured = false;
-                mc.options.guiScale().set(new int[]{2, 3, 1, 2, 3}[scenario]); mc.resizeGui();
+                mc.options.guiScale().set(new int[]{2, 3, 1}[scenario % 3]); mc.resizeGui();
                 command(mc, "goosetools tasks open " + mc.player.getName().getString() + " " + type.id);
                 return;
             }
@@ -109,6 +122,43 @@ public final class TaskGuiRegression implements ClientModInitializer {
                     if (step != knob + 1) { click(screen, x, y); step = knob + 1; }
                     drag(screen, x, y);
                 }
+                case SORTING -> {
+                    int source = screen.currentState().progress();
+                    var category = TaskExtraLayout.category(screen.taskLayout().extra.sortItems[source] / 2);
+                    if (frame % 8 == 0) {
+                        click(screen, TaskExtraLayout.sortX(source), TaskExtraLayout.SORT_Y);
+                        drag(screen, category.x() + 45, category.y() + 40);
+                        release(screen, category.x() + 45, category.y() + 40);
+                    }
+                }
+                case MEMORY -> {
+                    if (screen.currentState().stage() == 1 && frame % 5 == 0) {
+                        int round = screen.currentState().progress(), index = screen.currentState().cursor();
+                        int button = screen.taskLayout().extra.memory[round][index];
+                        if (step == 0) { button = (button + 1) % 4; step = 1; }
+                        var rect = TaskExtraLayout.memoryButton(button);
+                        click(screen, rect.x() + 50, rect.y() + 29);
+                    }
+                }
+                case PIPES -> {
+                    if (screen.currentState().stage() == 0 && frame % 4 == 0) {
+                        int cell = -1;
+                        for (int i = 0; i < 16; i++) if (((screen.currentState().pipeBits() >>> (i * 2)) & 3) != 0) { cell = i; break; }
+                        if (cell >= 0) click(screen, TaskExtraLayout.PIPE_X + cell % 4 * 40 + 20, TaskExtraLayout.PIPE_Y + cell / 4 * 40 + 20);
+                        else click(screen, 345, 250);
+                    }
+                }
+                case CLEANING -> {
+                    if (frame % 2 == 0) {
+                        int cell = -1; long[] bits = screen.currentState().cleaned();
+                        for (int i = 0; i < TaskExtraLayout.CLEAN_CELLS; i++)
+                            if (screen.taskLayout().extra.stains[i] >= 0 && !TaskExtraLayout.cleaned(bits, i)) { cell = i; break; }
+                        if (cell >= 0) {
+                            double x = 44 + (cell % 24 + 0.5) * 12, y = 96 + (cell / 24 + 0.5) * 12;
+                            click(screen, x, y); drag(screen, x + 10, y); release(screen, x + 10, y);
+                        }
+                    }
+                }
             }
         } catch (Throwable failure) {
             GooseTools.LOGGER.error("Task GUI regression failed", failure);
@@ -159,9 +209,9 @@ public final class TaskGuiRegression implements ClientModInitializer {
             }
             case 9 -> {
                 require(!(mc.gui.screen() instanceof TaskScreen), "death did not close");
-                if (captures < 6) return;
-                finish(mc, "PASS five tasks through real commands, packets and mouse/Space input; GUI scales 1/2/3; "
-                        + "six GPU screenshots; non-pausing panels; reopen replacement; ESC, server close, meeting and death");
+                if (captures < 10) return;
+                finish(mc, "PASS nine tasks through real commands, packets and mouse/Space input; GUI scales 1/2/3; "
+                        + "ten GPU screenshots; memory error/replay; non-pausing panels; reopen replacement; ESC, server close, meeting and death");
             }
         }
     }

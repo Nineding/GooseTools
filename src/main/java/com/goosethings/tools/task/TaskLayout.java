@@ -16,6 +16,7 @@ public final class TaskLayout {
     public final double[] garbageX = new double[6], garbageY = new double[6];
     public final double[] knobTargets = new double[3], knobInitial = new double[3];
     public final double timingOffset;
+    public final TaskExtraLayout extra;
 
     public TaskLayout(long seed) {
         Random random = new Random(seed);
@@ -32,6 +33,7 @@ public final class TaskLayout {
             knobInitial[i] = normalize(knobTargets[i] + 80 + random.nextInt(180));
         }
         timingOffset = random.nextInt(360);
+        extra = new TaskExtraLayout(seed);
     }
 
     public double timingAngle(long elapsed) {
