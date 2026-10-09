@@ -61,7 +61,7 @@ public final class TaskGuiRegression implements ClientModInitializer {
             }
             if (mc.player == null || !mc.player.connection.hasClientLoaded() || mc.getSingleplayerServer() == null) return;
             if (++ticks < 40) return;
-            if (scenario >= TaskType.values().length) { cleanup(mc); return; }
+            if (scenario >= TaskType.POWERSTATION.ordinal()) { cleanup(mc); return; }
             TaskType type = TaskType.values()[scenario];
             if (!requested) {
                 requested = true; scenarioStart = now(); frame = 0; step = 0; captured = false;

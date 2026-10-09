@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.14.0+Alpha0.33 - 2026-10-09
+
+- Added Traffic Dodge, a standalone three-lane endless driving game with original pixel vehicles, scrolling roadworks, smooth lane changes, held braking, rising bounded speed, collision effects, three traffic difficulties, pause, replay and distance records. Try `/goosetools games open @s traffic`; A/D or Left/Right change lanes, S/Down brakes, and P pauses. The server owns collisions and scoring; every obstacle wave leaves an open lane and enough travel time to switch across the road.
+- Added the advanced electrical station trial, `/goosetools tasks open @s powerstation`. Calculate three-phase current and apparent power, select capacity with the stated reserve, switch capacitor banks, match phase sequence/voltage/frequency/angle to close the synchronization breaker, and distribute six loads between A/B/C phases for stable supply. Instruments, editable numeric fields, keyboard dials, draggable load cards, error feedback and an in-panel formula handbook support all four stages. Random stations are solvable, and errors preserve completed stages.
+- All ten task panels and seven arcade screens temporarily block player movement inputs while open, including menus, pause, results and the station handbook. Optional InvMove compatibility intercepts its late input update without changing configuration or adding a required dependency. Closing a panel immediately restores normal inventory movement according to the existing configuration.
+- Install GooseTools 1.14.0+Alpha0.33 on the server/host and every client, then restart. Protocol remains 30; previous task and arcade packet layouts are unchanged, and station instrumentation uses separate bounded messages. Minecraft 26.3, Xaero Minimap 26.5.3, World Map 1.46.4, GooseThings 1.14.0+Alpha0.45 and existing data/resource packs remain compatible. Includes Alpha0.32's Silencer nametag update. The station remains a command trial without map-task progress; arcade activity remains available for the later one-minute task.
+
 ## 1.14.0+Alpha0.32 - 2026-10-09
 
 - 静语者成功标记后不再发送命中 tellraw，改为在目标名牌旁显示静语者图标。图标仅对静语者、叼取该技能的海鸥以及具备身份查看权限的旁观者可见，目标本人不可见，并持续到本轮会议结束。

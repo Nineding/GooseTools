@@ -20,6 +20,7 @@
     ]
   },
   "mixins": [
+    {"config": "goosetools.input.mixins.json", "environment": "client"},
     "goosetools.aim.mixins.json",
     "goosetools.client.mixins.json",
     "goosetools.parasite.mixins.json",

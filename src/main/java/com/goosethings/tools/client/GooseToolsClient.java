@@ -35,6 +35,7 @@ public final class GooseToolsClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        com.goosethings.tools.client.input.GuiMovementGuard.register();
         RestartGuard.register();
         GamePresenceClient.register();
         ClientClickActions.register();

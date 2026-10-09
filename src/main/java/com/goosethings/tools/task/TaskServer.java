@@ -40,6 +40,9 @@ public final class TaskServer {
 
     public static void register() {
         TaskPackets.registerTypes();
+        PowerStationPackets.register();
+        ServerPlayNetworking.registerGlobalReceiver(PowerStationPackets.Input.TYPE,
+                (payload, context) -> context.server().execute(() -> stationAction(context.player(), payload)));
         ServerPlayNetworking.registerGlobalReceiver(TaskPackets.Action.TYPE,
                 (payload, context) -> context.server().execute(() -> action(context.player(), payload)));
         ServerTickEvents.END_SERVER_TICK.register(TaskServer::tick);
@@ -115,7 +118,7 @@ public final class TaskServer {
             ServerPlayer player = server.getPlayerList().getPlayer(id);
             if (player == null) { SESSIONS.remove(id); continue; }
             if (!player.isAlive() || !trial.dimension.equals(player.level().dimension()) || meeting(server, player)
-                    || now - trial.session.createdAt > 600_000
+                    || now - trial.session.createdAt > (trial.session.type == TaskType.POWERSTATION ? 3_600_000 : 600_000)
                     || (!trial.session.started() && now - trial.session.createdAt > 15_000)) { close(player); continue; }
             if (trial.session.tick(now)) sendState(player, trial);
         }
@@ -123,7 +126,8 @@ public final class TaskServer {
 
     private static void sendState(ServerPlayer player, Trial trial) {
         TaskSession session = trial.session;
-        ServerPlayNetworking.send(player, new TaskPackets.State(session.id, session.progress(), session.mask(), session.feedback(),
+        if (session.station() != null) ServerPlayNetworking.send(player, new PowerStationPackets.State(session.id, session.station().snapshot(now())));
+        else ServerPlayNetworking.send(player, new TaskPackets.State(session.id, session.progress(), session.mask(), session.feedback(),
                 session.started(), session.complete(), session.cardInserted(), session.elapsed(now()),
                 session.stage(), session.cursor(), session.phaseAt(), session.pipeBits(), session.cleaned()));
         if (session.complete() && !trial.delivered) {
@@ -141,6 +145,14 @@ public final class TaskServer {
         if (ServerPlayNetworking.canSend(player, TaskPackets.Close.TYPE))
             ServerPlayNetworking.send(player, new TaskPackets.Close(removed.session.id));
         return true;
+    }
+
+    private static void stationAction(ServerPlayer player, PowerStationPackets.Input packet) {
+        if (!packet.valid() || !MandatoryHandshake.isVerified(player)) return;
+        Trial trial = SESSIONS.get(player.getUUID());
+        if (trial == null || trial.session.id != packet.sessionId() || trial.session.station() == null) return;
+        if (!player.isAlive() || !trial.dimension.equals(player.level().dimension()) || meeting(player.level().getServer(), player)) { close(player); return; }
+        if (trial.session.station().apply(packet.sequence(), packet.action(), packet.item(), packet.a(), packet.b(), now())) sendState(player, trial);
     }
 
     public static boolean meeting(MinecraftServer server, ServerPlayer player) {

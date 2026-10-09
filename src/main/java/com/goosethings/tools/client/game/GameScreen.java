@@ -15,8 +15,8 @@ import net.minecraft.util.FormattedCharSequence;
 import java.util.Arrays;
 import java.util.Locale;
 
-/** Six classic themes, a common lifecycle, and one virtual coordinate space for input and drawing. */
-public final class GameScreen extends Screen {
+/** Arcade themes share a lifecycle and one virtual coordinate space for input and drawing. */
+public final class GameScreen extends Screen implements com.goosethings.tools.client.input.ProtectedInputScreen {
     public static final int WIDTH = 600, HEIGHT = 400;
     private static final int[] MINE_COLORS = {0, 0xFF0000FF, 0xFF008000, 0xFFFF0000, 0xFF000080, 0xFF800000, 0xFF008080, 0xFF000000, 0xFF808080};
     private static final int[] TILE_COLORS = {0xFFCDC1B4, 0xFFEEE4DA, 0xFFEDE0C8, 0xFFF2B179, 0xFFF59563, 0xFFF67C5F, 0xFFF65E3B,
@@ -30,6 +30,9 @@ public final class GameScreen extends Screen {
     private boolean closing, leftHeld;
     private double paddleTarget = 120, predictedBirdY, predictedBirdV, pointerX, pointerY;
     private long birdCorrectionAt;
+    private boolean trafficBrake;
+    private int trafficSteer;
+    private long trafficInputAt, trafficBrakeAt;
 
     public GameScreen(GamePackets.Open open) {
         super(Component.translatableWithFallback("game.goosetools." + GameType.values()[open.game()].id + ".title", GameType.values()[open.game()].fallback));
@@ -50,6 +53,7 @@ public final class GameScreen extends Screen {
         }
         if (state == null || state.phase() != s.phase()) {
             keyboardPaddle = 0; leftHeld = false;
+            trafficBrake = false; trafficSteer = 0;
             if (s.actors().length > 4 && type == GameType.PONG) paddleTarget = s.actors()[4];
         }
         state = s; revision = next.revision(); receivedAt = now();
@@ -57,6 +61,10 @@ public final class GameScreen extends Screen {
     private long visualClock() { return state == null ? 0 : state.clock() + (state.phase() == GameSession.RUNNING ? Math.min(100, now() - receivedAt) : 0); }
     private long elapsed() { return state == null ? 0 : state.elapsed() + (state.phase() == GameSession.RUNNING ? Math.min(1000, now() - receivedAt) : 0); }
     @Override public void tick() {
+        if (state != null && state.phase() == GameSession.RUNNING && type == GameType.TRAFFIC) {
+            if (trafficSteer != 0 && now() - trafficInputAt >= 200) { direction(trafficSteer > 0 ? 1 : 3); trafficInputAt = now(); }
+            if (trafficBrake && now() - trafficBrakeAt >= 200) { send(GameSession.POINT, 0, 0, 0); trafficBrakeAt = now(); }
+        }
         if (state == null || state.phase() != GameSession.RUNNING || type != GameType.PONG) return;
         if (keyboardPaddle != 0) { paddleTarget = Math.clamp(paddleTarget + keyboardPaddle * 17, 22, 218); send(GameSession.POINT, 0, 0, paddleTarget); }
     }
@@ -64,8 +72,8 @@ public final class GameScreen extends Screen {
         g.fill(0, 0, width, height, 0xDC111518);
         Transform t = transform(); g.pose().pushMatrix(); g.pose().translate((float) t.x, (float) t.y); g.pose().scale((float) t.scale, (float) t.scale);
         double mx = t.x(mouseX), my = t.y(mouseY); pointerX = mx; pointerY = my;
-        int bg = switch (type) { case FLAPPY -> 0xFF83C4C5; case SNAKE -> 0xFF162C1E; case PONG -> 0xFF080808; case WHACK -> 0xFFFFE6C3; case MINES -> 0xFFC0C0C0; case MERGE -> 0xFFFAF8EF; };
-        int ink = type == GameType.SNAKE || type == GameType.PONG ? WHITE : DARK;
+        int bg = switch (type) { case FLAPPY -> 0xFF83C4C5; case SNAKE -> 0xFF162C1E; case PONG -> 0xFF080808; case WHACK -> 0xFFFFE6C3; case MINES -> 0xFFC0C0C0; case MERGE -> 0xFFFAF8EF; case TRAFFIC -> 0xFF17302C; };
+        int ink = type == GameType.SNAKE || type == GameType.PONG || type == GameType.TRAFFIC ? WHITE : DARK;
         g.fill(4, 5, 604, 405, 0x77000000); g.fill(0, 0, WIDTH, HEIGHT, bg);
         title(g, getTitle(), 18, 10, 1.45F, ink);
         button(g, 565, 8, 25, 23, text("close", "×"), mx, my, ink);
@@ -74,7 +82,7 @@ public final class GameScreen extends Screen {
             Component stats = type == GameType.MINES ? text("mine_stats", "Wins: %s  Best: %s", state.wins(), state.bestTime() == 0 ? "—" : time(state.bestTime()))
                     : text("stats", "Score: %s   Best: %s", state.score(), Math.max(state.best(), state.score()));
             g.text(font, stats, 18, 34, ink, false);
-            switch (type) { case FLAPPY -> flappy(g); case SNAKE -> snake(g); case PONG -> pong(g); case WHACK -> whack(g, mx, my); case MINES -> mines(g, mx, my); case MERGE -> merge(g, mx, my); }
+            switch (type) { case FLAPPY -> flappy(g); case SNAKE -> snake(g); case PONG -> pong(g); case WHACK -> whack(g, mx, my); case MINES -> mines(g, mx, my); case MERGE -> merge(g, mx, my); case TRAFFIC -> traffic(g, mx, my); }
         }
         Component hint = Component.translatableWithFallback("game.goosetools." + type.id + ".controls", controls());
         g.text(font, hint, 18, 373, ink, false);
@@ -109,6 +117,32 @@ public final class GameScreen extends Screen {
         sprite(g, "bird" + (visualClock() / 100 % 3), -10, -7, 20, 14); g.pose().popMatrix();
         number(g, Long.toString(state.score()), 90, 15, 2.3F, WHITE, true);
         g.disableScissor(); g.pose().popMatrix();
+    }
+    private void traffic(GuiGraphicsExtractor g,double mx,double my) {
+        double[] a=state.actors();if(a.length<6)return;
+        double dt=state.phase()==GameSession.RUNNING?Math.min(.08,(now()-receivedAt)/1000.0):0;
+        g.fill(194,51,406,353,0xFF547D39);
+        g.pose().pushMatrix();g.pose().translate(205,53);g.pose().scale(1.06F,1.06F);g.enableScissor(0,0,180,280);
+        g.fill(0,0,180,280,0xFF444A52);g.fill(3,0,6,280,0xFFE5E1D4);g.fill(174,0,177,280,0xFFE5E1D4);
+        int scroll=(int)(a[3]+a[2]*dt);
+        for(int y=-48+scroll%48;y<280;y+=48){g.fill(59,y,62,y+25,0xFFECE8D8);g.fill(119,y,122,y+25,0xFFECE8D8);}
+        for(int y=-24+scroll%24;y<280;y+=24){g.fill(0,y,3,y+12,0xFFDA5D48);g.fill(177,y,180,y+12,0xFFDA5D48);}
+        for(int i=0;i<(int)a[5];i++) {
+            int x=30+(int)a[6+i*3]*60,y=(int)(a[7+i*3]+a[2]*dt),kind=(int)a[8+i*3];
+            sprite(g,kind==0?"traffic_car":kind==1?"traffic_cone":"traffic_barrier",x-(kind==2?24:12),y-(kind==0?20:12),kind==2?48:24,kind==0?40:24);
+        }
+        double px=a[0]+(state.phase()==GameSession.RUNNING?Math.clamp(30+a[1]*60-a[0],-420*dt,420*dt):0);
+        if(a[4]>0){g.fill((int)px-9,250,(int)px-7,274,0xFF252A2D);g.fill((int)px+7,250,(int)px+9,274,0xFF252A2D);}
+        g.pose().pushMatrix();g.pose().translate((float)px,230);g.pose().rotate((float)Math.toRadians(Math.clamp((30+a[1]*60-a[0])/5,-9,9)));
+        sprite(g,"traffic_player",-12,-20,24,40);g.pose().popMatrix();
+        if(state.phase()==GameSession.LOST)for(int i=0;i<12;i++){double angle=i*Math.PI/6;int x=(int)(px+Math.cos(angle)*22),y=(int)(230+Math.sin(angle)*22);g.fill(x-2,y-2,x+3,y+3,i%2==0?0xFFFFD957:0xFFF27644);}
+        g.disableScissor();g.pose().popMatrix();
+        title(g,text("traffic_distance","Distance: %s m",state.score()),26,95,1.1F,WHITE);
+        title(g,text("traffic_dodged","Dodged: %s",state.opponent()),26,123,1.1F,WHITE);
+        center(g,text("traffic_speed","Speed"),485,95,WHITE);number(g,Integer.toString((int)Math.round(a[2])),485,114,2.3F,WHITE,false);
+        center(g,text(a[4]>0?"traffic_braking":"traffic_cruise",a[4]>0?"Braking":"Cruising"),485,150,a[4]>0?0xFFFFBF62:0xFF88D5A2);
+        button(g,425,245,55,30,Component.literal("\u2190"),mx,my,WHITE);button(g,490,245,55,30,Component.literal("\u2192"),mx,my,WHITE);
+        button(g,425,285,120,30,text("traffic_brake","Hold to brake"),mx,my,WHITE);
     }
     private void pipe(GuiGraphicsExtractor g, int x, int y, int h, boolean upper) {
         if (h <= 0) return;
@@ -257,7 +291,7 @@ public final class GameScreen extends Screen {
         }
     }
     private Component modeText() {
-        boolean natural = type == GameType.FLAPPY || type == GameType.SNAKE || type == GameType.WHACK;
+        boolean natural = type == GameType.FLAPPY || type == GameType.SNAKE || type == GameType.WHACK || type == GameType.TRAFFIC;
         return text(natural || state.mode() == 1 ? "mode_endless" : "mode_classic", natural || state.mode() == 1 ? "Mode: Endless" : "Mode: Classic");
     }
     private Component difficultyText() {
@@ -266,13 +300,14 @@ public final class GameScreen extends Screen {
         if (type == GameType.SNAKE) return text("speed" + d, new String[]{"Speed: Slow", "Speed: Normal", "Speed: Fast"}[d]);
         if (type == GameType.PONG) return text("ai" + d, new String[]{"AI: Easy", "AI: Normal", "AI: Hard"}[d]);
         if (type == GameType.WHACK) return text("pace" + d, new String[]{"Pace: Easy", "Pace: Normal", "Pace: Hard"}[d]);
+        if (type == GameType.TRAFFIC) return text("traffic" + d, new String[]{"Traffic: Easy", "Traffic: Normal", "Traffic: Hard"}[d]);
         return text("original_rules", "Classic rules");
     }
     private String controls() {
-        return switch (type) { case FLAPPY -> "Space / click: flap   P: pause"; case SNAKE -> "Arrows / WASD: turn   P: pause"; case PONG -> "Mouse / W S / Up Down: paddle   P: pause"; case WHACK -> "Click a mole   P: pause"; case MINES -> "Left: reveal   Right: flag   Middle / double: chord"; case MERGE -> "Arrows / WASD: move   P: pause"; };
+        return switch (type) { case FLAPPY -> "Space / click: flap   P: pause"; case SNAKE -> "Arrows / WASD: turn   P: pause"; case PONG -> "Mouse / W S / Up Down: paddle   P: pause"; case WHACK -> "Click a mole   P: pause"; case MINES -> "Left: reveal   Right: flag   Middle / double: chord"; case MERGE -> "Arrows / WASD: move   P: pause"; case TRAFFIC -> "A D / Left Right: lanes   S / Down: brake   P: pause"; };
     }
     private String help() {
-        return switch (type) { case FLAPPY -> "Flap through the pipes. Each passed pair scores a point. A collision ends the run."; case SNAKE -> "Eat to grow. Avoid walls and your own body. Fill the entire board to win."; case PONG -> "Return the ball against the AI. Classic: first to 11. Endless practice keeps the match going."; case WHACK -> "Hit the moles before they hide. Misses and empty hits cost a life. Three lives, endless waves."; case MINES -> "Reveal all safe cells. Numbers count neighboring mines. First click is safe. Flag mines and chord numbered cells."; case MERGE -> "Slide equal tiles together to reach 2048. Each tile merges once per move. Keep going after winning."; };
+        return switch (type) { case FLAPPY -> "Flap through the pipes. Each passed pair scores a point. A collision ends the run."; case SNAKE -> "Eat to grow. Avoid walls and your own body. Fill the entire board to win."; case PONG -> "Return the ball against the AI. Classic: first to 11. Endless practice keeps the match going."; case WHACK -> "Hit the moles before they hide. Misses and empty hits cost a life. Three lives, endless waves."; case MINES -> "Reveal all safe cells. Numbers count neighboring mines. First click is safe. Flag mines and chord numbered cells."; case MERGE -> "Slide equal tiles together to reach 2048. Each tile merges once per move. Keep going after winning."; case TRAFFIC -> "Dodge cars and roadworks. Change lanes or hold brake. Travel farther for a record. A collision ends the endless run."; };
     }
 
     @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
@@ -298,6 +333,7 @@ public final class GameScreen extends Screen {
         }
         if (left && inside(x, y, 507, 8, 50, 23)) { send(GameSession.PAUSE, 0, 0, 0); return true; }
         switch (type) {
+            case TRAFFIC -> { if (left) { if (inside(x,y,425,245,55,30)) direction(3); else if (inside(x,y,490,245,55,30)) direction(1); else if (inside(x,y,425,285,120,30)) { trafficBrake=true; send(GameSession.POINT,0,0,0); } } }
             case FLAPPY -> { if (left && inside(x, y, 205, 53, 191, 297)) flap(); }
             case PONG -> { if (left) movePaddle(x, y); }
             case WHACK -> { if (left) { int cell = cellAt(x, y); if (cell >= 0) { effectAt = now(); send(GameSession.REVEAL, cell, x, y); } } }
@@ -339,16 +375,23 @@ public final class GameScreen extends Screen {
             case InputConstants.KEY_DOWN, InputConstants.KEY_S -> 2; case InputConstants.KEY_LEFT, InputConstants.KEY_A -> 3; default -> -1;
         };
         if (direction >= 0) {
+            if (type == GameType.TRAFFIC) { if (direction == 1 || direction == 3) { trafficSteer=direction==1?1:-1; if(now()-trafficInputAt>=180){direction(direction);trafficInputAt=now();} } else if(direction==2){trafficBrake=true;send(GameSession.POINT,0,0,0);} }
             if (type == GameType.PONG && (direction == 0 || direction == 2)) keyboardPaddle = direction == 0 ? -1 : 1;
             else if (type == GameType.SNAKE || type == GameType.MERGE) direction(direction);
         }
         return true;
     }
     @Override public boolean keyReleased(KeyEvent event) {
+        if (type == GameType.TRAFFIC) {
+            if (event.key()==InputConstants.KEY_A||event.key()==InputConstants.KEY_LEFT) { if(trafficSteer<0)trafficSteer=0; }
+            if (event.key()==InputConstants.KEY_D||event.key()==InputConstants.KEY_RIGHT) { if(trafficSteer>0)trafficSteer=0; }
+            if (event.key()==InputConstants.KEY_S||event.key()==InputConstants.KEY_DOWN) { trafficBrake=false;send(GameSession.POINT,1,0,0); }
+        }
         if (event.key() == InputConstants.KEY_SPACE) leftHeld = false;
         if (event.key() == InputConstants.KEY_W || event.key() == InputConstants.KEY_S || event.key() == InputConstants.KEY_UP || event.key() == InputConstants.KEY_DOWN) keyboardPaddle = 0;
         return true;
     }
+    @Override public boolean mouseReleased(MouseButtonEvent event) { if(type==GameType.TRAFFIC&&trafficBrake){trafficBrake=false;send(GameSession.POINT,1,0,0);}return true; }
     private void flap() {
         send(GameSession.FLAP, 0, 0, 0);
         double dt = Math.min(.12, (now() - birdCorrectionAt) / 1000.0);

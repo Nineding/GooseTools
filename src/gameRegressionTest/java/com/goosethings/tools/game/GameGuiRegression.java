@@ -24,7 +24,8 @@ import java.util.function.Consumer;
 
 public final class GameGuiRegression implements ClientModInitializer {
     private boolean world, language, languageReady, requested, finished, fixturePending, fixtureReady;
-    private int scenario, stage, ticks, frame, captures, lastHead=-1, cleanup;
+    private int scenario=Boolean.getBoolean("goosetools.trafficOnly")?GameType.TRAFFIC.ordinal():0;
+    private int stage, ticks, frame, captures, lastHead=-1, cleanup;
     private long since, pauseAt, pauseElapsed;
     private volatile int[] safeCells;
     private volatile int mineCell=-1;
@@ -77,6 +78,17 @@ public final class GameGuiRegression implements ClientModInitializer {
                 }
                 case MINES -> mines(mc,s,state);
                 case MERGE -> merge(mc,s,state);
+                case TRAFFIC -> {
+                    if(stage==4){s.keyPressed(new KeyEvent(InputConstants.KEY_S,0,0));pauseAt=now();stage=5;return;}
+                    if(stage==5){if(state.actors()[4]!=1||now()-pauseAt<600)return;require(state.actors()[2]<70,"held brake did not reduce speed");if(!capture(mc,"traffic-braking"))return;s.keyReleased(new KeyEvent(InputConstants.KEY_S,0,0));stage=6;return;}
+                    if(state.phase()==GameSession.RUNNING&&state.opponent()<3){
+                        double[] a=state.actors();double nearest=-1000;int lane=(int)a[1];
+                        for(int i=6;i<a.length;i+=3)if(a[i+1]<270)nearest=Math.max(nearest,a[i+1]);
+                        boolean[] occupied=new boolean[3];for(int i=6;i<a.length;i+=3)if(Math.abs(a[i+1]-nearest)<2)occupied[(int)a[i]]=true;
+                        if(nearest> -1000&&occupied[lane]){int target=0;while(occupied[target])target++;arrow(s,target>lane?1:3);}
+                        if(state.opponent()>0)capture(mc,"traffic-playing");
+                    }else if(state.phase()==GameSession.LOST){require(state.opponent()>=3,"traffic dodged too few obstacles");if(!capture(mc,"traffic-over"))return;done(s);}
+                }
             }
         }catch(Throwable e){GooseTools.LOGGER.error("Arcade regression failed",e);finish(mc,"FAIL "+e);}
     }
@@ -148,7 +160,7 @@ public final class GameGuiRegression implements ClientModInitializer {
             case 7->{if(!(mc.gui.screen() instanceof GameScreen))return;command(mc,"scoreboard objectives add ggdSession dummy");command(mc,"tag "+target+" add gamingGGD");command(mc,"scoreboard players set #MeetingPhase ggdSession 1");cleanup++;}
             case 8->{require(!(mc.gui.screen() instanceof GameScreen),"meeting cleanup");command(mc,"scoreboard players set #MeetingPhase ggdSession 0");command(mc,"tag "+target+" remove gamingGGD");command(mc,"goosetools games open "+target+" 2048");cleanup++;}
             case 9->{if(!(mc.gui.screen() instanceof GameScreen))return;command(mc,"kill "+target);cleanup++;}
-            case 10->{require(!(mc.gui.screen() instanceof GameScreen),"death cleanup");if(captures<20)return;finish(mc,"PASS six arcade games through real commands, packets and keys/mouse; Chinese; GUI scales 1/2/3; natural Flappy/Snake/Whack scores and loss; Pong classic/endless; mine flag cycle/victory/next/difficulties; 2048 win/4096/loss; pause exclusion; task replacement; ESC/admin/meeting/death; "+captures+" GPU screenshots");}
+            case 10->{require(!(mc.gui.screen() instanceof GameScreen),"death cleanup");if(captures<(Boolean.getBoolean("goosetools.trafficOnly")?5:20))return;finish(mc,(Boolean.getBoolean("goosetools.trafficOnly")?"PASS Traffic held brake/release, steering, dodging, pause, collision and cleanup":"PASS seven arcade games through real commands, packets and keys/mouse; Chinese; GUI scales 1/2/3; natural Flappy/Snake/Whack/Traffic scores and loss; Pong classic/endless; mine flag cycle/victory/next/difficulties; 2048 win/4096/loss; pause exclusion; task replacement; ESC/admin/meeting/death")+"; "+captures+" GPU screenshots");}
         }
     }
     private boolean capture(Minecraft mc,String name){if(capturedNames.contains(name))return true;if(now()-captureSince.computeIfAbsent(name,k->now())<300)return false;capturedNames.add(name);Screenshot.takeScreenshot(mc.gameRenderer.mainRenderTarget(),image->{try(image){image.writeToFile(mc.gameDirectory.toPath().resolve("game-"+name+".png"));captures++;}catch(Exception e){mc.execute(()->finish(mc,"FAIL screenshot "+e));}});return true;}

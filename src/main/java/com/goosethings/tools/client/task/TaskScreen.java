@@ -20,7 +20,7 @@ import net.minecraft.world.item.Items;
 import java.util.Locale;
 
 /** A dedicated, non-pausing task panel with one virtual coordinate space for drawing and input. */
-public final class TaskScreen extends Screen {
+public final class TaskScreen extends Screen implements com.goosethings.tools.client.input.ProtectedInputScreen {
     private static final int INK = 0xFFF0F0EA, MUTED = 0xFFB3BCC1, GREEN = 0xFF7BCF77,
             RED = 0xFFE77969, EDGE = 0xFF7C8A91;
     private static final Identifier DIAL = texture("dial"), READER = texture("reader"),
@@ -118,6 +118,7 @@ public final class TaskScreen extends Screen {
             case MEMORY -> "Watch the flashing buttons, then repeat their order.";
             case PIPES -> "Rotate copper pipes to connect IN to OUT, then test the water.";
             case CLEANING -> "Hold the left mouse button and wipe every stain with the sponge.";
+            case POWERSTATION -> "Restore the power station.";
         };
         int helpY = 56;
         for (FormattedCharSequence line : font.split(Component.translatableWithFallback(

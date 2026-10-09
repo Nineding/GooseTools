@@ -85,7 +85,7 @@ public final class GameServer {
             if (!available(player) || !p.dimension.equals(player.level().dimension())) { close(player); continue; }
             int previousPhase = p.game.phase();
             p.game.tick(now); activity(player, p); record(player, p);
-            boolean realtime = p.game.type == GameType.FLAPPY || p.game.type == GameType.PONG || p.game.type == GameType.WHACK;
+            boolean realtime = p.game.type == GameType.FLAPPY || p.game.type == GameType.PONG || p.game.type == GameType.WHACK || p.game.type == GameType.TRAFFIC;
             long interval = p.game.phase() == GameSession.RUNNING ? realtime ? 50 : p.game.type == GameType.SNAKE ? 100 : 1000 : 1000;
             if (p.game.phase() != previousPhase || now - p.sentAt >= interval) send(player, p);
         }

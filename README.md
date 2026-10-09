@@ -14,7 +14,7 @@ GooseTools is the required Fabric client/server foundation for the Whoiskiller G
 - Fabric API 0.161.0+26.3
 - Xaero's Minimap 26.5.3
 - Xaero's World Map 1.46.4
-- GooseTools 1.14.0+Alpha0.32 on both the server and every client
+- GooseTools 1.14.0+Alpha0.33 on both the server and every client
 
 服务端和所有客户端必须安装完全相同的 GooseTools 版本。当前网络协议版本为 30；缺少模组、版本不同或协议不兼容的客户端会被服务器拒绝。
 
@@ -23,7 +23,7 @@ The server and every connecting client must use the exact same GooseTools versio
 ## 安装 / Installation
 
 1. 安装 Minecraft 26.3、Fabric Loader 和上方列出的依赖。
-2. 从 [Releases](https://github.com/Nineding/GooseTools/releases) 下载 `goosetools-1.14.0+Alpha0.32.jar`。
+2. 从 [Releases](https://github.com/Nineding/GooseTools/releases) 下载 `goosetools-1.14.0+Alpha0.33.jar`。
 3. 将 GooseTools 及依赖 JAR 放入服务端和每位玩家客户端的 `mods` 目录。
 
 Install Minecraft 26.3 with Fabric Loader and the dependencies listed above, then place the GooseTools JAR in the `mods` directory on both the server and every client.
@@ -68,6 +68,7 @@ Administrators can open independent task panels using the commands below. Player
 /goosetools tasks open @s memory
 /goosetools tasks open @s pipes
 /goosetools tasks open @s cleaning
+/goosetools tasks open @s powerstation
 /goosetools tasks close @s
 ```
 
@@ -76,6 +77,12 @@ Administrators can open independent task panels using the commands below. Player
 The nine trials are a timing dial, wire matching, card swiping, garbage dragging, knob calibration, item sorting, memory buttons, pipe connection and stain wiping. Each panel displays instructions, offers replay after completion and closes with ESC. Trials do not pause the game, register map tasks or grant normal task progress, achievements or role rewards. The server confirms completion and clears the session on death, dimension changes, meetings, disconnect or replacement.
 
 With Java 25 and a graphics-capable desktop session, `gradlew runTaskRegressionTest` exercises all nine panels using real commands, network packets and mouse/keyboard handlers in a new isolated save. Screenshots and results are written under `build/task-regression-test`.
+
+新增电站恢复供电任务：计算三相线电流、视在功率和容量余量，投切电容补偿，匹配相序、电压、频率与相位后合闸，再将六个负荷分配到 A/B/C 相。输入框用 Enter 校验；同期阶段点选旋钮后用左右方向键微调，Shift 粗调；负荷可拖到左侧相位槽，或点击卡片的 A/B/C。知识手册解释公式与游戏窗口，答错保留已完成阶段。控制台使用简化的正弦负荷仿真，题面余量和同期窗口为游戏参数。
+
+The power station adds four connected stages: three-phase calculation, reactive compensation, generator synchronization and phase load distribution. Enter checks inputs; selected dials use Left/Right with Shift for coarse changes; load cards can be dragged or assigned using their A/B/C buttons. The handbook explains the simplified sinusoidal model and stated game limits. Errors preserve completed stages.
+
+`gradlew runStationRegressionTest` tests all station stages and movement protection through real client handlers and packets. With the installed local InvMove 0.9.6 and Cloth Config fixtures, `gradlew runStationRegressionTest -PwithInvMove` also checks InvMove's input update and restoration. Tests and screenshots use isolated directories under `build/station-regression-test` and `build/station-invmove-test`.
 
 ## 独立小游戏 / Standalone arcade games
 
@@ -86,8 +93,17 @@ With Java 25 and a graphics-capable desktop session, `gradlew runTaskRegressionT
 /goosetools games open @s whack
 /goosetools games open @s minesweeper
 /goosetools games open @s 2048
+/goosetools games open @s traffic
 /goosetools games close @s
 ```
+
+汽车避障为三车道无尽驾驶，碰撞结束，速度逐渐增加且有上限。A/D 或左右方向键换道；按住 S/下方向键刹车，松开恢复巡航；P 暂停，Esc 退出。菜单提供三档车流难度，记录行驶距离。车辆、路锥和路障材质位于 `assets/goosetools/textures/gui/games/traffic_*.png`，可用资源包覆盖；`scripts/traffic_assets.py` 可通过 Pillow 重新生成原创像素素材。
+
+Traffic Dodge is endless three-lane driving until collision. A/D or Left/Right changes lanes; held S/Down brakes; P pauses and Esc closes. Traffic difficulty, distance records and original pixel sprites are included. Resource packs can override `assets/goosetools/textures/gui/games/traffic_*.png`; `scripts/traffic_assets.py` regenerates these original sprites using Pillow.
+
+所有 GUI 任务与小游戏存在期间，会临时阻止人物移动、跳跃、潜行和冲刺输入，界面内部键盘操作正常。客户端安装 InvMove 时自动启用兼容，关闭后按原配置恢复；不修改 `invmove.json`，也不要求安装 InvMove。
+
+Task and arcade screens temporarily block player movement, jump, sneak and sprint while keeping their own keyboard controls active. Optional InvMove compatibility restores automatically when the screen closes, preserves its configuration and adds no mandatory dependency.
 
 六款分别为 Flappy Bird、贪吃蛇、单人对 AI 的 Pong、三生命无尽打地鼠、经典扫雷和 2048。Pong 可选抢 11 分经典对局或无尽练习；扫雷支持 9×9/10 雷、16×16/40 雷、30×16/99 雷，通关后可继续下一盘；2048 获胜后可继续合成更大数字。Flappy 和蛇碰撞结束，蛇填满棋盘获胜；游戏没有固定任务得分或时间上限。操作提示显示在界面底部，P 暂停/继续，Esc 退出；暂停不会停止 Minecraft 世界。
 

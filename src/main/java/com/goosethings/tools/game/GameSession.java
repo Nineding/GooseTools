@@ -27,11 +27,12 @@ public final class GameSession {
         if (action == OPTIONS && phase == MENU && value >= 0 && value <= 5) {
             difficulty = value % 3;
             mode = value / 3;
-            if (type == GameType.FLAPPY || type == GameType.SNAKE || type == GameType.WHACK) mode = 0;
+            if (type == GameType.FLAPPY || type == GameType.SNAKE || type == GameType.WHACK || type == GameType.TRAFFIC) mode = 0;
             game = ArcadeGame.create(type, seed, mode, difficulty); changed = true;
         } else if (action == START && phase == MENU) {
             phase = RUNNING; lastTick = now; changed = true;
         } else if (action == PAUSE && phase == RUNNING) {
+            game.releaseControls();
             phase = PAUSED; changed = true;
         } else if (action == CONTINUE && phase == PAUSED) {
             phase = RUNNING; lastTick = now; changed = true;

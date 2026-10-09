@@ -10,6 +10,7 @@ public final class TaskSession {
     public final long id, seed, createdAt;
     public final TaskType type;
     public final TaskLayout layout;
+    private final PowerStationSession station;
     private boolean started, complete, cardInserted;
     private long startedAt, finishedAt, lastElapsed = -1, lastHit = -500;
     private long swipeStart = -1, knobSince = -1, lastKnobMove = -1;
@@ -27,6 +28,7 @@ public final class TaskSession {
     public TaskSession(long id, TaskType type, long seed, long now) {
         this.id = id; this.type = type; this.seed = seed; this.createdAt = now;
         layout = new TaskLayout(seed);
+        station = type == TaskType.POWERSTATION ? new PowerStationSession(seed) : null;
         garbageX = layout.garbageX.clone(); garbageY = layout.garbageY.clone();
         knobAngles = layout.knobInitial.clone();
         pipeRotations = layout.extra.pipeInitial.clone();
@@ -42,6 +44,7 @@ public final class TaskSession {
         if (action == READY) {
             if (started) return false;
             started = true; startedAt = now;
+            if (station != null) station.start(now);
             feedback = switch (type) { case SWIPE -> INSERT_CARD; case MEMORY -> WATCH_SEQUENCE; case CLEANING -> WIPE; default -> PLAY; };
             return true;
         }
@@ -62,6 +65,7 @@ public final class TaskSession {
             case MEMORY -> memory(action, item, x, y, elapsed);
             case PIPES -> pipes(action, item, x, y, elapsed);
             case CLEANING -> cleaning(action, x, y, now);
+            case POWERSTATION -> false;
         };
         if (progress == type.total && !complete) {
             complete = true; finishedAt = now; feedback = SUCCESS;
@@ -220,6 +224,7 @@ public final class TaskSession {
     }
 
     public boolean tick(long now) {
+        if (station != null) return station.tick(now);
         if (started && !complete && type == TaskType.MEMORY && stage == 0
                 && now - startedAt >= phaseAt + demonstrationDuration()) {
             stage = 1; feedback = REPEAT_SEQUENCE; return true;
@@ -236,13 +241,14 @@ public final class TaskSession {
         return true;
     }
 
-    public boolean started() { return started; }
-    public boolean complete() { return complete; }
+    public PowerStationSession station() { return station; }
+    public boolean started() { return station != null ? station.started() : started; }
+    public boolean complete() { return station != null ? station.complete() : complete; }
     public int mask() { return mask; }
-    public int progress() { return progress; }
+    public int progress() { return station != null ? station.stage() : progress; }
     public int feedback() { return feedback; }
     public boolean cardInserted() { return cardInserted; }
-    public long elapsed(long now) { return started ? (complete ? finishedAt : now) - startedAt : 0; }
+    public long elapsed(long now) { return station != null ? station.elapsed(now) : started ? (complete ? finishedAt : now) - startedAt : 0; }
     public int stage() { return stage; }
     public int cursor() { return cursor; }
     public long phaseAt() { return phaseAt; }

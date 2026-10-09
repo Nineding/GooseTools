@@ -78,6 +78,10 @@ tasks.named('jar') {
 
 // An isolated client mod exercises real GPU draws; it is never packaged in the release JAR.
 sourceSets {
+    stationRegressionTest {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
     gameRegressionTest {
         compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
         runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
@@ -104,6 +108,8 @@ sourceSets {
     }
 }
 configurations {
+    stationRegressionTestImplementation.extendsFrom implementation
+    stationRegressionTestRuntimeOnly.extendsFrom runtimeOnly
     gameRegressionTestImplementation.extendsFrom implementation
     gameRegressionTestRuntimeOnly.extendsFrom runtimeOnly
     updateRegressionTestImplementation.extendsFrom implementation
@@ -119,6 +125,7 @@ configurations {
 }
 loom {
     mods {
+        goosetools_station_test { sourceSet sourceSets.stationRegressionTest }
         goosetools_game_test { sourceSet sourceSets.gameRegressionTest }
         goosetools_update_test { sourceSet sourceSets.updateRegressionTest }
         goosetools_task_test { sourceSet sourceSets.taskRegressionTest }
@@ -128,11 +135,23 @@ loom {
         goosetools_flight_test { sourceSet sourceSets.flightRegressionTest }
     }
     runs {
+        stationRegressionTest {
+            client()
+            source sourceSets.stationRegressionTest
+            runDir providers.gradleProperty('withInvMove').isPresent() ? 'build/station-invmove-test' : 'build/station-regression-test'
+            vmArg '-Dgoosetools.stationRegressionTest=true'
+            vmArg '-Dgoosetools.stationWithInvMove=' + providers.gradleProperty('withInvMove').isPresent()
+            programArg '--width'
+            programArg '1280'
+            programArg '--height'
+            programArg '1000'
+        }
         gameRegressionTest {
             client()
             source sourceSets.gameRegressionTest
             runDir 'build/game-regression-test'
             vmArg '-Dgoosetools.gameRegressionTest=true'
+            vmArg '-Dgoosetools.trafficOnly=' + providers.gradleProperty('trafficOnly').isPresent()
             programArg '--width'
             programArg '1280'
             programArg '--height'
@@ -186,6 +205,30 @@ loom {
             runDir 'build/projection-regression-test'
             vmArg '-Dgoosetools.projectionRegressionTest=true'
         }
+    }
+}
+
+// Local optional compatibility fixture; never a published dependency or included library.
+if (providers.gradleProperty('withInvMove').isPresent()) {
+    dependencies {
+        stationRegressionTestRuntimeOnly files('../mods/InvMove-0.9.6+26.3-Fabric.jar', '../mods/cloth-config-26.3.158.jar')
+    }
+}
+tasks.named('runStationRegressionTest') {
+    timeout = java.time.Duration.ofMinutes(5)
+    def directory = providers.gradleProperty('withInvMove').isPresent() ? 'station-invmove-test' : 'station-regression-test'
+    doFirst {
+        delete layout.buildDirectory.file(directory + '/result.txt')
+        def options = layout.buildDirectory.file(directory + '/options.txt').get().asFile
+        options.parentFile.mkdirs()
+        options.text = 'lang:zh_cn\nguiScale:2\npauseOnLostFocus:false\ntutorialStep:none\nskipMultiplayerWarning:true\n'
+    }
+    doLast {
+        def result = layout.buildDirectory.file(directory + '/result.txt').get().asFile
+        if (!result.isFile() || !result.text.startsWith('PASS ')) {
+            throw new GradleException('Station / input regression failed; inspect build/' + directory + '/logs/latest.log and result.txt')
+        }
+        logger.lifecycle(result.text)
     }
 }
 

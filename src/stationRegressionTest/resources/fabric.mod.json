@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "goosetools_station_test",
+  "version": "1.0.0",
+  "name": "GooseTools station and input regression",
+  "environment": "client",
+  "entrypoints": { "client": ["com.goosethings.tools.task.StationGuiRegression"] },
+  "depends": { "goosetools": "*" }
+}

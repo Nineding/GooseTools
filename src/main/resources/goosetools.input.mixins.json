@@ -1,0 +1,9 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.goosethings.tools.client.input.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "plugin": "com.goosethings.tools.client.input.GuiInputMixinPlugin",
+  "client": ["ClientInputAccessor", "KeyboardInputGuiGuardMixin", "InvMoveGuiGuardMixin"],
+  "injectors": {"defaultRequire": 1}
+}

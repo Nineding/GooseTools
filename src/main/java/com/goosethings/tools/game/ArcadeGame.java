@@ -13,6 +13,7 @@ abstract class ArcadeGame {
     abstract int[] board();
     double[] actors() { return new double[0]; }
     int[] moves() { return new int[0]; }
+    void releaseControls() {}
     void cue(int cue, int cell) { effect = cue; detail = cell; event++; }
     void lose() { phase = GameSession.LOST; cue(5, detail); }
     void win() { phase = GameSession.WON; cue(6, detail); }
@@ -25,6 +26,7 @@ abstract class ArcadeGame {
             case WHACK -> new WhackGame(seed, mode, difficulty);
             case MINES -> new MinesGame(seed, mode, difficulty);
             case MERGE -> new MergeGame(seed, mode, difficulty);
+            case TRAFFIC -> new TrafficGame(seed, mode, difficulty);
         };
     }
 }
