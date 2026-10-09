@@ -339,3 +339,52 @@ processResources {
         expand "version": inputs.properties.version
     }
 }
+
+sourceSets {
+    professionRegressionTest {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
+}
+configurations {
+    professionRegressionTestImplementation.extendsFrom implementation
+    professionRegressionTestRuntimeOnly.extendsFrom runtimeOnly
+}
+loom {
+    mods { goosetools_profession_test { sourceSet sourceSets.professionRegressionTest } }
+    runs {
+        professionRegressionTest {
+            client()
+            source sourceSets.professionRegressionTest
+            runDir providers.gradleProperty('withInvMove').isPresent() ? 'build/profession-invmove-test' : 'build/profession-regression-test'
+            vmArg '-Dgoosetools.professionRegressionTest=true'
+            vmArg '-Dgoosetools.professionWithInvMove=' + providers.gradleProperty('withInvMove').isPresent()
+            programArg '--width'
+            programArg '1400'
+            programArg '--height'
+            programArg '1100'
+        }
+    }
+}
+if (providers.gradleProperty('withInvMove').isPresent()) {
+    dependencies {
+        professionRegressionTestRuntimeOnly files('../mods/InvMove-0.9.6+26.3-Fabric.jar', '../mods/cloth-config-26.3.158.jar')
+    }
+}
+tasks.named('runProfessionRegressionTest') {
+    timeout = java.time.Duration.ofMinutes(8)
+    def directory = providers.gradleProperty('withInvMove').isPresent() ? 'profession-invmove-test' : 'profession-regression-test'
+    doFirst {
+        java.nio.file.Files.deleteIfExists(layout.buildDirectory.file(directory + '/result.txt').get().asFile.toPath())
+        def options = layout.buildDirectory.file(directory + '/options.txt').get().asFile
+        options.parentFile.mkdirs()
+        options.text = 'lang:zh_cn\nguiScale:2\npauseOnLostFocus:false\ntutorialStep:none\nskipMultiplayerWarning:true\n'
+    }
+    doLast {
+        def result = layout.buildDirectory.file(directory + '/result.txt').get().asFile
+        if (!result.isFile() || !result.text.startsWith('PASS ')) {
+            throw new GradleException('Profession regression failed; inspect build/' + directory + '/logs/latest.log and result.txt')
+        }
+        logger.lifecycle(result.text)
+    }
+}

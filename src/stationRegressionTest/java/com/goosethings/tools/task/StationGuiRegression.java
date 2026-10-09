@@ -52,7 +52,7 @@ public final class StationGuiRegression implements ClientModInitializer {
             int all=TaskType.values().length+GameType.values().length;
             if(probe<all){
                 if(!requested){requested=true;stageTicks=0;String id=probe<TaskType.values().length?TaskType.values()[probe].id:GameType.values()[probe-TaskType.values().length].id;command(mc,"goosetools "+(probe<TaskType.values().length?"tasks":"games")+" open "+mc.player.getName().getString()+" "+id);return;}
-                Screen gui=mc.gui.screen();boolean matching=probe<TaskType.values().length?(probe==TaskType.POWERSTATION.ordinal()?gui instanceof PowerStationScreen:gui instanceof TaskScreen t&&t.taskType()==TaskType.values()[probe]):gui instanceof GameScreen g&&g.gameType()==GameType.values()[probe-TaskType.values().length];
+                Screen gui=mc.gui.screen();boolean matching=probe<TaskType.values().length?(TaskType.values()[probe].profession()?gui instanceof ProfessionScreen p&&p.taskType()==TaskType.values()[probe]:probe==TaskType.POWERSTATION.ordinal()?gui instanceof PowerStationScreen:gui instanceof TaskScreen t&&t.taskType()==TaskType.values()[probe]):gui instanceof GameScreen g&&g.gameType()==GameType.values()[probe-TaskType.values().length];
                 if(!matching||++stageTicks<8)return;guard(mc);gui.onClose();restore(mc);probe++;requested=false;return;
             }
             if(!requested){requested=true;mc.options.guiScale().set(2);mc.resizeGui();command(mc,"goosetools tasks open "+mc.player.getName().getString()+" powerstation");return;}
@@ -83,7 +83,7 @@ public final class StationGuiRegression implements ClientModInitializer {
                 mc.options.guiScale().set(3);mc.resizeGui();step=16;return;}
             if(step==16){if(!capture(mc,"scale3"))return;mc.options.guiScale().set(1);mc.resizeGui();step=17;return;}
             if(step==17){if(!capture(mc,"scale1"))return;click(s,300,244);step=18;return;}
-            if(step==18){if(s.currentState().stage()!=0)return;require(s.currentState().errors()==0,"replay retained errors");key(s,InputConstants.KEY_ESCAPE,0);restore(mc);finish(mc,"PASS four station stages via real commands, packets, character input, Enter, arrows, Shift, buttons and card drag; wrong calculation/sequence/missing load interlocks; continuous synchronization and stable supply; handbook; replay; Chinese GUI scales 1/2/3; all 17 task/game screens block movement; InvMove="+expectInvMove+"; inventory restoration; "+captures+" GPU screenshots");}
+            if(step==18){if(s.currentState().stage()!=0)return;require(s.currentState().errors()==0,"replay retained errors");key(s,InputConstants.KEY_ESCAPE,0);restore(mc);finish(mc,"PASS four station stages via real commands, packets, character input, Enter, arrows, Shift, buttons and card drag; wrong calculation/sequence/missing load interlocks; continuous synchronization and stable supply; handbook; replay; Chinese GUI scales 1/2/3; all task/game screens block movement; InvMove="+expectInvMove+"; inventory restoration; "+captures+" GPU screenshots");}
         }catch(Throwable e){GooseTools.LOGGER.error("Station regression failed",e);finish(mc,"FAIL "+e);}
     }
     private boolean canAct(PowerStationSnapshot s){if(now()-lastAction<85||lastEvent==s.event())return false;lastAction=now();lastEvent=s.event();return true;}

@@ -11,6 +11,7 @@ public final class TaskSession {
     public final TaskType type;
     public final TaskLayout layout;
     private final PowerStationSession station;
+    private final com.goosethings.tools.task.profession.ProfessionSession profession;
     private boolean started, complete, cardInserted;
     private long startedAt, finishedAt, lastElapsed = -1, lastHit = -500;
     private long swipeStart = -1, knobSince = -1, lastKnobMove = -1;
@@ -29,6 +30,7 @@ public final class TaskSession {
         this.id = id; this.type = type; this.seed = seed; this.createdAt = now;
         layout = new TaskLayout(seed);
         station = type == TaskType.POWERSTATION ? new PowerStationSession(seed) : null;
+        profession = type.profession() ? new com.goosethings.tools.task.profession.ProfessionSession(type, seed) : null;
         garbageX = layout.garbageX.clone(); garbageY = layout.garbageY.clone();
         knobAngles = layout.knobInitial.clone();
         pipeRotations = layout.extra.pipeInitial.clone();
@@ -45,6 +47,7 @@ public final class TaskSession {
             if (started) return false;
             started = true; startedAt = now;
             if (station != null) station.start(now);
+            if (profession != null) profession.start(now);
             feedback = switch (type) { case SWIPE -> INSERT_CARD; case MEMORY -> WATCH_SEQUENCE; case CLEANING -> WIPE; default -> PLAY; };
             return true;
         }
@@ -65,7 +68,7 @@ public final class TaskSession {
             case MEMORY -> memory(action, item, x, y, elapsed);
             case PIPES -> pipes(action, item, x, y, elapsed);
             case CLEANING -> cleaning(action, x, y, now);
-            case POWERSTATION -> false;
+            case POWERSTATION, TELECOM, NUCLEAR, FOODSAFETY, CIVIL -> false;
         };
         if (progress == type.total && !complete) {
             complete = true; finishedAt = now; feedback = SUCCESS;
@@ -224,6 +227,7 @@ public final class TaskSession {
     }
 
     public boolean tick(long now) {
+        if (profession != null) return profession.tick(now);
         if (station != null) return station.tick(now);
         if (started && !complete && type == TaskType.MEMORY && stage == 0
                 && now - startedAt >= phaseAt + demonstrationDuration()) {
@@ -242,13 +246,14 @@ public final class TaskSession {
     }
 
     public PowerStationSession station() { return station; }
-    public boolean started() { return station != null ? station.started() : started; }
-    public boolean complete() { return station != null ? station.complete() : complete; }
+    public com.goosethings.tools.task.profession.ProfessionSession profession() { return profession; }
+    public boolean started() { return profession != null ? profession.started() : station != null ? station.started() : started; }
+    public boolean complete() { return profession != null ? profession.complete() : station != null ? station.complete() : complete; }
     public int mask() { return mask; }
-    public int progress() { return station != null ? station.stage() : progress; }
+    public int progress() { return profession != null ? profession.stage() : station != null ? station.stage() : progress; }
     public int feedback() { return feedback; }
     public boolean cardInserted() { return cardInserted; }
-    public long elapsed(long now) { return station != null ? station.elapsed(now) : started ? (complete ? finishedAt : now) - startedAt : 0; }
+    public long elapsed(long now) { return profession != null ? profession.elapsed(now) : station != null ? station.elapsed(now) : started ? (complete ? finishedAt : now) - startedAt : 0; }
     public int stage() { return stage; }
     public int cursor() { return cursor; }
     public long phaseAt() { return phaseAt; }

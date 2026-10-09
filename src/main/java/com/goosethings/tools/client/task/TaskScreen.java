@@ -119,6 +119,7 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
             case PIPES -> "Rotate copper pipes to connect IN to OUT, then test the water.";
             case CLEANING -> "Hold the left mouse button and wipe every stain with the sponge.";
             case POWERSTATION -> "Restore the power station.";
+            case TELECOM, NUCLEAR, FOODSAFETY, CIVIL -> "Complete the professional simulation.";
         };
         int helpY = 56;
         for (FormattedCharSequence line : font.split(Component.translatableWithFallback(
