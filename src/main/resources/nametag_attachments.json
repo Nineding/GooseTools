@@ -56,6 +56,34 @@
       "width": 10.0,
       "height": 10.0,
       "color": "#FFFFFF"
+    },
+    {
+      "id": "silencer_pending",
+      "texture": "minecraft:textures/item/ggd/silencer.png",
+      "viewer_tags_all": ["Silencer"],
+      "viewer_tags_none": ["inTutorial"],
+      "target_tags_all": ["players", "silencedPending"],
+      "target_tags_none": ["spectator", "deadInMap", "inPelican", "endGame"],
+      "hide_self": true,
+      "tag_source": "rendered",
+      "requires_full_blood": true,
+      "width": 10.0,
+      "height": 10.0,
+      "color": "#FFFFFF"
+    },
+    {
+      "id": "silencer_active",
+      "texture": "minecraft:textures/item/ggd/silencer.png",
+      "viewer_tags_all": ["Silencer"],
+      "viewer_tags_none": ["inTutorial"],
+      "target_tags_all": ["players", "silencedActive"],
+      "target_tags_none": ["spectator", "deadInMap", "inPelican", "endGame"],
+      "hide_self": true,
+      "tag_source": "rendered",
+      "requires_full_blood": true,
+      "width": 10.0,
+      "height": 10.0,
+      "color": "#FFFFFF"
     }
   ]
 }

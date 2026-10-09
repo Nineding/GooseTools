@@ -20,7 +20,7 @@ final class NameTagAttachmentConfigTest {
     @Test
     void detectiveIconsArePrivateFullBloodSnapshots() {
         var config = NameTagAttachmentConfig.defaults();
-        assertEquals(4, config.attachments().size());
+        assertEquals(6, config.attachments().size());
         var angel = config.attachments().getFirst();
 
         assertTrue(angel.visible(
@@ -173,7 +173,7 @@ final class NameTagAttachmentConfigTest {
         var repository = new NameTagAttachmentRepository(file);
         var original = repository.reload();
         assertTrue(Files.isRegularFile(file));
-        assertEquals(4, original.attachments().size());
+        assertEquals(6, original.attachments().size());
 
         Files.writeString(file, Files.readString(file).replace("\"width\": 10.0", "\"width\": 12.0"));
         var updated = repository.reload();
@@ -214,6 +214,98 @@ final class NameTagAttachmentConfigTest {
                 Set.of("Broker", "players"),
                 Set.of("players"),
                 Set.of("players", "inTalk", "brokerShackled"),
+                true));
+    }
+
+    @Test
+    void silencerIconIsPrivateFromMarkUntilMeetingEnds() {
+        var pending = NameTagAttachmentConfig.defaults().attachments().stream()
+                .filter(attachment -> attachment.id().equals("silencer_pending"))
+                .findFirst()
+                .orElseThrow();
+        var active = NameTagAttachmentConfig.defaults().attachments().stream()
+                .filter(attachment -> attachment.id().equals("silencer_active"))
+                .findFirst()
+                .orElseThrow();
+
+        assertTrue(pending.visible(
+                false,
+                Set.of("Silencer", "players"),
+                Set.of("players"),
+                Set.of("players", "silencedPending"),
+                true));
+        assertTrue(pending.visible(
+                false,
+                Set.of("Silencer", "players"),
+                Set.of("players"),
+                Set.of("players", "silencedPending", "inTalk"),
+                true));
+        assertTrue(pending.visible(
+                false,
+                Set.of("Seagull", "players", "seagullNametagSilencer"),
+                Set.of("players"),
+                Set.of("players", "silencedPending"),
+                true));
+        assertFalse(pending.visible(
+                true,
+                Set.of("Silencer", "players", "silencedPending"),
+                Set.of("players"),
+                Set.of("players", "silencedPending"),
+                true));
+        assertFalse(pending.visible(
+                false,
+                Set.of("players", "evil"),
+                Set.of("players"),
+                Set.of("players", "silencedPending"),
+                true));
+        assertFalse(pending.visible(
+                false,
+                Set.of("Silencer", "players"),
+                Set.of("players"),
+                Set.of("players", "silencedPending"),
+                false));
+        assertFalse(pending.visible(
+                false,
+                Set.of("Silencer", "players"),
+                Set.of("players"),
+                Set.of("players", "silencedPending", "spectator"),
+                true));
+        assertFalse(pending.visible(
+                false,
+                Set.of("Silencer", "players"),
+                Set.of("players"),
+                Set.of("players", "silencedPending", "inPelican"),
+                true));
+        assertTrue(active.visible(
+                false,
+                Set.of("Silencer", "players"),
+                Set.of("players"),
+                Set.of("players", "inTalk", "silencedActive"),
+                true));
+        assertTrue(active.visible(
+                false,
+                Set.of("Seagull", "players", "seagullNametagSilencer"),
+                Set.of("players"),
+                Set.of("players", "inTalk", "silencedActive"),
+                true));
+        assertTrue(active.visible(
+                false,
+                Set.of("players", "spectator", "dlcDeadViewer"),
+                Set.of("players"),
+                Set.of("players", "inTalk", "silencedActive"),
+                true,
+                true));
+        assertFalse(active.visible(
+                false,
+                Set.of("Detective", "players"),
+                Set.of("players"),
+                Set.of("players", "inTalk", "silencedActive"),
+                true));
+        assertFalse(active.visible(
+                true,
+                Set.of("Silencer", "players"),
+                Set.of("players"),
+                Set.of("players", "inTalk", "silencedActive"),
                 true));
     }
 

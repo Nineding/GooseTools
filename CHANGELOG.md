@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.14.0+Alpha0.32 - 2026-10-09
+
+- 静语者成功标记后不再发送命中 tellraw，改为在目标名牌旁显示静语者图标。图标仅对静语者、叼取该技能的海鸥以及具备身份查看权限的旁观者可见，目标本人不可见，并持续到本轮会议结束。
+- 新增名牌附件 `silencer_pending` 与 `silencer_active`，使用 `minecraft:textures/item/ggd/silencer.png`。已有服务器须将这两条写入 `nametag_attachments.json` 并执行 `/goosetools nametags reload` 或重启。
+- 安装要求：房主/服务端与所有客户端同步更新至此版本，并搭配配套 Whoiskiller 数据包。网络协议保持 30，双端版本锁保持生效。Minecraft 26.3、Xaero Minimap 26.5.3、World Map 1.46.4 与 GooseThings 1.14.0+Alpha0.45 保持兼容。
+
 ## 1.14.0+Alpha0.31 - 2026-10-09
 
 - Added six standalone native arcade games: Flappy Bird, Snake, Pong against an AI, Whac-A-Mole, classic Minesweeper and 2048. Each has its own classic visual theme, original pixel artwork, animation, sounds, score records and replay controls. They are separate from task trials and do not award map-task progress, achievements or items.
