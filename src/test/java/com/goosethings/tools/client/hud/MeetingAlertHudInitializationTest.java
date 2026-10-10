@@ -31,5 +31,7 @@ class MeetingAlertHudInitializationTest {
                 SerialBadgeStyle.glyphComponent(1, 0xffffff).getString());
         assertEquals("\uE093\uE094\uE0A8",
                 SerialBadgeStyle.glyphComponent(20, 0xffffff).getString());
+        assertEquals("21", SerialBadgeStyle.glyphComponent(21, 0xffffff).getString());
+        assertEquals("", SerialBadgeStyle.glyphComponent(22, 0xffffff).getString());
     }
 }

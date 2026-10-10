@@ -7,7 +7,7 @@ import java.util.Set;
 
 /** Pure room-order rules shared by runtime code and regression tests. */
 public final class RoomOrderPolicy {
-    public static final int MAX_PLAYERS = 20;
+    public static final int MAX_PLAYERS = 21;
 
     private RoomOrderPolicy() {
     }

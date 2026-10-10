@@ -11,16 +11,19 @@ final class RoomOrderPolicyTest {
     @Test
     void firstAvailablePreservesDisconnectedGaps() {
         assertEquals(4, RoomOrderPolicy.firstAvailable(List.of(1, 2, 3, 5, 20)));
-        assertEquals(0, RoomOrderPolicy.firstAvailable(
+        assertEquals(21, RoomOrderPolicy.firstAvailable(
                 java.util.stream.IntStream.rangeClosed(1, 20).boxed().toList()));
+        assertEquals(0, RoomOrderPolicy.firstAvailable(
+                java.util.stream.IntStream.rangeClosed(1, 21).boxed().toList()));
     }
 
     @Test
     void meetingOrderWrapsAfterActualHostAndSkipsGaps() {
+        assertEquals(List.of(21, 1, 2), RoomOrderPolicy.circularAfter(20, List.of(1, 2, 20, 21)));
         assertEquals(List.of(9, 12, 1, 3),
                 RoomOrderPolicy.circularAfter(7, List.of(1, 3, 7, 9, 12)));
         assertEquals(List.of(1, 2, 8),
-                RoomOrderPolicy.circularAfter(20, List.of(1, 2, 8, 20)));
+                RoomOrderPolicy.circularAfter(21, List.of(1, 2, 8, 21)));
     }
 
     @Test

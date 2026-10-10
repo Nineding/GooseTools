@@ -62,6 +62,8 @@ class PlayerMarkerCatalogTest {
                 Set.of("ggdDreamEntity", "dreamSource_p7")));
         assertEquals(0, PlayerMarkerPolicy.dreamSourceSeat(Set.of("ggdDreamEntity")));
         assertEquals("ggdMark20", PlayerMarkerPolicy.objectiveForSeat(20));
-        assertEquals("", PlayerMarkerPolicy.objectiveForSeat(21));
+        assertEquals("ggdMark21", PlayerMarkerPolicy.objectiveForSeat(21));
+        assertEquals("", PlayerMarkerPolicy.objectiveForSeat(22));
+        assertEquals(21, PlayerMarkerPolicy.dreamSourceSeat(Set.of("dreamSource_p21")));
     }
 }

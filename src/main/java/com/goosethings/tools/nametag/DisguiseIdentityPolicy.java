@@ -4,7 +4,7 @@ import java.util.Set;
 
 /** Pure tag parsing for active role-driven visual disguises. */
 final class DisguiseIdentityPolicy {
-    static final int MAX_SEAT = 20;
+    static final int MAX_SEAT = 21;
 
     private DisguiseIdentityPolicy() {
     }
