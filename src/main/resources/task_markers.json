@@ -557,6 +557,11 @@
       "translation_key": "item.task.keepgreen.available",
       "fallback": "Keep the Lights Green",
       "category": "duck"
+    },
+    "cutwires": {
+      "translation_key": "item.task.cutwires.available",
+      "fallback": "Cut the Wires",
+      "category": "duck"
     }
   },
   "gradients": {

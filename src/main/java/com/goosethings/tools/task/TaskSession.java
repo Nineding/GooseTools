@@ -69,6 +69,7 @@ public final class TaskSession {
             case PIPES -> pipes(action, item, x, y, elapsed);
             case CLEANING -> cleaning(action, x, y, now);
             case KEEPGREEN -> keepGreen(action, x, y, now);
+            case CUTWIRES -> cutWires(action, x, y, now);
             case POWERSTATION, TELECOM, NUCLEAR, FOODSAFETY, CIVIL -> false;
         };
         if (progress == type.total && !complete) {
@@ -179,6 +180,27 @@ public final class TaskSession {
             progress = Integer.bitCount(mask); feedback = PLAY;
         }
         return changed;
+    }
+
+    private boolean cutWires(int action, double x, double y, long now) {
+        if (action == BEGIN) {
+            if (!CutWiresLayout.inside(x, y)) return false;
+            dragging = 0; brushX = x; brushY = y; lastBrushAt = now;
+            return false;
+        }
+        if ((action != MOVE && action != END) || dragging != 0) return false;
+        long delta = Math.max(0, now - lastBrushAt);
+        double distance = Math.hypot(x - brushX, y - brushY);
+        int before = mask;
+        // A missing history segment or giant jump cannot cut unseen wires.
+        if (delta <= 300 && distance <= Math.min(64, (delta + 30) * .8)) {
+            for (int wire = 0; wire < 4; wire++)
+                if (CutWiresLayout.intersects(wire, brushX, brushY, x, y)) mask |= 1 << wire;
+        }
+        brushX = x; brushY = y; lastBrushAt = now;
+        if (action == END) dragging = -1;
+        progress = Integer.bitCount(mask); feedback = PLAY;
+        return before != mask;
     }
 
     private boolean timing(int action, long elapsed) {
