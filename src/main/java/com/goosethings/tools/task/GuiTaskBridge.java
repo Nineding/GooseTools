@@ -37,17 +37,18 @@ public final class GuiTaskBridge {
             }
         });
         ArcadeStations.register();
+        PurificationStation.register();
     }
     public static boolean eligible(ServerPlayer p) {
         var tags = p.entityTags();
         return p.isAlive() && tags.contains("players") && !tags.contains("spectator")
-                && !tags.contains("inTalk") && !tags.contains("endGame") && !tags.contains("inPelican")
+                && !tags.contains("deadInMap") && !tags.contains("inTalk") && !tags.contains("endGame") && !tags.contains("inPelican")
                 && !tags.contains("inDream") && !tags.contains("astralProjected") && !tags.contains("sniperScoped")
                 && !tags.contains("esperPossessing") && !TaskServer.meeting(p.level().getServer(), p);
     }
     public static LiteralArgumentBuilder<CommandSourceStack> command() {
         var players = Commands.argument("players", EntityArgument.players());
-        for (String kind : new String[]{"traffic", "whack", "pipes", "knobs", "timing", "cleaning", "keepgreen", "cutwires", "arcade"}) {
+        for (String kind : new String[]{"traffic", "whack", "pipes", "knobs", "timing", "cleaning", "keepgreen", "cutwires", "purification", "purificationlaser", "arcade"}) {
             players.then(Commands.literal(kind).executes(c -> {
                 int opened = 0;
                 for (ServerPlayer p : EntityArgument.getPlayers(c, "players")) if (start(p, kind)) opened++;
@@ -113,7 +114,7 @@ public final class GuiTaskBridge {
     }
     public static boolean taskBound(ServerPlayer p, long id) {
         Binding b = bindings.get(p.getUUID());
-        return b != null && b.session == id && (b.kind.equals("pipes") || b.kind.equals("knobs") || b.kind.equals("timing") || b.kind.equals("cleaning") || b.kind.equals("keepgreen") || b.kind.equals("cutwires"));
+        return b != null && b.session == id && (b.kind.equals("pipes") || b.kind.equals("knobs") || b.kind.equals("timing") || b.kind.equals("cleaning") || b.kind.equals("keepgreen") || b.kind.equals("cutwires") || b.kind.equals("purification") || b.kind.equals("purificationlaser"));
     }
     public static void taskClosed(ServerPlayer p, long id) {
         Binding b = bindings.get(p.getUUID());

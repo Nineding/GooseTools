@@ -1,0 +1,1 @@
+{"schemaVersion":1,"id":"goosetools_purification_test","version":"1.0.0","name":"Purification regression","environment":"client","entrypoints":{"client":["com.goosethings.tools.client.task.PurificationRegression"]},"depends":{"goosetools":"*"}}

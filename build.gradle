@@ -563,3 +563,53 @@ tasks.named('runBroadcastRegressionTest') {
         logger.lifecycle(result.text)
     }
 }
+
+sourceSets { purificationRegressionTest {
+    compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+    runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+} }
+configurations {
+    purificationRegressionTestImplementation.extendsFrom implementation
+    purificationRegressionTestRuntimeOnly.extendsFrom runtimeOnly
+}
+def purificationFixture = file(findProperty('purificationFixtureRoot') ?: '../../')
+dependencies {
+    purificationRegressionTestRuntimeOnly files(new File(purificationFixture, 'mods/fabric-carpet-26.3+v260915.jar'), new File(purificationFixture, 'mods/goosethings-1.14.0+Alpha0.45.jar'), new File(purificationFixture, 'mods/sound-physics-remastered-fabric-1.5.1+26.3.jar'), new File(purificationFixture, 'mods/cloth-config-26.3.158.jar'))
+}
+loom {
+    mods { goosetools_purification_test { sourceSet sourceSets.purificationRegressionTest } }
+    runs { purificationRegressionTest {
+        client()
+        source sourceSets.purificationRegressionTest
+        runDir 'build/purification-regression-test'
+        vmArg '-Dpurification.fixtureRoot=' + purificationFixture.absolutePath
+        programArg '--width'
+        programArg '1400'
+        programArg '--height'
+        programArg '1000'
+    } }
+}
+tasks.named('runPurificationRegressionTest') {
+    timeout = java.time.Duration.ofMinutes(6)
+    doFirst {
+        def run = file('build/purification-regression-test'); run.mkdirs()
+        new File(run, 'result.txt').delete()
+        new File(run, 'options.txt').text = 'lang:zh_cn\nguiScale:2\npauseOnLostFocus:false\ntutorialStep:none\nresourcePacks:["file/purification-names"]\n'
+        def config = new File(run, 'config/goosetools/task_markers.json');config.parentFile.mkdirs()
+        config.bytes = new File(purificationFixture, 'config/goosetools/task_markers.json').bytes
+        def pack = new File(run, 'resourcepacks/purification-names');new File(pack, 'assets/minecraft/lang').mkdirs()
+        new File(pack, 'pack.mcmeta').bytes = new File(purificationFixture, 'resourcepacks/whois/pack.mcmeta').bytes
+        ['zh_cn','en_us'].each { lang -> new File(pack, 'assets/minecraft/lang/' + lang + '.json').bytes = new File(purificationFixture, 'resourcepacks/whois/assets/minecraft/lang/' + lang + '.json').bytes }
+    }
+    doLast {
+        def result = file('build/purification-regression-test/result.txt')
+        if (!result.isFile() || !result.text.startsWith('PASS ')) throw new GradleException('Purification regression failed; inspect result.txt and logs/latest.log')
+        logger.lifecycle(result.text)
+    }
+}
+
+tasks.named('processPurificationRegressionTestResources') {
+    from(new File(purificationFixture, 'saves/Whoiskiller/datapacks/Whoiskiller')) {
+        include 'data/**/dialog/**', 'data/**/predicate/**'
+    }
+}

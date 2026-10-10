@@ -94,7 +94,7 @@ public final class TaskServer {
     private static long open(ServerPlayer player, TaskType type) {
         com.goosethings.tools.game.GameServer.close(player);
         close(player);
-        TaskSession session = new TaskSession(IDS.getAndIncrement(), type, ThreadLocalRandom.current().nextLong(), now());
+        TaskSession session = new TaskSession(IDS.getAndIncrement(), type, ThreadLocalRandom.current().nextLong(), PurificationStation.time(player, type));
         SESSIONS.put(player.getUUID(), new Trial(session, player.level().dimension()));
         ServerPlayNetworking.send(player, new TaskPackets.Open(session.id, type.ordinal(), session.seed));
         return session.id;
@@ -102,7 +102,7 @@ public final class TaskServer {
 
     public static long openBound(ServerPlayer player, TaskType type) {
         if (!MandatoryHandshake.isVerified(player) || !ServerPlayNetworking.canSend(player, TaskPackets.Open.TYPE)
-                || !player.isAlive() || meeting(player.level().getServer(), player)) return 0;
+                || !player.isAlive() || meeting(player.level().getServer(), player) || !PurificationStation.valid(player, type)) return 0;
         return open(player, type);
     }
 
@@ -115,10 +115,10 @@ public final class TaskServer {
             if (trial.session.complete()) open(player, trial.session.type);
             return;
         }
-        if (!player.isAlive() || !trial.dimension.equals(player.level().dimension())
+        if (!PurificationStation.valid(player, trial.session.type) || !player.isAlive() || !trial.dimension.equals(player.level().dimension())
                 || meeting(player.level().getServer(), player)) { close(player); return; }
         if (trial.session.apply(packet.sequence(), packet.action(), packet.item(), packet.x(), packet.y(), packet.elapsed(),
-                now(), player.connection.latency())) sendState(player, trial);
+                PurificationStation.time(player, trial.session.type), player.connection.latency())) sendState(player, trial);
     }
 
     private static void tick(MinecraftServer server) {
@@ -127,10 +127,10 @@ public final class TaskServer {
             Trial trial = SESSIONS.get(id);
             ServerPlayer player = server.getPlayerList().getPlayer(id);
             if (player == null) { SESSIONS.remove(id); continue; }
-            if (!player.isAlive() || !trial.dimension.equals(player.level().dimension()) || meeting(server, player)
-                    || now - trial.session.createdAt > (trial.session.type == TaskType.POWERSTATION || trial.session.type.profession() ? 3_600_000 : 600_000)
-                    || (!trial.session.started() && now - trial.session.createdAt > 15_000)) { close(player); continue; }
-            if (trial.session.tick(now)) sendState(player, trial);
+            if (!PurificationStation.valid(player, trial.session.type) || !player.isAlive() || !trial.dimension.equals(player.level().dimension()) || meeting(server, player)
+                    || PurificationStation.time(player, trial.session.type) - trial.session.createdAt > (trial.session.type == TaskType.POWERSTATION || trial.session.type.profession() ? 3_600_000 : 600_000)
+                    || (!trial.session.started() && PurificationStation.time(player, trial.session.type) - trial.session.createdAt > 15_000)) { close(player); continue; }
+            if (trial.session.tick(PurificationStation.time(player, trial.session.type))) sendState(player, trial);
         }
     }
 
@@ -139,15 +139,15 @@ public final class TaskServer {
         if (session.profession() != null) ServerPlayNetworking.send(player, new com.goosethings.tools.task.profession.ProfessionPackets.State(session.id, session.profession().snapshot(now())));
         else if (session.station() != null) ServerPlayNetworking.send(player, new PowerStationPackets.State(session.id, session.station().snapshot(now())));
         else ServerPlayNetworking.send(player, new TaskPackets.State(session.id, session.progress(), session.mask(), session.feedback(),
-                session.started(), session.complete(), session.cardInserted(), session.elapsed(now()),
+                session.started(), session.complete(), session.cardInserted(), session.elapsed(PurificationStation.time(player, session.type)),
                 session.stage(), session.cursor(), session.phaseAt(), session.pipeBits(), session.cleaned()));
         GuiTaskBridge.taskProgress(player, session.id, session.complete());
         if (session.complete() && !trial.delivered) {
             trial.delivered = true;
             if (!GuiTaskBridge.taskBound(player, session.id)) player.sendSystemMessage(message("completed", "%s completed in %s s (trial)",
                     Component.translatableWithFallback("task.goosetools." + session.type.id + ".title", session.type.fallback),
-                    String.format(java.util.Locale.ROOT, "%.1f", session.elapsed(now()) / 1000.0)));
-            COMPLETED.invoker().onComplete(player, session.type, session.elapsed(now()));
+                    String.format(java.util.Locale.ROOT, "%.1f", session.elapsed(PurificationStation.time(player, session.type)) / 1000.0)));
+            COMPLETED.invoker().onComplete(player, session.type, session.elapsed(PurificationStation.time(player, session.type)));
         }
     }
 
@@ -164,7 +164,7 @@ public final class TaskServer {
         if (!packet.valid() || !MandatoryHandshake.isVerified(player)) return;
         Trial trial = SESSIONS.get(player.getUUID());
         if (trial == null || trial.session.id != packet.sessionId() || trial.session.station() == null) return;
-        if (!player.isAlive() || !trial.dimension.equals(player.level().dimension()) || meeting(player.level().getServer(), player)) { close(player); return; }
+        if (!PurificationStation.valid(player, trial.session.type) || !player.isAlive() || !trial.dimension.equals(player.level().dimension()) || meeting(player.level().getServer(), player)) { close(player); return; }
         if (trial.session.station().apply(packet.sequence(), packet.action(), packet.item(), packet.a(), packet.b(), now())) sendState(player, trial);
     }
 
@@ -172,7 +172,7 @@ public final class TaskServer {
         if (!packet.valid() || !MandatoryHandshake.isVerified(player)) return;
         Trial trial = SESSIONS.get(player.getUUID());
         if (trial == null || trial.session.id != packet.sessionId() || trial.session.profession() == null) return;
-        if (!player.isAlive() || !trial.dimension.equals(player.level().dimension()) || meeting(player.level().getServer(), player)) { close(player); return; }
+        if (!PurificationStation.valid(player, trial.session.type) || !player.isAlive() || !trial.dimension.equals(player.level().dimension()) || meeting(player.level().getServer(), player)) { close(player); return; }
         if (trial.session.profession().apply(packet.sequence(), packet.stage(), packet.action(), packet.slot(), packet.a(), packet.b(), packet.c(), now())) sendState(player, trial);
     }
 

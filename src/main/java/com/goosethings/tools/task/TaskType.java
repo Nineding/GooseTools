@@ -9,7 +9,9 @@ public enum TaskType {
     TELECOM("telecom", "Restore telecom link", 4), NUCLEAR("nuclear", "Decay heat and radiation protection", 4),
     FOODSAFETY("foodsafety", "Food safety and batch release", 4), CIVIL("civil", "Bridge checks and construction quality", 4),
     KEEPGREEN("keepgreen", "Keep the Lights Green", 3),
-    CUTWIRES("cutwires", "Cut the Wires", 4);
+    CUTWIRES("cutwires", "Cut the Wires", 4),
+    PURIFICATION("purification", "Purification Chamber", 1),
+    PURIFICATIONLASER("purificationlaser", "Sabotage Purification Laser", 1);
 
     public final String id;
     public final String fallback;

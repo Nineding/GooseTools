@@ -562,6 +562,11 @@
       "translation_key": "item.task.cutwires.available",
       "fallback": "Cut the Wires",
       "category": "duck"
+    },
+    "purificationlaser": {
+      "translation_key": "item.task.purificationlaser.available",
+      "fallback": "Sabotage Purification Laser",
+      "category": "duck"
     }
   },
   "gradients": {

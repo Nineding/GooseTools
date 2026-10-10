@@ -805,5 +805,21 @@
   "task.goosetools.ui.signal_panel": "红绿灯控制面板",
   "task.goosetools.cutwires.title": "剪断电线",
   "task.goosetools.cutwires.help": "按住左键拖动剪刀，剪断四根电线中间的标记区域。",
-  "task.goosetools.ui.wire_panel": "广播配线面板"
+  "task.goosetools.ui.wire_panel": "广播配线面板",
+  "task.goosetools.purification.title": "净化仓操作台",
+  "task.goosetools.purificationlaser.title": "破坏净化激光",
+  "item.task.purificationlaser.available": "破坏净化激光",
+  "text.task.purificationlaser.start": "调节反光镜，将激光反射回机关。",
+  "text.task.purificationlaser.unlocked": "已解锁：破坏净化仓",
+  "item.sabotage.purification": "破坏净化仓",
+  "item.sabotage.purification.lore": "禁用净化仓60秒，恢复后破坏道具再冷却60秒。",
+  "item.sabotage.purification.disabled": "破坏净化仓：禁用中（%s秒）",
+  "item.sabotage.purification.cooldown": "破坏净化仓：冷却（%s秒）",
+  "text.purification.disabled": "净化仓已被禁用60秒。",
+  "text.purification.restored": "净化仓已恢复可用。",
+  "text.purification.unavailable": "净化仓暂不可用，剩余%s秒。",
+  "text.purification.success": "净化完成",
+  "text.purification.success.detail": "净化仓已清除你身上的有害状态。",
+  "text.logs.purification": "%s 被净化仓驱除。",
+  "ggd.log.purification": "%s 被净化仓驱除。"
 }

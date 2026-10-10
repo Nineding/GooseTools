@@ -23,12 +23,17 @@ public final class TaskSession {
     private final int[] pipeRotations;
     private final long[] cleaned = new long[TaskExtraLayout.CLEAN_WORDS];
     private int stage, cursor;
+    private long chargeSince = -1, lastCharge = -1;
+    private final PurificationLaserLayout laser;
+    private int laserBits;
     private long phaseAt, lastBrushAt;
     private double brushX, brushY;
 
     public TaskSession(long id, TaskType type, long seed, long now) {
         this.id = id; this.type = type; this.seed = seed; this.createdAt = now;
         layout = new TaskLayout(seed);
+        laser = type == TaskType.PURIFICATIONLASER ? new PurificationLaserLayout(seed) : null;
+        if (laser != null) laserBits = laser.initialBits;
         station = type == TaskType.POWERSTATION ? new PowerStationSession(seed) : null;
         profession = type.profession() ? new com.goosethings.tools.task.profession.ProfessionSession(type, seed) : null;
         garbageX = layout.garbageX.clone(); garbageY = layout.garbageY.clone();
@@ -55,8 +60,8 @@ public final class TaskSession {
         long elapsed = now - startedAt;
         // Bounded input-history window compensates transit time without trusting arbitrary timestamps.
         long tolerance = Math.min(350, 100 + Math.max(0, latency));
-        if (clientElapsed < 0 || clientElapsed < lastElapsed || clientElapsed > elapsed + 75
-                || elapsed - clientElapsed > tolerance) return false;
+        if (type != TaskType.PURIFICATION && (clientElapsed < 0 || clientElapsed < lastElapsed || clientElapsed > elapsed + 75
+                || elapsed - clientElapsed > tolerance)) return false;
         lastElapsed = clientElapsed;
         boolean changed = switch (type) {
             case TIMING -> timing(action, clientElapsed);
@@ -70,6 +75,8 @@ public final class TaskSession {
             case CLEANING -> cleaning(action, x, y, now);
             case KEEPGREEN -> keepGreen(action, x, y, now);
             case CUTWIRES -> cutWires(action, x, y, now);
+            case PURIFICATION -> purification(action, item, x, y, now);
+            case PURIFICATIONLASER -> purificationLaser(action, item, x, y);
             case POWERSTATION, TELECOM, NUCLEAR, FOODSAFETY, CIVIL -> false;
         };
         if (progress == type.total && !complete) {
@@ -281,7 +288,39 @@ public final class TaskSession {
         return false;
     }
 
+    private boolean purification(int action, int item, double x, double y, long now) {
+        if (action != HIT) return false;
+        if (item >= 0 && item <= 11 && stage == 0 && PurificationLayout.key(item).contains(x, y)) {
+            if (item <= 9 && cursor < 4) { mask = mask * 10 + item; cursor++; feedback = PLAY; }
+            else if (item == 10) { mask = 0; cursor = 0; feedback = PLAY; }
+            else if (item == 11) {
+                if (cursor == 4 && mask == PurificationLayout.password(seed)) { stage = 1; feedback = PLAY; }
+                else { mask = 0; cursor = 0; feedback = MISS; }
+            }
+            return true;
+        }
+        if (item != 12 || stage == 0 || !PurificationLayout.ACTIVATE.contains(x, y)) return false;
+        // Real clicks only. Mouse-hold/MOVE and bursts cannot advance charging.
+        if (lastCharge >= 0 && now - lastCharge < 100) return false;
+        if (chargeSince < 0 || now - lastCharge > 500) chargeSince = now;
+        lastCharge = now; stage = 2; phaseAt = Math.min(5000, now - chargeSince); feedback = PLAY;
+        if (now - chargeSince >= 5000) progress = 1;
+        return true;
+    }
+    private boolean purificationLaser(int action, int item, double x, double y) {
+        if (action != HIT || item < 0 || item > 2 || laser.mirrorAt(x, y) != item) return false;
+        laserBits ^= 1 << item;
+        mask = laser.trace(laserBits).visited();
+        if (laser.trace(laserBits).returned()) progress = 1;
+        return true;
+    }
+
     public boolean tick(long now) {
+        if (type == TaskType.PURIFICATION && started && !complete && stage == 2) {
+            if (now - lastCharge > 500) { chargeSince = -1; stage = 1; phaseAt = 0; feedback = MISS; }
+            else phaseAt = Math.min(5000, now - chargeSince);
+            return true;
+        }
         if (profession != null) return profession.tick(now);
         if (station != null) return station.tick(now);
         if (started && !complete && type == TaskType.MEMORY && stage == 0
@@ -313,5 +352,5 @@ public final class TaskSession {
     public int cursor() { return cursor; }
     public long phaseAt() { return phaseAt; }
     public long[] cleaned() { return cleaned.clone(); }
-    public int pipeBits() { int bits = 0; for (int i = 0; i < 16; i++) bits |= pipeRotations[i] << (2 * i); return bits; }
+    public int pipeBits() { if (laser != null) return laserBits; int bits = 0; for (int i = 0; i < 16; i++) bits |= pipeRotations[i] << (2 * i); return bits; }
 }

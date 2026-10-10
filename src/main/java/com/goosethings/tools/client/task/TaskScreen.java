@@ -3,6 +3,8 @@ package com.goosethings.tools.client.task;
 import com.goosethings.tools.task.TaskLayout;
 import com.goosethings.tools.task.KeepGreenLayout;
 import com.goosethings.tools.task.CutWiresLayout;
+import com.goosethings.tools.task.PurificationLayout;
+import com.goosethings.tools.task.PurificationLaserLayout;
 import com.goosethings.tools.task.TaskExtraLayout;
 import com.goosethings.tools.task.TaskPackets;
 import com.goosethings.tools.task.TaskSession;
@@ -98,6 +100,10 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
         graphics.pose().translate((float) transform.x, (float) transform.y);
         graphics.pose().scale((float) transform.scale, (float) transform.scale);
         double mx = transform.virtualX(mouseX), my = transform.virtualY(mouseY);
+        if (type == TaskType.PURIFICATION || type == TaskType.PURIFICATIONLASER) {
+            drawPurification(graphics, mx, my);
+            graphics.pose().popMatrix(); return;
+        }
         graphics.fill(3, 5, 423, 325, 0x66000000);
         bevel(graphics, 0, 0, 420, 320, 0xFF3C474D);
         bevel(graphics, 8, 8, 404, 40, 0xFF293136);
@@ -122,6 +128,7 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
             case CLEANING -> "Hold the left mouse button and wipe every stain with the sponge.";
             case KEEPGREEN -> "Hold and drag the green brush over all three red lights.";
             case CUTWIRES -> "Hold and drag the scissors across the middle of all four wires.";
+            case PURIFICATION, PURIFICATIONLASER -> "Operate the purification system.";
             case POWERSTATION -> "Restore the power station.";
             case TELECOM, NUCLEAR, FOODSAFETY, CIVIL -> "Complete the professional simulation.";
         };
@@ -158,6 +165,65 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
         graphics.text(font, text("progress", "%s / %s", progress, type.total), 348, 296, INK, false);
         if (state != null && state.complete()) drawSuccess(graphics, mx, my);
         graphics.pose().popMatrix();
+    }
+
+    private void drawPurification(GuiGraphicsExtractor g, double mx, double my) {
+        final int glow = 0xFF72FFBB, pale = 0xFFD9FFE9;
+        g.fill(0, 0, 420, 320, 0xEF04261E); g.outline(0, 0, 420, 320, glow);
+        g.outline(5, 5, 410, 310, 0xFF24795B);
+        for (int y = 8; y < 312; y += 4) g.fill(8, y, 412, y + 1, 0x102EFFAF);
+        int scan = 82 + (int)(now() / 35 % 180); g.fill(18, scan, 402, scan + 2, 0x203AFFB0);
+        g.fill(16, 43, 404, 45, glow); g.text(font, getTitle(), 18, 15, pale, false);
+        g.text(font, text("purify_system", "EAGLETON / PURIFICATION SYSTEM"), 18, 29, glow, false);
+        g.outline(382, 12, 25, 24, TaskLayout.CLOSE.contains(mx,my) ? RED : glow); center(g, text("close", "×"), 394, 19, pale);
+        boolean console = type == TaskType.PURIFICATION;
+        int helpY = 54;
+        for (FormattedCharSequence s : font.split(text(console ? "purify_help" : "laser_help",
+                console ? "Enter the access code, then click repeatedly for 5 seconds." : "Rotate all three mirrors to return the laser to its emitter."), 382)) {
+            g.text(font, s, 18, helpY, pale, false); helpY += 10;
+        }
+        if (console) {
+            g.outline(28, 86, 170, 169, 0xFF2C9970); g.outline(210, 86, 182, 102, 0xFF2C9970);
+            String input = state == null ? "____" : String.format(Locale.ROOT, "%0" + Math.max(1, state.cursor()) + "d", state.mask());
+            if (state == null || state.cursor() == 0) input = "";
+            input += "_".repeat(Math.max(0, 4 - (state == null ? 0 : state.cursor())));
+            center(g, Component.literal(input), 112, 101, pale);
+            center(g, text("purify_access", "ACCESS CODE"), 300, 100, glow);
+            g.pose().pushMatrix(); g.pose().translate(248, 122); g.pose().scale(2, 2);
+            g.text(font, Component.literal(String.format(Locale.ROOT,"%04d", PurificationLayout.password(open.seed()))), 0, 0, glow, false); g.pose().popMatrix();
+            center(g, text(state != null && state.stage() > 0 ? "purify_accepted" : "purify_required", state != null && state.stage() > 0 ? "Code accepted" : "Code required"), 300, 163, pale);
+            for (int i = 0; i <= 11; i++) {
+                var r = PurificationLayout.key(i); boolean hover = r.contains(mx,my);
+                g.fill(r.x(),r.y(),r.x()+r.w(),r.y()+r.h(),hover ? 0xFF1D6B4E : 0xFF103D30); g.outline(r.x(),r.y(),r.w(),r.h(),glow);
+                center(g, i <= 9 ? Component.literal(Integer.toString(i)) : text(i == 10 ? "purify_clear" : "purify_confirm", i == 10 ? "CLR" : "ENTER"), r.x()+r.w()/2,r.y()+8,pale);
+            }
+            var b = PurificationLayout.ACTIVATE; boolean accepted = state != null && state.stage() > 0;
+            g.fill(b.x(),b.y(),b.x()+b.w(),b.y()+b.h(),accepted ? 0xFF176746 : 0xFF203C32); g.outline(b.x(),b.y(),b.w(),b.h(),accepted ? glow : MUTED);
+            center(g,text("purify_activate","ACTIVATE"),299,218,accepted ? pale : MUTED);
+            long charge = state == null ? 0 : state.phaseAt();
+            g.fill(28,286,392,300,0xFF08271F); g.fill(29,287,29+(int)(362*Math.min(5000,charge)/5000),299,glow);
+            center(g,text("purify_charge","Charge: %s / 5.0 s",String.format(Locale.ROOT,"%.1f",charge/1000.0)),210,268,glow);
+            if (state != null && state.feedback() == TaskSession.MISS) center(g,text(state.stage() == 0 ? "purify_wrong" : "purify_gap",state.stage() == 0 ? "Incorrect code. Try again." : "Click gap exceeded 0.5 s. Charge reset."),210,307,RED);
+        } else {
+            PurificationLaserLayout l = new PurificationLaserLayout(open.seed()); int bits = state == null ? l.initialBits : state.pipeBits();
+            var beam = l.trace(bits);
+            for (int x = 28; x < 394; x += 20) g.fill(x,85,x+1,260,0x182EFFAF);
+            for (int y = 86; y < 260; y += 20) g.fill(26,y,394,y+1,0x182EFFAF);
+            for (int i = 1; i < beam.points().size(); i++) {
+                var a = beam.points().get(i-1); var b = beam.points().get(i);
+                line(g,a.x(),a.y(),b.x(),b.y(),5,0x603BFFBC); line(g,a.x(),a.y(),b.x(),b.y(),1,glow);
+            }
+            circle(g,l.emitter.x(),l.emitter.y(),12,0xFF186042); circle(g,l.emitter.x(),l.emitter.y(),6,glow);
+            for (int i = 0; i < 3; i++) {
+                var p = l.mirrors[i]; g.fill(p.x()-18,p.y()-18,p.x()+18,p.y()+18,0xFF0B3329);
+                g.outline(p.x()-18,p.y()-18,36,36,l.mirrorAt(mx,my)==i ? pale : glow);
+                int d = (bits & (1<<i)) == 0 ? -1 : 1;
+                line(g,p.x()-12,p.y()-12*d,p.x()+12,p.y()+12*d,3,pale);
+                center(g,Component.literal(Integer.toString(i+1)),p.x(),p.y()+23,glow);
+            }
+            center(g,text("laser_emitter","Return beam to the circular emitter"),210,282,glow);
+            center(g,text("laser_progress","Mirrors reached: %s / 3",Integer.bitCount(beam.visited())),210,302,pale);
+        }
     }
 
     private void drawTiming(GuiGraphicsExtractor g, double mx, double my) {
@@ -437,6 +503,11 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
         }
         pointerX = x; pointerY = y;
         switch (type) {
+            case PURIFICATION -> {
+                if (state.stage() == 0) for (int i = 0; i <= 11; i++) if (PurificationLayout.key(i).contains(x, y)) { send(TaskSession.HIT, i, x, y); clickSound(); break; }
+                if (state.stage() > 0 && PurificationLayout.ACTIVATE.contains(x, y)) { send(TaskSession.HIT, 12, x, y); clickSound(); }
+            }
+            case PURIFICATIONLASER -> { int mirror = new PurificationLaserLayout(open.seed()).mirrorAt(x, y); if (mirror >= 0) { send(TaskSession.HIT, mirror, x, y); clickSound(); } }
             case TIMING -> { if (TaskLayout.near(x, y, 173, 243, 18)) hit(); }
             case WIRES -> {
                 for (int i = 0; i < 4; i++) if (!masked(i) && TaskLayout.near(x, y, 68, TaskLayout.wireY(i), 16)) {
@@ -523,6 +594,10 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
     }
 
     @Override public boolean keyPressed(KeyEvent event) {
+        if (type == TaskType.PURIFICATION && state != null && state.started() && !state.complete() && state.stage() == 0) {
+            int k = event.key(), item = k >= 48 && k <= 57 ? k - 48 : k >= 320 && k <= 329 ? k - 320 : k == 259 || k == 261 ? 10 : k == 257 || k == 335 ? 11 : -1;
+            if (item >= 0) { var r = PurificationLayout.key(item); send(TaskSession.HIT, item, r.x() + 5, r.y() + 5); return true; }
+        }
         if (event.key() == InputConstants.KEY_SPACE && type == TaskType.TIMING
                 && state != null && state.started() && !state.complete()) { hit(); return true; }
         return super.keyPressed(event);

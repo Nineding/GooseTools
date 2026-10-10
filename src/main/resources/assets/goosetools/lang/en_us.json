@@ -805,5 +805,21 @@
   "task.goosetools.ui.signal_panel": "Traffic signal panel",
   "task.goosetools.cutwires.title": "Cut the Wires",
   "task.goosetools.cutwires.help": "Hold and drag the scissors across the middle of all four wires.",
-  "task.goosetools.ui.wire_panel": "Broadcast wiring panel"
+  "task.goosetools.ui.wire_panel": "Broadcast wiring panel",
+  "task.goosetools.purification.title": "Purification Chamber",
+  "task.goosetools.purificationlaser.title": "Sabotage Purification Laser",
+  "item.task.purificationlaser.available": "Sabotage Purification Laser",
+  "text.task.purificationlaser.start": "Rotate mirrors to return the laser to its emitter.",
+  "text.task.purificationlaser.unlocked": "Purification sabotage unlocked",
+  "item.sabotage.purification": "Sabotage Purification Chamber",
+  "item.sabotage.purification.lore": "Disable purification for 60 seconds, then begin a shared 60 second cooldown.",
+  "item.sabotage.purification.disabled": "Sabotage Purification Chamber: unavailable (%s s)",
+  "item.sabotage.purification.cooldown": "Sabotage Purification Chamber: cooldown (%s s)",
+  "text.purification.disabled": "The purification chamber is disabled for 60 seconds.",
+  "text.purification.restored": "The purification chamber is ready again.",
+  "text.purification.unavailable": "Purification unavailable. Time remaining: %s s.",
+  "text.purification.success": "Purified",
+  "text.purification.success.detail": "Purification removed harmful effects.",
+  "text.logs.purification": "%s was purged by the purification chamber.",
+  "ggd.log.purification": "%s was purged by the purification chamber."
 }
