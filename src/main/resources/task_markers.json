@@ -557,6 +557,21 @@
       "translation_key": "item.task.keepgreen.available",
       "fallback": "Keep the Lights Green",
       "category": "duck"
+    },
+    "eagleton_invadepower": {
+      "translation_key": "item.task.eagleton.invadepower.available",
+      "fallback": "Invade Power Controls",
+      "category": "duck"
+    },
+    "eagleton_power_a": {
+      "translation_key": "item.task.emergency.eagleton_power_a.available",
+      "fallback": "Restore Power: Panel A",
+      "category": "emergency"
+    },
+    "eagleton_power_b": {
+      "translation_key": "item.task.emergency.eagleton_power_b.available",
+      "fallback": "Restore Power: Panel B",
+      "category": "emergency"
     }
   },
   "gradients": {

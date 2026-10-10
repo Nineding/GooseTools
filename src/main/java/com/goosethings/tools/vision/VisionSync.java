@@ -31,10 +31,6 @@ public final class VisionSync {
     private static final String ENABLED_SCORE = "DLCVisionFog";
     private static final String RANGE_SCORE = "DLCVisionRange";
     private static final String MAP_SCORE = "map";
-    private static final int GOOSECHAPEL_MAP_ID = 8;
-    private static final int GOOSESHIP_MAP_ID = 9;
-    private static final String GOOSECHAPEL_BLACKOUT_TAG = "task.chapelpower.stage.one";
-    private static final String GOOSESHIP_BLACKOUT_TAG = "task.gooseship.powercut.active";
 
     private static final Set<String> REQUIRED_TAGS = Set.of("gamingGGD", "players");
     private static final Set<String> BLOCKING_TAGS = Set.of(
@@ -115,8 +111,7 @@ public final class VisionSync {
             return false;
         }
         int mapId = readScore(server, MAP_OBJECTIVE, MAP_SCORE, 0);
-        return (mapId == GOOSECHAPEL_MAP_ID && tags.contains(GOOSECHAPEL_BLACKOUT_TAG))
-                || (mapId == GOOSESHIP_MAP_ID && tags.contains(GOOSESHIP_BLACKOUT_TAG));
+        return PowerBlackoutMaps.isActive(mapId, tags);
     }
 
     private static int configuredRadius(MinecraftServer server, ServerPlayer player) {

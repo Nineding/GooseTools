@@ -21,10 +21,6 @@ public final class BlackoutAssistSync {
     private static final String MAP_OBJECTIVE = "gamesetting";
     private static final String DLC_SCORE = "FullBloodDLC";
     private static final String MAP_SCORE = "map";
-    private static final int GOOSECHAPEL_MAP_ID = 8;
-    private static final int GOOSESHIP_MAP_ID = 9;
-    private static final String GOOSECHAPEL_BLACKOUT_TAG = "task.chapelpower.stage.one";
-    private static final String GOOSESHIP_BLACKOUT_TAG = "task.gooseship.powercut.active";
     private static final Set<String> ELIGIBILITY_BLOCKERS = Set.of(
             "evil", "dlcGhostEvil", "spectator", "inTalk", "endGame", "inTutorial",
             "deadInMap", "inPelican", "dlcGhostActive");
@@ -70,8 +66,7 @@ public final class BlackoutAssistSync {
 
     private static boolean isBlackout(MinecraftServer server, Set<String> tags) {
         int mapId = readScore(server, MAP_OBJECTIVE, MAP_SCORE, 0);
-        return (mapId == GOOSECHAPEL_MAP_ID && tags.contains(GOOSECHAPEL_BLACKOUT_TAG))
-                || (mapId == GOOSESHIP_MAP_ID && tags.contains(GOOSESHIP_BLACKOUT_TAG));
+        return PowerBlackoutMaps.isActive(mapId, tags);
     }
 
     private static int readScore(
