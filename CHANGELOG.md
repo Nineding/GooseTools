@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.14.0+Alpha0.37 - 2026-10-10
+
+- 新增「保持绿灯」GUI：用绿色画笔涂满三个红灯，服务端校验涂色覆盖并支持正式地图任务绑定。画笔使用像素风生图及 ComfyUI PerfectPixel 制作的透明材质。
+- 伊格尔顿泉数据包可接入「召唤大运」：解锁后首次立即可用，使用后共享 45 秒冷却，货车沿指定路线在 6 秒内驶过并留下撞击尸体。
+- 客户端与服务端须同时升级到本版本；协议保持 31。货车地图玩法需要配套更新的 Whoiskiller 数据包和资源包。
+
 ## 1.14.0+Alpha0.36 - 2026-10-10
 
 - Added authoritative Cleaning GUI bindings for map tasks. Closing before completion fails the attempt; player and session isolation, server-validated success and completed-state preservation also apply to cleaning.

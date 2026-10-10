@@ -68,6 +68,7 @@ public final class TaskSession {
             case MEMORY -> memory(action, item, x, y, elapsed);
             case PIPES -> pipes(action, item, x, y, elapsed);
             case CLEANING -> cleaning(action, x, y, now);
+            case KEEPGREEN -> keepGreen(action, x, y, now);
             case POWERSTATION, TELECOM, NUCLEAR, FOODSAFETY, CIVIL -> false;
         };
         if (progress == type.total && !complete) {
@@ -144,6 +145,38 @@ public final class TaskSession {
             for (int cell = 0; cell < TaskExtraLayout.CLEAN_CELLS; cell++)
                 if (layout.extra.stains[cell] >= 0 && !TaskExtraLayout.cleaned(cleaned, cell)) remaining |= 1 << layout.extra.stains[cell];
             mask = (~remaining) & 63; progress = Integer.bitCount(mask); feedback = WIPE;
+        }
+        return changed;
+    }
+
+    private boolean keepGreen(int action, double x, double y, long now) {
+        if (action == BEGIN) {
+            if (!KeepGreenLayout.inside(x, y)) return false;
+            dragging = 0; brushX = x; brushY = y; lastBrushAt = now;
+        } else if ((action != MOVE && action != END) || dragging != 0) return false;
+        double distance = Math.hypot(x - brushX, y - brushY);
+        long delta = Math.max(0, now - lastBrushAt);
+        boolean continuous = delta <= 300 && distance <= Math.min(64, (delta + 30) * .8);
+        int steps = continuous ? Math.max(1, (int) Math.ceil(distance / 2)) : 1;
+        boolean changed = false;
+        for (int step = 1; step <= steps; step++) {
+            double t = step / (double) steps;
+            double px = continuous ? brushX + (x - brushX) * t : x;
+            double py = continuous ? brushY + (y - brushY) * t : y;
+            if (!KeepGreenLayout.inside(px, py)) continue;
+            for (int cell = 0; cell < KeepGreenLayout.CELLS; cell++) {
+                if (!KeepGreenLayout.target(cell) || TaskExtraLayout.cleaned(cleaned, cell)) continue;
+                if (TaskLayout.near(px, py, KeepGreenLayout.cellX(cell), KeepGreenLayout.cellY(cell), 5)) {
+                    cleaned[cell / 64] |= 1L << (cell % 64); changed = true;
+                }
+            }
+        }
+        brushX = x; brushY = y; lastBrushAt = now;
+        if (action == END) dragging = -1;
+        if (changed) {
+            mask = 0;
+            for (int lamp = 0; lamp < 3; lamp++) if (KeepGreenLayout.percent(cleaned, lamp) >= 95) mask |= 1 << lamp;
+            progress = Integer.bitCount(mask); feedback = PLAY;
         }
         return changed;
     }

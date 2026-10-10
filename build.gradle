@@ -471,3 +471,49 @@ tasks.named('runSeriesRegressionTest') {
         logger.lifecycle(result.text)
     }
 }
+
+sourceSets { keepGreenRegressionTest {
+    compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+    runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+} }
+configurations {
+    keepGreenRegressionTestImplementation.extendsFrom implementation
+    keepGreenRegressionTestRuntimeOnly.extendsFrom runtimeOnly
+}
+dependencies {
+    keepGreenRegressionTestRuntimeOnly files('../../mods/fabric-carpet-26.3+v260915.jar', '../../mods/goosethings-1.14.0+Alpha0.45.jar', '../../mods/sound-physics-remastered-fabric-1.5.1+26.3.jar', '../../mods/cloth-config-26.3.158.jar')
+}
+loom {
+    mods { goosetools_series_test { sourceSet sourceSets.keepGreenRegressionTest } }
+    runs { keepGreenRegressionTest {
+        client()
+        source sourceSets.keepGreenRegressionTest
+        runDir 'build/keepgreen-regression-test'
+        vmArg '-Dkeepgreen.fixtureRoot=' + file('../..').absolutePath
+        programArg '--width'
+        programArg '1400'
+        programArg '--height'
+        programArg '1000'
+    } }
+}
+tasks.named('runKeepGreenRegressionTest') {
+    timeout = java.time.Duration.ofMinutes(6)
+    doFirst {
+        def run = file('build/keepgreen-regression-test')
+        run.mkdirs()
+        new File(run, 'result.txt').delete()
+        new File(run, 'options.txt').text = 'lang:zh_cn\nguiScale:2\npauseOnLostFocus:false\ntutorialStep:none\nresourcePacks:["file/series-names"]\n'
+        def config = new File(run, 'config/goosetools/task_markers.json')
+        config.parentFile.mkdirs()
+        config.bytes = file('../../config/goosetools/task_markers.json').bytes
+        def pack = new File(run, 'resourcepacks/series-names')
+        new File(pack, 'assets/minecraft/lang').mkdirs()
+        new File(pack, 'pack.mcmeta').bytes = file('../../resourcepacks/whois/pack.mcmeta').bytes
+        ['zh_cn','en_us'].each { lang -> new File(pack, 'assets/minecraft/lang/' + lang + '.json').bytes = file('../../resourcepacks/whois/assets/minecraft/lang/' + lang + '.json').bytes }
+    }
+    doLast {
+        def result = file('build/keepgreen-regression-test/result.txt')
+        if (!result.isFile() || !result.text.startsWith('PASS ')) throw new GradleException('Keep Green regression failed; inspect result.txt and logs/latest.log')
+        logger.lifecycle(result.text)
+    }
+}

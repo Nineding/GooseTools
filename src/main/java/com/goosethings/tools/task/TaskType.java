@@ -7,7 +7,8 @@ public enum TaskType {
     MEMORY("memory", "Memory buttons", 3), PIPES("pipes", "Connect pipes", 1),
     CLEANING("cleaning", "Wipe stains", 6), POWERSTATION("powerstation", "Restore power station", 4),
     TELECOM("telecom", "Restore telecom link", 4), NUCLEAR("nuclear", "Decay heat and radiation protection", 4),
-    FOODSAFETY("foodsafety", "Food safety and batch release", 4), CIVIL("civil", "Bridge checks and construction quality", 4);
+    FOODSAFETY("foodsafety", "Food safety and batch release", 4), CIVIL("civil", "Bridge checks and construction quality", 4),
+    KEEPGREEN("keepgreen", "Keep the Lights Green", 3);
 
     public final String id;
     public final String fallback;

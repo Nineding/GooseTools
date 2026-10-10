@@ -790,5 +790,17 @@
   "task.goosetools.civil.aggregate1": "粗骨料",
   "task.goosetools.foodsafety.deviation1": "热处理偏差；返工已验证",
   "task.goosetools.foodsafety.deviation2": "化学残留；无法返工",
-  "task.goosetools.foodsafety.clean_report": "题面残留检验：冲洗阳性、验证清洁阴性、加热阳性；工具须专用。"
+  "task.goosetools.foodsafety.clean_report": "题面残留检验：冲洗阳性、验证清洁阴性、加热阳性；工具须专用。",
+  "task.goosetools.keepgreen.title": "保持绿灯",
+  "task.goosetools.keepgreen.help": "按住左键拖动画笔，把三个红绿灯上方的红灯涂成绿色。",
+  "task.goosetools.ui.paint_percent": "%s%%",
+  "item.task.keepgreen.available": "保持绿灯",
+  "text.task.keepgreen.start": "用画笔把三个红灯涂成绿色。",
+  "text.task.keepgreen.unlocked": "已解锁破坏道具：召唤大运",
+  "item.sabotage.truck": "召唤大运",
+  "item.sabotage.truck.lore": "货车将在6秒内快速穿过街道，撞到的玩家会死亡并留下尸体。使用后冷却45秒。",
+  "item.sabotage.truck.busy": "大运正在行驶",
+  "item.sabotage.truck.cooldown": "召唤大运（%s秒）",
+  "subtitle.dead.truck": "你被大运撞倒了。",
+  "task.goosetools.ui.signal_panel": "红绿灯控制面板"
 }

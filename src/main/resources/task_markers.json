@@ -552,6 +552,11 @@
       "translation_key": "item.task.wipeglass_lab.available",
       "fallback": "Wipe Glass: Secret Laboratory",
       "category": "series"
+    },
+    "keepgreen": {
+      "translation_key": "item.task.keepgreen.available",
+      "fallback": "Keep the Lights Green",
+      "category": "duck"
     }
   },
   "gradients": {

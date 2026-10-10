@@ -790,5 +790,17 @@
   "task.goosetools.civil.aggregate1": "Coarse aggregate",
   "task.goosetools.foodsafety.deviation1": "Thermal deviation; rework validated",
   "task.goosetools.foodsafety.deviation2": "Chemical residue; irreversible",
-  "task.goosetools.foodsafety.clean_report": "Given residue assay: rinse +, validated clean −, heat +; dedicated tools only."
+  "task.goosetools.foodsafety.clean_report": "Given residue assay: rinse +, validated clean −, heat +; dedicated tools only.",
+  "task.goosetools.keepgreen.title": "Keep the Lights Green",
+  "task.goosetools.keepgreen.help": "Hold and drag the green brush over all three red lights.",
+  "task.goosetools.ui.paint_percent": "%s%%",
+  "item.task.keepgreen.available": "Keep the Lights Green",
+  "text.task.keepgreen.start": "Paint all three red lights green.",
+  "text.task.keepgreen.unlocked": "Summon Truck unlocked",
+  "item.sabotage.truck": "Summon Truck",
+  "item.sabotage.truck.lore": "A fast truck drives through the street in 6 seconds. Anyone hit dies and leaves a corpse. Cooldown: 45 seconds.",
+  "item.sabotage.truck.busy": "Truck in transit",
+  "item.sabotage.truck.cooldown": "Summon Truck (%s s)",
+  "subtitle.dead.truck": "You were hit by a truck.",
+  "task.goosetools.ui.signal_panel": "Traffic signal panel"
 }

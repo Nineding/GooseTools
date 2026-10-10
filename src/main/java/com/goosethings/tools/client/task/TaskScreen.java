@@ -1,6 +1,7 @@
 package com.goosethings.tools.client.task;
 
 import com.goosethings.tools.task.TaskLayout;
+import com.goosethings.tools.task.KeepGreenLayout;
 import com.goosethings.tools.task.TaskExtraLayout;
 import com.goosethings.tools.task.TaskPackets;
 import com.goosethings.tools.task.TaskSession;
@@ -24,7 +25,7 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
     private static final int INK = 0xFFF0F0EA, MUTED = 0xFFB3BCC1, GREEN = 0xFF7BCF77,
             RED = 0xFFE77969, EDGE = 0xFF7C8A91;
     private static final Identifier DIAL = texture("dial"), READER = texture("reader"),
-            BIN = texture("bin"), KNOB = texture("knob"), CARD = texture("key_card");
+            BIN = texture("bin"), KNOB = texture("knob"), CARD = texture("key_card"), GREEN_BRUSH = texture("green_paint_brush");
     private static final int[] WIRE_COLORS = {0xFFFF7588, 0xFF67BAFF, 0xFFFFD066, 0xFFBB91FF};
     private static final String[] FEEDBACK = {"waiting", "play", "success", "miss", "wrong_wire", "insert_card",
             "card_ready", "too_fast", "too_slow", "incomplete_swipe", "drop_in_bin", "align_knob",
@@ -102,7 +103,7 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
         graphics.fill(18, 46, 402, 48, 0xFFBD9563);
         for (int x : new int[]{4, 413}) for (int y : new int[]{4, 312}) screw(graphics, x, y);
         graphics.text(font, getTitle(), 18, 14, INK, false);
-        graphics.text(font, text("trial", "Task trial"), 18, 29, MUTED, false);
+        graphics.text(font, type == TaskType.KEEPGREEN ? text("signal_panel", "Traffic signal panel") : text("trial", "Task trial"), 18, 29, MUTED, false);
         bevel(graphics, 382, 12, 25, 24, TaskLayout.CLOSE.contains(mx, my) ? 0xFFB86459 : 0xFF79473F);
         center(graphics, text("close", "×"), 394, 19, INK);
         String elapsed = String.format(Locale.ROOT, "%.1f", elapsed() / 1000.0);
@@ -118,6 +119,7 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
             case MEMORY -> "Watch the flashing buttons, then repeat their order.";
             case PIPES -> "Rotate copper pipes to connect IN to OUT, then test the water.";
             case CLEANING -> "Hold the left mouse button and wipe every stain with the sponge.";
+            case KEEPGREEN -> "Hold and drag the green brush over all three red lights.";
             case POWERSTATION -> "Restore the power station.";
             case TELECOM, NUCLEAR, FOODSAFETY, CIVIL -> "Complete the professional simulation.";
         };
@@ -137,6 +139,7 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
             case MEMORY -> drawMemory(graphics);
             case PIPES -> drawPipes(graphics, mx, my);
             case CLEANING -> drawCleaning(graphics, mx, my);
+            case KEEPGREEN -> drawKeepGreen(graphics, mx, my);
         }
         int feedback = state == null ? TaskSession.WAITING : state.feedback();
         int color = feedback == TaskSession.MISS || feedback == TaskSession.WRONG_WIRE
@@ -374,6 +377,29 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
         else item(g, sponge, 366, 154, 2.5F, 49);
     }
 
+    private void drawKeepGreen(GuiGraphicsExtractor g, double mx, double my) {
+        long[] bits = state == null ? new long[TaskExtraLayout.CLEAN_WORDS] : state.cleaned();
+        for (int lamp = 0; lamp < 3; lamp++) {
+            int cx = KeepGreenLayout.x(lamp);
+            bevel(g, cx - 32, 89, 64, 149, 0xFF393F3E);
+            g.fill(cx - 27, 94, cx + 27, 233, 0xFF14191A);
+            for (int y : new int[]{126, 170, 214}) { circle(g, cx, y, 23, 0xFF0B1011); circle(g, cx, y, 20, 0xFF28312D); }
+            circle(g, cx, 126, 20, masked(lamp) ? 0xFF55D862 : 0xFFE3483D);
+            circle(g, cx, 170, 18, 0xFF655529); circle(g, cx, 214, 18, 0xFF244732);
+            for (int cell = lamp * KeepGreenLayout.PER_LAMP; cell < (lamp + 1) * KeepGreenLayout.PER_LAMP; cell++)
+                if (KeepGreenLayout.target(cell) && TaskExtraLayout.cleaned(bits, cell)) {
+                    int x = (int) (KeepGreenLayout.cellX(cell) - 2), y = (int) (KeepGreenLayout.cellY(cell) - 2);
+                    g.fill(x, y, x + 4, y + 4, (cell & 1) == 0 ? 0xFF55D862 : 0xFF49C955);
+                }
+            center(g, text("paint_percent", "%s%%", KeepGreenLayout.percent(bits, lamp)), cx, 246, masked(lamp) ? GREEN : MUTED);
+            screw(g, cx - 29, 92); screw(g, cx + 25, 229);
+        }
+        if (mx >= 19 && mx <= 401 && my >= 81 && my <= 264) {
+            int x = (int) mx, y = (int) my;
+            sprite(g, GREEN_BRUSH, x - 12, y - 5, 48, 48);
+        }
+    }
+
     @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (event.button() != InputConstants.MOUSE_BUTTON_LEFT) return super.mouseClicked(event, doubleClick);
         Transform t = transform(); double x = t.virtualX(event.x()), y = t.virtualY(event.y());
@@ -423,6 +449,7 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
                     if (cell >= 0 || TaskExtraLayout.FLOW.contains(x, y)) { send(TaskSession.HIT, cell, x, y); clickSound(); }
                 }
             }
+            case KEEPGREEN -> { if (KeepGreenLayout.inside(x, y)) { dragging = 0; send(TaskSession.BEGIN, 0, x, y); lastMove = now(); } }
             case CLEANING -> { if (TaskExtraLayout.GLASS.contains(x, y)) { dragging = 0; send(TaskSession.BEGIN, 0, x, y); lastMove = now(); } }
         }
         return true;
@@ -431,7 +458,7 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
     @Override public boolean mouseDragged(MouseButtonEvent event, double deltaX, double deltaY) {
         if (event.button() != InputConstants.MOUSE_BUTTON_LEFT || dragging < 0) return super.mouseDragged(event, deltaX, deltaY);
         Transform t = transform(); updateDrag(t.virtualX(event.x()), t.virtualY(event.y()));
-        if ((type == TaskType.KNOBS || type == TaskType.SWIPE || type == TaskType.CLEANING) && now() - lastMove >= 35) {
+        if ((type == TaskType.KNOBS || type == TaskType.SWIPE || type == TaskType.CLEANING || type == TaskType.KEEPGREEN) && now() - lastMove >= 35) {
             send(TaskSession.MOVE, dragging, pointerX, pointerY); lastMove = now();
         }
         return true;
