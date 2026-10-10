@@ -5,7 +5,9 @@ import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public final class GgdMapState {
@@ -20,6 +22,8 @@ public final class GgdMapState {
     private static boolean gameActiveSticky;
     private static final Map<String, Marker> cachedSpecialMarkers = new HashMap<>();
     private static final Map<Integer, String> cachedSpecialMarkerIds = new HashMap<>();
+    private static final Map<String, Integer> markerEntityIds = new HashMap<>();
+    private static final Map<Integer, Vec3> pendingMarkerPositions = new HashMap<>();
 
     private GgdMapState() {
     }
@@ -145,19 +149,55 @@ public final class GgdMapState {
         }
     }
 
+    /**
+     * Fake task displays are not part of the world. The client drops one whose
+     * chunk is unloaded and never asks for it again, so remember the spawn
+     * position before that can happen.
+     */
+    public static void rememberSpawn(int entityId, double x, double y, double z) {
+        pendingMarkerPositions.put(entityId, new Vec3(x, y, z));
+    }
+
+    public static boolean rememberEncodedName(int entityId, String encoded) {
+        Vec3 position = pendingMarkerPositions.get(entityId);
+        if (position == null || encoded == null || !encoded.startsWith(MARKER_PREFIX)) {
+            return false;
+        }
+        String[] parts = encoded.split(":", 3);
+        if (parts.length < 2 || parts[1].isEmpty()) {
+            return false;
+        }
+        String kind = parts.length == 3 && !parts[2].isEmpty() ? parts[2] : "normal";
+        cacheSpecialMarker(entityId, new Marker(parts[1], kind, position));
+        return true;
+    }
+
+    public static Collection<Marker> cachedMarkers() {
+        return List.copyOf(cachedSpecialMarkers.values());
+    }
+
     public static void removeMarkerEntity(int entityId) {
+        pendingMarkerPositions.remove(entityId);
         String markerId = cachedSpecialMarkerIds.remove(entityId);
-        if (markerId != null) {
-            cachedSpecialMarkers.remove(markerId);
-            if (GAME_ACTIVE.equals(markerId)) {
-                gameActiveSticky = false;
-            }
+        if (markerId == null) {
+            return;
+        }
+        Integer owner = markerEntityIds.get(markerId);
+        if (owner != null && owner != entityId) {
+            return;
+        }
+        markerEntityIds.remove(markerId);
+        cachedSpecialMarkers.remove(markerId);
+        if (GAME_ACTIVE.equals(markerId)) {
+            gameActiveSticky = false;
         }
     }
 
     public static void clearCachedMarkers() {
         cachedSpecialMarkers.clear();
         cachedSpecialMarkerIds.clear();
+        markerEntityIds.clear();
+        pendingMarkerPositions.clear();
         gameActiveSticky = false;
     }
 
@@ -174,21 +214,23 @@ public final class GgdMapState {
             return null;
         }
         String id = parts[1];
-        if (!MEETING_LAST_POSITION.equals(id)
-                && !REPORTED_BODY.equals(id)
-                && !GAME_ACTIVE.equals(id)
-                && !LAYOUT_POOLCORE_BASIC.equals(id)
-                && !LAYOUT_POOLCORE_ADVANCE.equals(id)) {
+        if (id.isEmpty()) {
             return null;
         }
-        String kind = parts.length == 3 ? parts[2] : "normal";
+        String kind = parts.length == 3 && !parts[2].isEmpty() ? parts[2] : "normal";
         return new Marker(id, kind, entity.position());
     }
 
     private static void cacheSpecialMarker(int entityId, Marker marker) {
+        Integer previousOwner = markerEntityIds.put(marker.id(), entityId);
+        if (previousOwner != null && previousOwner != entityId) {
+            cachedSpecialMarkerIds.remove(previousOwner);
+            pendingMarkerPositions.remove(previousOwner);
+        }
         String previousMarkerId = cachedSpecialMarkerIds.put(entityId, marker.id());
         if (previousMarkerId != null && !previousMarkerId.equals(marker.id())) {
             cachedSpecialMarkers.remove(previousMarkerId);
+            markerEntityIds.remove(previousMarkerId, entityId);
         }
         cachedSpecialMarkers.put(marker.id(), marker);
     }

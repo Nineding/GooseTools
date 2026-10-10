@@ -538,6 +538,11 @@
       "fallback": "Whac-A-Mole",
       "category": "normal"
     },
+    "shootgoal": {
+      "translation_key": "item.task.shootgoal.available",
+      "fallback": "Shoot a Goal",
+      "category": "normal"
+    },
     "wipeglass_hut": {
       "translation_key": "item.task.wipeglass_hut.available",
       "fallback": "Wipe Glass: Collapsed Hut",

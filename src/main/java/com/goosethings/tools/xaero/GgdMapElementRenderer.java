@@ -12,7 +12,6 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.data.AtlasIds;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import net.minecraft.world.entity.Display;
 import xaero.common.graphics.renderer.multitexture.MultiTextureRenderTypeRendererProvider;
 import xaero.hud.minimap.element.render.MinimapElementGraphics;
 import xaero.hud.minimap.element.render.MinimapElementReader;
@@ -411,43 +410,32 @@ public final class GgdMapElementRenderer
                         ElementKind.REPORTED_BODY);
             }
 
-            for (var entity : minecraft.level.entitiesForRendering()) {
-                if (!(entity instanceof Display.BlockDisplay) || entity.getCustomName() == null) {
-                    continue;
-                }
-                String encoded = entity.getCustomName().getString();
-                if (!encoded.startsWith(GgdMapState.MARKER_PREFIX)) {
-                    continue;
-                }
-                String[] parts = encoded.split(":", 3);
-                if (parts.length < 2) {
-                    continue;
-                }
-                String id = parts[1];
+            for (GgdMapState.Marker marker : GgdMapState.cachedMarkers()) {
+                String id = marker.id();
                 if (GgdMapState.MEETING_LAST_POSITION.equals(id)
                         || GgdMapState.REPORTED_BODY.equals(id)
                         || GgdMapState.isControlMarker(id)) {
                     continue;
                 }
+                double x = marker.position().x;
+                double y = marker.position().y;
+                double z = marker.position().z;
                 if (isBellMarker(id)) {
-                    if (!inWorld && active.contains(entity.getX(), entity.getZ())) {
-                        result.add(Element.special(ElementKind.BELL,
-                                entity.getX(), entity.getY(), entity.getZ()));
+                    if (!inWorld && active.contains(x, z)) {
+                        result.add(Element.special(ElementKind.BELL, x, y, z));
                     }
                     continue;
                 }
                 if (isBroadcastMarker(id)) {
-                    if (!inWorld && active.contains(entity.getX(), entity.getZ())) {
-                        result.add(Element.special(ElementKind.BROADCAST,
-                                entity.getX(), entity.getY(), entity.getZ()));
+                    if (!inWorld && active.contains(x, z)) {
+                        result.add(Element.special(ElementKind.BROADCAST, x, y, z));
                     }
                     continue;
                 }
-                if (active.contains(entity.getX(), entity.getZ())) {
-                    String kind = parts.length == 3 ? parts[2] : "normal";
-                    result.add(Element.task(id, entity.getX(), entity.getY(), entity.getZ(),
+                if (active.contains(x, z)) {
+                    String kind = marker.kind();
+                    result.add(Element.task(id, x, y, z,
                             "gold".equalsIgnoreCase(kind), isEmergencyTask(kind)));
-
                 }
             }
             frameElements = result;
