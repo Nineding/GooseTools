@@ -16,6 +16,8 @@ public final class ArcadeStations {
     private static final Map<UUID, Integer> usedAt = new HashMap<>();
     private ArcadeStations() {}
     public static void register() {
+        net.fabricmc.loader.api.FabricLoader.getInstance().getObjectShare().put("goosetools:ghost_arcade_task_input",
+                (java.util.function.BiPredicate<ServerPlayer, net.minecraft.core.BlockPos>) ArcadeStations::ghostTaskInputAllowed);
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STOPPED.register(s -> usedAt.clear());
         net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.DISCONNECT.register((h, s) -> usedAt.remove(h.player.getUUID()));
         UseBlockCallback.EVENT.register((player, level, hand, hit) -> {
@@ -39,6 +41,13 @@ public final class ArcadeStations {
         if (x == -1670 && z == -507) return GameType.SNAKE;
         if (x == -1674 && z == -507) return GameType.MINES;
         return null;
+    }
+    public static boolean ghostTaskInputAllowed(ServerPlayer player, net.minecraft.core.BlockPos pos) {
+        return player.entityTags().contains("spectator") && player.entityTags().contains("dlcGhostActive")
+                && player.entityTags().contains("inTaskArcadeFan") && GuiTaskBridge.map(player) == 11
+                && GuiTaskBridge.eligible(player) && insideArcade(player)
+                && typeAt(pos.getX(), pos.getY(), pos.getZ()) != null
+                && player.isWithinBlockInteractionRange(pos, 0);
     }
     public static boolean insideArcade(ServerPlayer p) {
         return p.level().dimension().equals(Level.OVERWORLD) && insideArcade(p.getX(), p.getY(), p.getZ());

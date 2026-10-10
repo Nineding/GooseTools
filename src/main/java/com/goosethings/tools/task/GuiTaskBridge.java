@@ -33,18 +33,20 @@ public final class GuiTaskBridge {
             for (UUID id : java.util.List.copyOf(bindings.keySet())) {
                 ServerPlayer player = server.getPlayerList().getPlayer(id);
                 if (player == null) { bindings.remove(id); continue; }
-                if (!player.entityTags().contains("inTaskGooseGui") || !eligible(player)) clear(player);
+                Binding binding = bindings.get(id);
+                if (binding != null && (!player.entityTags().contains("inTaskGooseGui") || !eligible(player)
+                        || !GuiTaskEligibility.kindAllowed(player.entityTags(), binding.kind))) clear(player);
             }
         });
         ArcadeStations.register();
         PurificationStation.register();
     }
     public static boolean eligible(ServerPlayer p) {
-        var tags = p.entityTags();
-        return p.isAlive() && tags.contains("players") && !tags.contains("spectator")
-                && !tags.contains("deadInMap") && !tags.contains("inTalk") && !tags.contains("endGame") && !tags.contains("inPelican")
-                && !tags.contains("inDream") && !tags.contains("astralProjected") && !tags.contains("sniperScoped")
-                && !tags.contains("esperPossessing") && !TaskServer.meeting(p.level().getServer(), p);
+        var sb = p.level().getServer().getScoreboard();
+        var objective = sb.getObjective("ggdadv");
+        var dlc = objective == null ? null : sb.getPlayerScoreInfo(ScoreHolder.forNameOnly("FullBloodDLC"), objective);
+        return p.isAlive() && GuiTaskEligibility.eligible(p.entityTags(), map(p), dlc != null && dlc.value() == 1)
+                && !TaskServer.meeting(p.level().getServer(), p);
     }
     public static LiteralArgumentBuilder<CommandSourceStack> command() {
         var players = Commands.argument("players", EntityArgument.players());
@@ -66,7 +68,8 @@ public final class GuiTaskBridge {
     }
     private static boolean start(ServerPlayer p, String kind) {
         clear(p);
-        if (!eligible(p) || !MandatoryHandshake.isVerified(p) || !p.entityTags().contains("inTaskGooseGui")) return false;
+        if (!eligible(p) || !GuiTaskEligibility.kindAllowed(p.entityTags(), kind)
+                || !MandatoryHandshake.isVerified(p) || !p.entityTags().contains("inTaskGooseGui")) return false;
         long id;
         if (kind.equals("arcade")) id = 0;
         else if (kind.equals("traffic") || kind.equals("whack")) {
@@ -88,7 +91,7 @@ public final class GuiTaskBridge {
     }
     public static void gameProgress(ServerPlayer p, GameSession game, boolean station) {
         Binding b = bindings.get(p.getUUID());
-        if (b == null || b.ended || !eligible(p)) return;
+        if (b == null || b.ended || !eligible(p) || !GuiTaskEligibility.kindAllowed(p.entityTags(), b.kind)) return;
         if (b.kind.equals("arcade")) {
             if (!station || !ArcadeStations.insideArcade(p)) return;
             // Each station session owns a delta cursor; closing/reopening never replays old time.
@@ -110,7 +113,8 @@ public final class GuiTaskBridge {
     public static void taskProgress(ServerPlayer p, long id, boolean complete) {
         Binding b = bindings.get(p.getUUID());
         if (b != null && !b.ended && b.session == id && !b.kind.equals("traffic")
-                && !b.kind.equals("whack") && !b.kind.equals("arcade") && eligible(p) && complete) success(p, b);
+                && !b.kind.equals("whack") && !b.kind.equals("arcade") && eligible(p)
+                && GuiTaskEligibility.kindAllowed(p.entityTags(), b.kind) && complete) success(p, b);
     }
     public static boolean taskBound(ServerPlayer p, long id) {
         Binding b = bindings.get(p.getUUID());

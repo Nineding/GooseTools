@@ -17,7 +17,8 @@ public final class PurificationStation {
                     || !level.dimension().equals(Level.OVERWORLD) || GuiTaskBridge.map(p) != 11) return InteractionResult.PASS;
             var pos = hit.getBlockPos();
             if (!PurificationLayout.station(pos.getX(), pos.getY(), pos.getZ())) return InteractionResult.PASS;
-            if (!p.isWithinBlockInteractionRange(pos, 0) || !GuiTaskBridge.eligible(p)) return InteractionResult.FAIL;
+            if (!p.isWithinBlockInteractionRange(pos, 0) || !GuiTaskBridge.eligible(p)
+                    || !GuiTaskEligibility.kindAllowed(p.entityTags(), "purification")) return InteractionResult.FAIL;
             if (!p.entityTags().contains("inTaskPurificationConsole")) p.level().getServer().getCommands().performPrefixedCommand(
                     p.createCommandSourceStack().withPermission(PermissionSet.ALL_PERMISSIONS).withSuppressedOutput(),
                     "function ggd:eagleton_simplify/purification/open");
@@ -26,7 +27,8 @@ public final class PurificationStation {
     }
     public static boolean valid(ServerPlayer p, TaskType type) {
         if (type != TaskType.PURIFICATION && type != TaskType.PURIFICATIONLASER) return true;
-        if (!GuiTaskBridge.eligible(p) || GuiTaskBridge.map(p) != 11 || !p.level().dimension().equals(Level.OVERWORLD)
+        if (!GuiTaskBridge.eligible(p) || !GuiTaskEligibility.kindAllowed(p.entityTags(), type.id)
+                || GuiTaskBridge.map(p) != 11 || !p.level().dimension().equals(Level.OVERWORLD)
                 || p.distanceToSqr(-1649.5, 72.5, -546.5) > 36) return false;
         if (type == TaskType.PURIFICATIONLASER) return p.entityTags().contains("evil") && !p.entityTags().contains("dlcGhostActive");
         return value(p, "#Live") == 1 && value(p, "#Disabled") == 0;
