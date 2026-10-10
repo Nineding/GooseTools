@@ -821,5 +821,7 @@
   "text.purification.success": "净化完成",
   "text.purification.success.detail": "净化仓已清除你身上的有害状态。",
   "text.logs.purification": "%s 被净化仓驱除。",
-  "ggd.log.purification": "%s 被净化仓驱除。"
+  "ggd.log.purification": "%s 被净化仓驱除。",
+  "task.goosetools.ui.purify_paused": "已暂停，进度已保留；继续点按即可充能。",
+  "task.goosetools.ui.purify_clicks": "连续点按累计五秒，中断时保留进度。"
 }

@@ -29,10 +29,10 @@ import java.util.*;
 /** Isolated world: real block packets, Screens and bound results; actual datapack functions for lifecycle checks. */
 public final class PurificationRegression implements ClientModInitializer {
     private static final String BASE="ggd:eagleton_simplify/purification/", TASK="ggd:task/eagleton_simplify/purificationlaser/";
-    private boolean opened, prepared, finished, requested, shot, verifiedCharge;
+    private boolean opened, prepared, finished, requested, shot, verifiedCharge, chargingPaused, resumed;
     private volatile boolean ready, done;
     private int scenario, wait, assertions, digit;
-    private long last, start=System.currentTimeMillis();
+    private long last, pauseUntil, savedCharge, start=System.currentTimeMillis();
     @Override public void onInitializeClient(){ClientTickEvents.END_CLIENT_TICK.register(this::tick);}
     private void tick(Minecraft mc){
         if(finished||!mc.isGameLoadFinished())return;
@@ -80,6 +80,15 @@ public final class PurificationRegression implements ClientModInitializer {
                 if(System.currentTimeMillis()-last<160)return;
                 wait++;
                 var state=s.currentState();
+                if(state.stage()>0 && state.phaseAt()>=1000 && !chargingPaused){
+                    chargingPaused=true;savedCharge=state.phaseAt();pauseUntil=System.currentTimeMillis()+1200;return;
+                }
+                if(chargingPaused && !resumed){
+                    if(System.currentTimeMillis()<pauseUntil)return;
+                    require(state.stage()==1,"clicking pause did not pause charging");
+                    require(state.phaseAt()>=savedCharge,"clicking pause discarded earned progress");
+                    resumed=true;
+                }
                 if(state.stage()==0){
                     if(digit<4){String code=String.format(Locale.ROOT,"%04d",PurificationLayout.password(screenSeed(s)));int key=48+code.charAt(digit++)-'0';s.keyPressed(new KeyEvent(key,key,0));}
                     else{var box=PurificationLayout.key(11);click(s,box.x()+5,box.y()+5);}
@@ -88,7 +97,7 @@ public final class PurificationRegression implements ClientModInitializer {
             }
             if(scenario==6){
                 if(!requested){requested=true;server(mc,()->{require(verifiedCharge,"console activation sequence skipped");require(!player(mc).entityTags().contains("inTaskPurificationConsole"),"successful console not closed");run(mc,BASE+"cleanup");require(get(mc,"#Live")==0&&!player(mc).entityTags().contains("task.purificationlaser.finished"),"cleanup left state");done=true;});return;}
-                if(done)finish(mc,"PASS "+assertions+" checks: exact two block packets, real console/laser mouse and keyboard input, close/retry and bound unlock, 1200+1200 tick phases, meeting gates, bomb/Cupid cleanup, exact chamber feet bounds, navigation, inventory.14, successful activation and cleanup; four GPU screenshots.");
+                if(done)finish(mc,"PASS "+assertions+" checks: exact two block packets, real console/laser mouse and keyboard input, close/retry and bound unlock, 1200+1200 tick phases, meeting gates, bomb/Cupid cleanup, exact chamber feet bounds, navigation, inventory.14, clicking pause/resume preserves charge, successful activation and cleanup; four GPU screenshots.");
             }
         }catch(Throwable e){GooseTools.LOGGER.error("Purification regression",e);finish(mc,"FAIL "+e);}
     }

@@ -12,4 +12,6 @@ The run creates a fresh test world and never opens the real map. It sends real b
 
 The static dialog and predicate registries are copied before world creation. The fixture enables only the GUI and purification load/tick functions. Test classes are excluded from the runtime JAR.
 
+Charging counts intervals of 100–500 ms between real accepted clicks. Longer gaps pause without clearing phaseAt; the first click after a pause resumes without counting idle time. Server ticks cannot advance charge or complete it. Unit tests cover the exact pause boundary, gaps with and without intervening server ticks, repeated pause/resume until five seconds, forged timestamps and bursts. The native GUI regression pauses input for 1.2 seconds after earning progress, verifies that progress remains, then resumes and completes.
+
 Dedicated-server smoke must additionally load the installable JAR with the full map datapack and GooseThings. Validate original and borrowed Esper sessions independently: purify the host, verify only the matching possessor dies, and verify the corpse remains at the retained body position. Check original and borrowed Cupid cleanup against two marked players while preserving formal Lovers tags. The new death is an environment death and must not credit a duck kill or first knife achievement.

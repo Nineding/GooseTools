@@ -203,7 +203,8 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
             long charge = state == null ? 0 : state.phaseAt();
             g.fill(28,286,392,300,0xFF08271F); g.fill(29,287,29+(int)(362*Math.min(5000,charge)/5000),299,glow);
             center(g,text("purify_charge","Charge: %s / 5.0 s",String.format(Locale.ROOT,"%.1f",charge/1000.0)),210,268,glow);
-            if (state != null && state.feedback() == TaskSession.MISS) center(g,text(state.stage() == 0 ? "purify_wrong" : "purify_gap",state.stage() == 0 ? "Incorrect code. Try again." : "Click gap exceeded 0.5 s. Charge reset."),210,307,RED);
+            if (state != null && state.feedback() == TaskSession.MISS && state.stage() == 0) center(g,text("purify_wrong","Incorrect code. Try again."),210,307,RED);
+            else if (accepted) center(g,text(state.stage() == 1 && charge > 0 ? "purify_paused" : "purify_clicks",state.stage() == 1 && charge > 0 ? "Paused. Progress saved; click to continue." : "Keep clicking; pauses preserve progress."),210,307,pale);
         } else {
             PurificationLaserLayout l = new PurificationLaserLayout(open.seed()); int bits = state == null ? l.initialBits : state.pipeBits();
             var beam = l.trace(bits);

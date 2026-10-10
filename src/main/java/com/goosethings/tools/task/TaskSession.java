@@ -23,7 +23,7 @@ public final class TaskSession {
     private final int[] pipeRotations;
     private final long[] cleaned = new long[TaskExtraLayout.CLEAN_WORDS];
     private int stage, cursor;
-    private long chargeSince = -1, lastCharge = -1;
+    private long lastCharge = -1;
     private final PurificationLaserLayout laser;
     private int laserBits;
     private long phaseAt, lastBrushAt;
@@ -302,9 +302,11 @@ public final class TaskSession {
         if (item != 12 || stage == 0 || !PurificationLayout.ACTIVATE.contains(x, y)) return false;
         // Real clicks only. Mouse-hold/MOVE and bursts cannot advance charging.
         if (lastCharge >= 0 && now - lastCharge < 100) return false;
-        if (chargeSince < 0 || now - lastCharge > 500) chargeSince = now;
-        lastCharge = now; stage = 2; phaseAt = Math.min(5000, now - chargeSince); feedback = PLAY;
-        if (now - chargeSince >= 5000) progress = 1;
+        // Count active intervals between accepted clicks. A gap pauses, preserving earned time;
+        // the first click after a pause establishes a new baseline without counting idle time.
+        if (lastCharge >= 0 && now - lastCharge <= 500) phaseAt = Math.min(5000, phaseAt + now - lastCharge);
+        lastCharge = now; stage = 2; feedback = PLAY;
+        if (phaseAt >= 5000) progress = 1;
         return true;
     }
     private boolean purificationLaser(int action, int item, double x, double y) {
@@ -317,9 +319,8 @@ public final class TaskSession {
 
     public boolean tick(long now) {
         if (type == TaskType.PURIFICATION && started && !complete && stage == 2) {
-            if (now - lastCharge > 500) { chargeSince = -1; stage = 1; phaseAt = 0; feedback = MISS; }
-            else phaseAt = Math.min(5000, now - chargeSince);
-            return true;
+            if (now - lastCharge > 500) { stage = 1; feedback = PLAY; return true; }
+            return false;
         }
         if (profession != null) return profession.tick(now);
         if (station != null) return station.tick(now);

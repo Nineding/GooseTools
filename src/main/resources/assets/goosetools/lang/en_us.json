@@ -821,5 +821,7 @@
   "text.purification.success": "Purified",
   "text.purification.success.detail": "Purification removed harmful effects.",
   "text.logs.purification": "%s was purged by the purification chamber.",
-  "ggd.log.purification": "%s was purged by the purification chamber."
+  "ggd.log.purification": "%s was purged by the purification chamber.",
+  "task.goosetools.ui.purify_paused": "Paused. Progress saved; click to continue.",
+  "task.goosetools.ui.purify_clicks": "Keep clicking; pauses preserve progress."
 }

@@ -31,11 +31,35 @@ final class PurificationSessionTest {
         now+=50; key(11); assertEquals(0,s.stage()); assertEquals(0,s.cursor());
         key(12); assertFalse(s.complete());
     }
-    @Test void clickGapBoundaryResetsAndHoldDoesNotCharge() {
+    @Test void clickGapPausesWithoutLosingEarnedProgress() {
         unlock(); now+=100; key(12); now+=500; key(12); assertEquals(2,s.stage());
-        now+=501; s.tick(now); assertEquals(1,s.stage()); assertEquals(0,s.phaseAt());
+        assertEquals(500,s.phaseAt());
+        now+=501; s.tick(now); assertEquals(1,s.stage()); assertEquals(500,s.phaseAt());
         assertFalse(s.apply(seq++,TaskSession.MOVE,12,220,210,now,now,0));
-        now+=5000; s.tick(now); assertFalse(s.complete());
+        now+=5000; s.tick(now); assertFalse(s.complete()); assertEquals(500,s.phaseAt());
+        assertTrue(key(12)); assertEquals(500,s.phaseAt());
+        now+=200; assertTrue(key(12)); assertEquals(700,s.phaseAt());
+    }
+    @Test void pauseBetweenInputsAlsoPreservesProgressWithoutCountingIdleTime() {
+        unlock(); now+=100; key(12); now+=200; key(12); assertEquals(200,s.phaseAt());
+        // An action may arrive before the next tick; both paths must treat the gap equally.
+        now+=5000; assertTrue(key(12)); assertEquals(200,s.phaseAt()); assertFalse(s.complete());
+        now+=300; assertTrue(key(12)); assertEquals(500,s.phaseAt());
+    }
+    @Test void multiplePausesAccumulateFiveSecondsOfActualClicking() {
+        unlock(); now+=100; key(12);
+        for(int group=0;group<5;group++) {
+            for(int click=0;click<5;click++) {
+                now+=200; assertTrue(key(12));
+                if(group<4 || click<4) assertFalse(s.complete());
+            }
+            if(group<4) {
+                long earned=s.phaseAt(); now+=2000; s.tick(now);
+                assertEquals(earned,s.phaseAt()); assertFalse(s.complete());
+                assertTrue(key(12)); assertEquals(earned,s.phaseAt());
+            }
+        }
+        assertEquals(5000,s.phaseAt()); assertTrue(s.complete());
     }
     @Test void forgedTimestampsAndBurstsCannotComplete() {
         unlock(); now+=100; key(12);
