@@ -2,6 +2,7 @@ package com.goosethings.tools.client.task;
 
 import com.goosethings.tools.task.TaskLayout;
 import com.goosethings.tools.task.KeepGreenLayout;
+import com.goosethings.tools.task.CutWiresLayout;
 import com.goosethings.tools.task.TaskExtraLayout;
 import com.goosethings.tools.task.TaskPackets;
 import com.goosethings.tools.task.TaskSession;
@@ -25,7 +26,7 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
     private static final int INK = 0xFFF0F0EA, MUTED = 0xFFB3BCC1, GREEN = 0xFF7BCF77,
             RED = 0xFFE77969, EDGE = 0xFF7C8A91;
     private static final Identifier DIAL = texture("dial"), READER = texture("reader"),
-            BIN = texture("bin"), KNOB = texture("knob"), CARD = texture("key_card"), GREEN_BRUSH = texture("green_paint_brush");
+            BIN = texture("bin"), KNOB = texture("knob"), CARD = texture("key_card"), GREEN_BRUSH = texture("green_paint_brush"), SCISSORS = texture("wire_scissors");
     private static final int[] WIRE_COLORS = {0xFFFF7588, 0xFF67BAFF, 0xFFFFD066, 0xFFBB91FF};
     private static final String[] FEEDBACK = {"waiting", "play", "success", "miss", "wrong_wire", "insert_card",
             "card_ready", "too_fast", "too_slow", "incomplete_swipe", "drop_in_bin", "align_knob",
@@ -103,7 +104,7 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
         graphics.fill(18, 46, 402, 48, 0xFFBD9563);
         for (int x : new int[]{4, 413}) for (int y : new int[]{4, 312}) screw(graphics, x, y);
         graphics.text(font, getTitle(), 18, 14, INK, false);
-        graphics.text(font, type == TaskType.KEEPGREEN ? text("signal_panel", "Traffic signal panel") : text("trial", "Task trial"), 18, 29, MUTED, false);
+        graphics.text(font, type == TaskType.KEEPGREEN ? text("signal_panel", "Traffic signal panel") : type == TaskType.CUTWIRES ? text("wire_panel", "Broadcast wiring panel") : text("trial", "Task trial"), 18, 29, MUTED, false);
         bevel(graphics, 382, 12, 25, 24, TaskLayout.CLOSE.contains(mx, my) ? 0xFFB86459 : 0xFF79473F);
         center(graphics, text("close", "×"), 394, 19, INK);
         String elapsed = String.format(Locale.ROOT, "%.1f", elapsed() / 1000.0);
@@ -120,6 +121,7 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
             case PIPES -> "Rotate copper pipes to connect IN to OUT, then test the water.";
             case CLEANING -> "Hold the left mouse button and wipe every stain with the sponge.";
             case KEEPGREEN -> "Hold and drag the green brush over all three red lights.";
+            case CUTWIRES -> "Hold and drag the scissors across the middle of all four wires.";
             case POWERSTATION -> "Restore the power station.";
             case TELECOM, NUCLEAR, FOODSAFETY, CIVIL -> "Complete the professional simulation.";
         };
@@ -140,6 +142,7 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
             case PIPES -> drawPipes(graphics, mx, my);
             case CLEANING -> drawCleaning(graphics, mx, my);
             case KEEPGREEN -> drawKeepGreen(graphics, mx, my);
+            case CUTWIRES -> drawCutWires(graphics, mx, my);
         }
         int feedback = state == null ? TaskSession.WAITING : state.feedback();
         int color = feedback == TaskSession.MISS || feedback == TaskSession.WRONG_WIRE
@@ -400,6 +403,29 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
         }
     }
 
+    private void drawCutWires(GuiGraphicsExtractor g, double mx, double my) {
+        bevel(g, 48, 88, 324, 166, 0xFF303B3E);
+        g.fill(CutWiresLayout.CUT_X - 32, 89, CutWiresLayout.CUT_X + 32, 253, 0xFF192C30);
+        for (int wire = 0; wire < 4; wire++) {
+            int y = CutWiresLayout.y(wire), color = WIRE_COLORS[wire];
+            bevel(g, 53, y - 9, 18, 18, 0xFF716449);
+            bevel(g, 349, y - 9, 18, 18, 0xFF716449);
+            if (!masked(wire)) {
+                line(g, 70, y, 350, y, 9, 0xFF11191D);
+                line(g, 70, y, 350, y, 6, color);
+                line(g, 70, y - 2, 350, y - 2, 1, shade(color, 1.2));
+                g.outline(178, y - 11, 64, 22, 0xFF88A8AB);
+            } else {
+                line(g, 70, y, 190, y + 4, 6, shade(color, .65));
+                line(g, 230, y + 4, 350, y, 6, shade(color, .65));
+                g.fill(188, y + 1, 193, y + 7, 0xFFE8B56D);
+                g.fill(227, y + 1, 232, y + 7, 0xFFE8B56D);
+                center(g, Component.literal("✓"), 210, y - 4, GREEN);
+            }
+        }
+        if (CutWiresLayout.inside(mx, my)) sprite(g, SCISSORS, (int)mx - 12, (int)my - 12, 48, 48);
+    }
+
     @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (event.button() != InputConstants.MOUSE_BUTTON_LEFT) return super.mouseClicked(event, doubleClick);
         Transform t = transform(); double x = t.virtualX(event.x()), y = t.virtualY(event.y());
@@ -449,6 +475,7 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
                     if (cell >= 0 || TaskExtraLayout.FLOW.contains(x, y)) { send(TaskSession.HIT, cell, x, y); clickSound(); }
                 }
             }
+            case CUTWIRES -> { if (CutWiresLayout.inside(x, y)) { dragging = 0; send(TaskSession.BEGIN, 0, x, y); lastMove = now(); } }
             case KEEPGREEN -> { if (KeepGreenLayout.inside(x, y)) { dragging = 0; send(TaskSession.BEGIN, 0, x, y); lastMove = now(); } }
             case CLEANING -> { if (TaskExtraLayout.GLASS.contains(x, y)) { dragging = 0; send(TaskSession.BEGIN, 0, x, y); lastMove = now(); } }
         }
@@ -458,7 +485,7 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
     @Override public boolean mouseDragged(MouseButtonEvent event, double deltaX, double deltaY) {
         if (event.button() != InputConstants.MOUSE_BUTTON_LEFT || dragging < 0) return super.mouseDragged(event, deltaX, deltaY);
         Transform t = transform(); updateDrag(t.virtualX(event.x()), t.virtualY(event.y()));
-        if ((type == TaskType.KNOBS || type == TaskType.SWIPE || type == TaskType.CLEANING || type == TaskType.KEEPGREEN) && now() - lastMove >= 35) {
+        if ((type == TaskType.KNOBS || type == TaskType.SWIPE || type == TaskType.CLEANING || type == TaskType.KEEPGREEN || type == TaskType.CUTWIRES) && now() - lastMove >= 35) {
             send(TaskSession.MOVE, dragging, pointerX, pointerY); lastMove = now();
         }
         return true;

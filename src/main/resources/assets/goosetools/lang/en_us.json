@@ -802,5 +802,8 @@
   "item.sabotage.truck.busy": "Truck in transit",
   "item.sabotage.truck.cooldown": "Summon Truck (%s s)",
   "subtitle.dead.truck": "You were hit by a truck.",
-  "task.goosetools.ui.signal_panel": "Traffic signal panel"
+  "task.goosetools.ui.signal_panel": "Traffic signal panel",
+  "task.goosetools.cutwires.title": "Cut the Wires",
+  "task.goosetools.cutwires.help": "Hold and drag the scissors across the middle of all four wires.",
+  "task.goosetools.ui.wire_panel": "Broadcast wiring panel"
 }

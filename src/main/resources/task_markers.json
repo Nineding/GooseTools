@@ -558,6 +558,11 @@
       "fallback": "Keep the Lights Green",
       "category": "duck"
     },
+    "cutwires": {
+      "translation_key": "item.task.cutwires.available",
+      "fallback": "Cut the Wires",
+      "category": "duck"
+    },
     "eagleton_invadepower": {
       "translation_key": "item.task.eagleton.invadepower.available",
       "fallback": "Invade Power Controls",

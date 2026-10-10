@@ -802,5 +802,8 @@
   "item.sabotage.truck.busy": "大运正在行驶",
   "item.sabotage.truck.cooldown": "召唤大运（%s秒）",
   "subtitle.dead.truck": "你被大运撞倒了。",
-  "task.goosetools.ui.signal_panel": "红绿灯控制面板"
+  "task.goosetools.ui.signal_panel": "红绿灯控制面板",
+  "task.goosetools.cutwires.title": "剪断电线",
+  "task.goosetools.cutwires.help": "按住左键拖动剪刀，剪断四根电线中间的标记区域。",
+  "task.goosetools.ui.wire_panel": "广播配线面板"
 }
