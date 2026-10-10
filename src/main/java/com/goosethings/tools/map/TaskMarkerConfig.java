@@ -14,16 +14,30 @@ import java.util.Map;
 import java.util.Set;
 
 /** Side-neutral, bounded display metadata. Never grants visibility or runs commands. */
-public record TaskMarkerConfig(Map<String, Integer> colors, Map<String, Task> tasks) {
+public record TaskMarkerConfig(Map<String, Integer> colors, Map<String, Task> tasks,
+                               Map<String, Gradient> gradients) {
     public static final int MAX_BYTES = 65536;
-    private static final Set<String> CATEGORIES = Set.of("normal", "duck", "emergency", "gold");
+    private static final Set<String> CATEGORIES = Set.of("normal", "duck", "emergency", "gold", "series");
+    private static final Gradient SERIES_DEFAULT = new Gradient(0xD02879C8, 0xD026A66A);
 
     public TaskMarkerConfig {
         colors = Map.copyOf(colors);
         tasks = Map.copyOf(tasks);
+        gradients = Map.copyOf(gradients);
     }
 
     public record Task(String translationKey, String fallback, String category) { }
+    public record Gradient(int start, int end) {
+        public int at(double fraction) {
+            double t = Math.max(0, Math.min(1, Double.isFinite(fraction) ? fraction : 0));
+            int result = 0;
+            for (int shift = 0; shift <= 24; shift += 8) {
+                int a = (start >>> shift) & 255, b = (end >>> shift) & 255;
+                result |= ((int) Math.round(a + (b - a) * t)) << shift;
+            }
+            return result;
+        }
+    }
 
     public static TaskMarkerConfig defaults() {
         try (var input = TaskMarkerConfig.class.getResourceAsStream("/task_markers.json")) {
@@ -46,7 +60,7 @@ public record TaskMarkerConfig(Map<String, Integer> colors, Map<String, Task> ta
                 throw new IllegalArgumentException("Trailing JSON data");
             }
             JsonObject root = parsed.getAsJsonObject();
-            keys(root, Set.of("schema_version", "colors", "tasks"));
+            keys(root, Set.of("schema_version", "colors", "tasks", "gradients"));
             if (!root.has("schema_version") || !root.get("schema_version").toString().equals("1")) {
                 throw new IllegalArgumentException("schema_version must be 1");
             }
@@ -54,11 +68,19 @@ public record TaskMarkerConfig(Map<String, Integer> colors, Map<String, Task> ta
             keys(palette, CATEGORIES);
             Map<String, Integer> colors = new LinkedHashMap<>();
             for (String category : CATEGORIES) {
-                String color = string(palette, category, 9);
-                if (!color.matches("#[0-9a-fA-F]{8}")) {
-                    throw new IllegalArgumentException("Color must use #AARRGGBB: " + category);
+                colors.put(category, "series".equals(category) && !palette.has(category)
+                        ? SERIES_DEFAULT.start() : color(palette, category));
+            }
+            Map<String, Gradient> gradients = new LinkedHashMap<>();
+            gradients.put("series", SERIES_DEFAULT);
+            if (root.has("gradients")) {
+                JsonObject ramps = root.getAsJsonObject("gradients");
+                keys(ramps, CATEGORIES);
+                for (var entry : ramps.entrySet()) {
+                    JsonObject ramp = entry.getValue().getAsJsonObject();
+                    keys(ramp, Set.of("start", "end"));
+                    gradients.put(entry.getKey(), new Gradient(color(ramp, "start"), color(ramp, "end")));
                 }
-                colors.put(category, (int) Long.parseLong(color.substring(1), 16));
             }
             JsonObject entries = root.getAsJsonObject("tasks");
             if (entries == null || entries.size() > 512) {
@@ -82,7 +104,7 @@ public record TaskMarkerConfig(Map<String, Integer> colors, Map<String, Task> ta
                 }
                 tasks.put(entry.getKey(), new Task(key, fallback, category));
             }
-            return new TaskMarkerConfig(colors, tasks);
+            return new TaskMarkerConfig(colors, tasks, gradients);
         } catch (IOException | IllegalStateException | NullPointerException exception) {
             throw new IllegalArgumentException("Invalid task marker JSON: " + exception.getMessage(), exception);
         }
@@ -106,17 +128,34 @@ public record TaskMarkerConfig(Map<String, Integer> colors, Map<String, Task> ta
         return result;
     }
 
+    private static int color(JsonObject object, String key) {
+        String value = string(object, key, 9);
+        if (!value.matches("#[0-9a-fA-F]{8}")) {
+            throw new IllegalArgumentException("Color must use #AARRGGBB: " + key);
+        }
+        return (int) Long.parseLong(value.substring(1), 16);
+    }
+
     public Task task(String id) {
         return tasks.getOrDefault(id, new Task("item.task." + id + ".available", "Task", "normal"));
     }
 
     public int background(String id, String kind) {
+        return backgroundAt(id, kind, 0);
+    }
+
+    public int backgroundAt(String id, String kind, double fraction) {
+        String category = category(id, kind);
+        Gradient gradient = gradients.get(category);
+        return gradient == null ? colors.get(category) : gradient.at(fraction);
+    }
+
+    private String category(String id, String kind) {
         // Explicit gold markers remain special; configured IDs override the old emergency transport
         // category used for duck prerequisites. Unknown IDs still honor runtime emergency/gold.
-        String category = "gold".equals(kind) ? "gold"
+        return "gold".equals(kind) ? "gold"
                 : tasks.containsKey(id) ? tasks.get(id).category()
                 : CATEGORIES.contains(kind) ? kind : "normal";
-        return colors.get(category);
     }
 
     public String toJson() {
@@ -125,6 +164,14 @@ public record TaskMarkerConfig(Map<String, Integer> colors, Map<String, Task> ta
         JsonObject palette = new JsonObject();
         colors.forEach((key, color) -> palette.addProperty(key, String.format("#%08X", color)));
         root.add("colors", palette);
+        JsonObject ramps = new JsonObject();
+        gradients.forEach((category, gradient) -> {
+            JsonObject ramp = new JsonObject();
+            ramp.addProperty("start", String.format("#%08X", gradient.start()));
+            ramp.addProperty("end", String.format("#%08X", gradient.end()));
+            ramps.add(category, ramp);
+        });
+        root.add("gradients", ramps);
         JsonObject entries = new JsonObject();
         tasks.forEach((id, task) -> {
             JsonObject entry = new JsonObject();

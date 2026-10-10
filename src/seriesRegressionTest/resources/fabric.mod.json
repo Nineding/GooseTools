@@ -1,0 +1,1 @@
+{"schemaVersion":1,"id":"goosetools_series_test","version":"1.0.0","name":"Wipe Glass series regression","environment":"client","entrypoints":{"client":["com.goosethings.tools.xaero.WipeGlassRegression"]},"depends":{"goosetools":"*"}}

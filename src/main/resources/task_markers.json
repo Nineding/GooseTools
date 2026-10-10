@@ -4,7 +4,8 @@
     "normal": "#D02E7D32",
     "duck": "#D09D3030",
     "emergency": "#D0C2185B",
-    "gold": "#D0C9A227"
+    "gold": "#D0C9A227",
+    "series": "#D02879C8"
   },
   "tasks": {
     "rhythmmaster": {
@@ -536,6 +537,27 @@
       "translation_key": "item.task.whackmoles.available",
       "fallback": "Whac-A-Mole",
       "category": "normal"
+    },
+    "wipeglass_hut": {
+      "translation_key": "item.task.wipeglass_hut.available",
+      "fallback": "Wipe Glass: Collapsed Hut",
+      "category": "series"
+    },
+    "wipeglass_restaurant": {
+      "translation_key": "item.task.wipeglass_restaurant.available",
+      "fallback": "Wipe Glass: Restaurant",
+      "category": "series"
+    },
+    "wipeglass_lab": {
+      "translation_key": "item.task.wipeglass_lab.available",
+      "fallback": "Wipe Glass: Secret Laboratory",
+      "category": "series"
+    }
+  },
+  "gradients": {
+    "series": {
+      "start": "#D02879C8",
+      "end": "#D026A66A"
     }
   }
 }

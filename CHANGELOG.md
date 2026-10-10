@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.14.0+Alpha0.36 - 2026-10-10
+
+- Added authoritative Cleaning GUI bindings for map tasks. Closing before completion fails the attempt; player and session isolation, server-validated success and completed-state preservation also apply to cleaning.
+- Added configurable gradient task-marker backgrounds and the series category. Series markers use a blue-to-green background on both Xaero Minimap and World Map, with configuration reload and reconnect synchronization. Existing single-color configurations remain readable; explicit gold markers retain priority.
+- Added default marker names for the three Eagleton Springs Wipe Glass locations. With the matching Whoiskiller data/resource pack, one equally weighted pool entry expands into three locations; all three must finish before the series awards two goose task-progress points and allows its normal replacement. Early closure retries only the current location.
+- Install GooseTools 1.14.0+Alpha0.36 on the server/host and every client, with the matching data/resource pack, then restart. Protocol is now 31 because synchronized marker configuration supports new categories and gradient metadata; older clients must update. Minecraft 26.3, Xaero Minimap 26.5.3 and World Map 1.46.4 remain supported. No new GooseThings or Full Blood DLC requirement.
+
 ## 1.14.0+Alpha0.35 - 2026-10-09
 
 - Added authoritative GUI map-task sessions for Eagleton Springs: hard Traffic Dodge starts immediately and succeeds after 30 seconds of active survival; hard Whac-A-Mole starts immediately and succeeds on the twentieth valid hit. Difficulty is locked, pause excludes time, and early loss, exit or restart fails the current attempt.

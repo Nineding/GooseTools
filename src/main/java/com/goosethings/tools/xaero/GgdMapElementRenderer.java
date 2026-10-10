@@ -74,11 +74,19 @@ public final class GgdMapElementRenderer
             var task = config.task(element.textKey());
             Component taskName = Component.translatableWithFallback(task.translationKey(), task.fallback());
             int width = minecraft.font.width(taskName);
-            int background = config.background(element.textKey(),
-                    element.goldTask() ? "gold" : element.emergencyTask() ? "emergency" : "normal");
-
-            graphics.fill(-width / 2 - 3, -6, width / 2 + 4, 6, 0xD0171717);
-            graphics.fill(-width / 2 - 2, -5, width / 2 + 3, 5, background);
+            String kind = element.goldTask() ? "gold" : element.emergencyTask() ? "emergency" : "normal";
+            int left = -width / 2 - 2, right = width / 2 + 3;
+            int start = config.backgroundAt(element.textKey(), kind, 0);
+            int end = config.backgroundAt(element.textKey(), kind, 1);
+            graphics.fill(left - 1, -6, right + 1, 6, 0xD0171717);
+            if (start == end) {
+                graphics.fill(left, -5, right, 5, start);
+            } else {
+                for (int x = left; x < right; x++) {
+                    graphics.fill(x, -5, x + 1, 5,
+                            config.backgroundAt(element.textKey(), kind, (double) (x - left) / (right - left - 1)));
+                }
+            }
             graphics.drawCenteredString(minecraft.font, taskName, 0, -4, 0xFFFFFFFF);
             return true;
         }
@@ -190,11 +198,19 @@ public final class GgdMapElementRenderer
             var task = config.task(element.textKey());
             Component taskName = Component.translatableWithFallback(task.translationKey(), task.fallback());
             int width = minecraft.font.width(taskName);
-            int background = config.background(element.textKey(),
-                    element.goldTask() ? "gold" : element.emergencyTask() ? "emergency" : "normal");
-
-            graphics.fill(-width / 2 - 3, -6, width / 2 + 4, 6, 0xD0171717);
-            graphics.fill(-width / 2 - 2, -5, width / 2 + 3, 5, background);
+            String kind = element.goldTask() ? "gold" : element.emergencyTask() ? "emergency" : "normal";
+            int left = -width / 2 - 2, right = width / 2 + 3;
+            int start = config.backgroundAt(element.textKey(), kind, 0);
+            int end = config.backgroundAt(element.textKey(), kind, 1);
+            graphics.fill(left - 1, -6, right + 1, 6, 0xD0171717);
+            if (start == end) {
+                graphics.fill(left, -5, right, 5, start);
+            } else {
+                for (int x = left; x < right; x++) {
+                    graphics.fill(x, -5, x + 1, 5,
+                            config.backgroundAt(element.textKey(), kind, (double) (x - left) / (right - left - 1)));
+                }
+            }
             graphics.centeredText(minecraft.font, taskName, 0, -4, 0xFFFFFFFF);
             return;
         }

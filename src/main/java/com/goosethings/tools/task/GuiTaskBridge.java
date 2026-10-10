@@ -47,7 +47,7 @@ public final class GuiTaskBridge {
     }
     public static LiteralArgumentBuilder<CommandSourceStack> command() {
         var players = Commands.argument("players", EntityArgument.players());
-        for (String kind : new String[]{"traffic", "whack", "pipes", "knobs", "timing", "arcade"}) {
+        for (String kind : new String[]{"traffic", "whack", "pipes", "knobs", "timing", "cleaning", "arcade"}) {
             players.then(Commands.literal(kind).executes(c -> {
                 int opened = 0;
                 for (ServerPlayer p : EntityArgument.getPlayers(c, "players")) if (start(p, kind)) opened++;
@@ -113,7 +113,7 @@ public final class GuiTaskBridge {
     }
     public static boolean taskBound(ServerPlayer p, long id) {
         Binding b = bindings.get(p.getUUID());
-        return b != null && b.session == id && (b.kind.equals("pipes") || b.kind.equals("knobs") || b.kind.equals("timing"));
+        return b != null && b.session == id && (b.kind.equals("pipes") || b.kind.equals("knobs") || b.kind.equals("timing") || b.kind.equals("cleaning"));
     }
     public static void taskClosed(ServerPlayer p, long id) {
         Binding b = bindings.get(p.getUUID());
