@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-/** Maintains the persistent 1-20 join order used by nametags and match p-tags. */
+/** Maintains the persistent 1-21 join order used by nametags and match p-tags. */
 public final class RoomOrderManager {
     public static final String OBJECTIVE_NAME = "ggdRoomOrder";
     public static final String OVERFLOW_TAG = "goosetoolsOverflow";

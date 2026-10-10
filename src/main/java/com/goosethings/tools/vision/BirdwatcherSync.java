@@ -24,7 +24,8 @@ public final class BirdwatcherSync {
             "gamingGGD", "players", "birdwatcherActive");
     private static final Set<String> BLOCKING_TAGS = Set.of(
             "spectator", "inTalk", "endGame", "inTutorial", "deadInMap", "inPelican",
-            "task.chapelpower.stage.one", "task.gooseship.powercut.active");
+            "task.chapelpower.stage.one", "task.gooseship.powercut.active",
+            "task.eagleton.powercut.active");
     private static final Map<UUID, Snapshot> LAST_SENT = new ConcurrentHashMap<>();
 
     private BirdwatcherSync() {

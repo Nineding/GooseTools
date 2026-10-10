@@ -118,7 +118,7 @@ public final class MeetingAlertServer {
         }
         try {
             int index = Integer.parseInt(tag.substring(1));
-            return index >= 1 && index <= 20;
+            return index >= 1 && index <= 21;
         } catch (NumberFormatException ignored) {
             return false;
         }

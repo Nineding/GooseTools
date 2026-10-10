@@ -37,6 +37,9 @@ final class DisguiseIdentityPolicyTest {
     void resolvesStolenAndRealSeatsAcrossTheFullRoomRange() {
         assertEquals(1, DisguiseIdentityPolicy.stolenSeat(Set.of("StealP1")));
         assertEquals(20, DisguiseIdentityPolicy.stolenSeat(Set.of("StealP20")));
+        assertEquals(21, DisguiseIdentityPolicy.stolenSeat(Set.of("StealP21")));
+        assertEquals(21, DisguiseIdentityPolicy.playerSeat(Set.of("p21")));
+        assertEquals(0, DisguiseIdentityPolicy.playerSeat(Set.of("p22")));
         assertEquals(14, DisguiseIdentityPolicy.playerSeat(Set.of("p14")));
         assertEquals(0, DisguiseIdentityPolicy.stolenSeat(Set.of("gotDNA")));
     }

@@ -60,7 +60,7 @@ public final class MeetingAlertIdentityPolicy {
         return new Label(
                 nullToEmpty(name),
                 rgb & 0x00ffffff,
-                Math.clamp(serial, 0, 20),
+                Math.clamp(serial, 0, 21),
                 (attachmentFlags & NameTagSync.LOVER) != 0,
                 false);
     }

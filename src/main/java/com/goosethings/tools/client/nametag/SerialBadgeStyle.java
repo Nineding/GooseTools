@@ -34,8 +34,12 @@ public final class SerialBadgeStyle {
 
     /** Uses the resource pack's exact precomposed badge and 1-20 number glyphs. */
     public static Component glyphComponent(int number, int rgb) {
-        if (number < 1 || number > 20) {
+        if (number < 1 || number > 21) {
             return Component.empty();
+        }
+        if (number == 21) {
+            return Component.literal("21").withStyle(style -> style.withColor(rgb)
+                    .withItalic(false).withoutShadow());
         }
         char numberGlyph = (char) (NUMBER_FIRST_GLYPH + number - 1);
         MutableComponent badge = Component.empty();
@@ -57,7 +61,7 @@ public final class SerialBadgeStyle {
             float badgeX,
             float badgeTop,
             PixelConsumer consumer) {
-        String text = Integer.toString(Math.clamp(number, 1, 20));
+        String text = Integer.toString(Math.clamp(number, 1, 21));
         float pixel = text.length() == 1 ? 1.45F : 1.15F;
         float glyphWidth = pixel * 3.0F;
         float gap = pixel * 0.8F;

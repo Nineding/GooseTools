@@ -574,7 +574,7 @@ configurations {
 }
 def purificationFixture = file(findProperty('purificationFixtureRoot') ?: '../../')
 dependencies {
-    purificationRegressionTestRuntimeOnly files(new File(purificationFixture, 'mods/fabric-carpet-26.3+v260915.jar'), new File(purificationFixture, 'mods/goosethings-1.14.0+Alpha0.45.jar'), new File(purificationFixture, 'mods/sound-physics-remastered-fabric-1.5.1+26.3.jar'), new File(purificationFixture, 'mods/cloth-config-26.3.158.jar'))
+    purificationRegressionTestRuntimeOnly files(new File(purificationFixture, 'mods/fabric-carpet-26.3+v260915.jar'), new File(purificationFixture, 'mods/goosethings-1.14.0+Alpha0.47.jar'), new File(purificationFixture, 'mods/sound-physics-remastered-fabric-1.5.1+26.3.jar'), new File(purificationFixture, 'mods/cloth-config-26.3.158.jar'))
 }
 loom {
     mods { goosetools_purification_test { sourceSet sourceSets.purificationRegressionTest } }

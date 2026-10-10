@@ -22,7 +22,7 @@ public final class PlayerMarkerPolicy {
     }
 
     public static String objectiveForSeat(int seat) {
-        return seat >= 1 && seat <= 20 ? OBJECTIVE_PREFIX + seat : "";
+        return seat >= 1 && seat <= 21 ? OBJECTIVE_PREFIX + seat : "";
     }
 
     public static int validCodeOrZero(int code) {
@@ -37,7 +37,7 @@ public final class PlayerMarkerPolicy {
             }
             try {
                 int seat = Integer.parseInt(tag.substring("dreamSource_p".length()));
-                if (seat >= 1 && seat <= 20 && (best == 0 || seat < best)) {
+                if (seat >= 1 && seat <= 21 && (best == 0 || seat < best)) {
                     best = seat;
                 }
             } catch (NumberFormatException ignored) {

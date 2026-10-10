@@ -11,7 +11,8 @@ class MeetingAlertServerTest {
         assertTrue(MeetingAlertServer.isPlayerIndexTag("p1"));
         assertTrue(MeetingAlertServer.isPlayerIndexTag("p20"));
         assertFalse(MeetingAlertServer.isPlayerIndexTag("p0"));
-        assertFalse(MeetingAlertServer.isPlayerIndexTag("p21"));
+        assertTrue(MeetingAlertServer.isPlayerIndexTag("p21"));
+        assertFalse(MeetingAlertServer.isPlayerIndexTag("p22"));
         assertFalse(MeetingAlertServer.isPlayerIndexTag("players"));
         assertFalse(MeetingAlertServer.isPlayerIndexTag(null));
     }

@@ -46,7 +46,7 @@ public final class DreamStandInServer {
     private static final String PROFESSIONAL_CORPSE_TAG = "ProfessionalKillCorpse";
     private static final String CORPSE_VISIBLE_SCORE = "DreamCorpseVisible";
     private static final String PROF_CORPSE_VISIBLE_SCORE = "DreamProfCorpseVisible";
-    private static final int MAX_PLAYER_SEAT = 20;
+    private static final int MAX_PLAYER_SEAT = 21;
     private static final int PREPARE_TIMEOUT_TICKS = 40;
     private static final int RETIRE_TICKS = 40;
     private static final int SCENE_HEARTBEAT_TICKS = 20;

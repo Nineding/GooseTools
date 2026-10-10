@@ -535,7 +535,7 @@ public final class GooseToolsPayloads {
                 String scoreboardName = buffer.readUtf(64);
                 String name = buffer.readUtf(64);
                 int rgb = buffer.readInt() & 0x00ffffff;
-                int serialNumber = Math.clamp(buffer.readVarInt(), 0, 20);
+                int serialNumber = Math.clamp(buffer.readVarInt(), 0, 21);
                 int attachmentFlags = buffer.readVarInt();
                 int markerCode = buffer.readVarInt();
                 boolean markerNameTagVisible = buffer.readBoolean();
@@ -599,7 +599,7 @@ public final class GooseToolsPayloads {
                 throw new IllegalArgumentException("Nametag entry text exceeds 64 characters");
             }
             rgb &= 0x00ffffff;
-            serialNumber = Math.clamp(serialNumber, 0, 20);
+            serialNumber = Math.clamp(serialNumber, 0, 21);
             markerCode = com.goosethings.tools.marker.PlayerMarkerPolicy.validCodeOrZero(markerCode);
             markerNameTagVisible &= markerCode != 0;
             attachments = attachments == null ? List.of() : List.copyOf(attachments);

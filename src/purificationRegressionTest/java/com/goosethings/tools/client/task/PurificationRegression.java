@@ -51,7 +51,7 @@ public final class PurificationRegression implements ClientModInitializer {
                 }return;
             }
             if(scenario==2){
-                if(!requested){requested=true;server(mc,()->{run(mc,TASK+"accept");require(player(mc).entityTags().contains("inTaskPurificationLaser"),"laser accept failed");});return;}
+                if(!requested){requested=true;server(mc,()->{startLaser(mc);require(player(mc).entityTags().contains("inTaskPurificationLaser"),"laser accept failed");});return;}
                 if(!(mc.gui.screen() instanceof TaskScreen s)||s.currentState()==null||!s.currentState().started())return;
                 if(++wait<15)return;
                 if(!shot){shot=true;capture(mc,"laser");s.onClose();next();}return;
@@ -59,7 +59,7 @@ public final class PurificationRegression implements ClientModInitializer {
             if(scenario==3){
                 if(requested)server(mc,()->{if(player(mc).entityTags().contains("task.purificationlaser.finished"))done=true;});
                 if(done){next();return;}
-                if(!requested){requested=true;server(mc,()->{require(!player(mc).entityTags().contains("task.purificationlaser.finished"),"close awarded unlock");run(mc,TASK+"accept");});return;}
+                if(!requested){requested=true;server(mc,()->{require(!player(mc).entityTags().contains("task.purificationlaser.finished"),"close awarded unlock");startLaser(mc);});return;}
                 if(!(mc.gui.screen() instanceof TaskScreen s)||s.currentState()==null||!s.currentState().started())return;
                 if(System.currentTimeMillis()-last<180)return;
                 var layout=new PurificationLaserLayout(screenSeed(s));int bits=s.currentState().pipeBits(),solution=0;while(!layout.trace(solution).returned())solution++;
@@ -119,6 +119,15 @@ public final class PurificationRegression implements ClientModInitializer {
         double[][] points={{-1650,71,-560},{-1648.001,76.999,-558.001},{-1648,72,-559},{-1649,77,-559},{-1649,72,-558},{-1650.001,72,-559},{-1649,70.999,-559},{-1649,72,-560.001}};
         for(int i=0;i<points.length;i++){double[] xyz=points[i];exec(s,"tp "+name(mc)+" "+xyz[0]+" "+xyz[1]+" "+xyz[2]);exec(s,"execute as "+name(mc)+" at @s store success score #Boundary ggdPurify if predicate ggd:purification_chamber");require((get(mc,"#Boundary")==1)==(i<2),"chamber boundary "+i);}
         exec(s,"tp "+name(mc)+" -1649.5 71 -545");exec(s,"execute as "+name(mc)+" at @s run function ggd:task/nav_start {task:\"purificationlaser\",name_key:\"item.task.purificationlaser.available\"}");require(p.entityTags().contains("navigating_to_purificationlaser"),"navigation cleared itself");p.removeTag("navigating_to_purificationlaser");p.removeTag("inTask");
+    }
+    private void startLaser(Minecraft mc){
+        var p=player(mc);var server=mc.getSingleplayerServer();
+        p.addTag("inTaskGUI");run(mc,TASK+"taskgui");
+        p.getInventory().setSelectedSlot(1);
+        require(has(p,"purificationlaser"),"duck task item was not offered");
+        exec(server,"scoreboard players set "+name(mc)+" carrotrightclick 1");
+        run(mc,"ggd:rccheck");
+        require(p.entityTags().contains("inTaskPurificationLaser"),"duck item right-click route failed");
     }
     private static long screenSeed(TaskScreen s)throws Exception{var f=TaskScreen.class.getDeclaredField("open");f.setAccessible(true);return ((TaskPackets.Open)f.get(s)).seed();}
     private static void useBlock(Minecraft mc,int x){var p=new BlockPos(x,72,-547);mc.player.connection.send(new ServerboundUseItemOnPacket(InteractionHand.MAIN_HAND,new BlockHitResult(Vec3.atCenterOf(p),Direction.SOUTH,p,false),0));}
