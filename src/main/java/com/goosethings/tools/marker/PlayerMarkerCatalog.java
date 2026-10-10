@@ -73,6 +73,7 @@ public final class PlayerMarkerCatalog {
         addRole(definitions, 129, Faction.GOOSE, "guard", "Guard", "guard");
         addRole(definitions, 130, Faction.GOOSE, "broker", "Broker", "broker");
         addRole(definitions, 131, Faction.GOOSE, "spook", "Spook", "spook");
+        addRole(definitions, 132, Faction.GOOSE, "chamberlain", "Chamberlain", "chamberlain");
 
         addRole(definitions, 201, Faction.DUCK, "cannibal", "Cannibal", "cannibal");
         addRole(definitions, 202, Faction.DUCK, "morphling", "Morphling", "morphling");
@@ -96,6 +97,7 @@ public final class PlayerMarkerCatalog {
         addRole(definitions, 220, Faction.DUCK, "snitch", "Snitch", "snitch");
         addRole(definitions, 221, Faction.DUCK, "carrier", "Carrier", "carrier");
         addRole(definitions, 222, Faction.DUCK, "parasite", "Parasite", "parasite");
+        addRole(definitions, 223, Faction.DUCK, "mime", "Mime", "mime");
 
         addRole(definitions, 301, Faction.BIRD, "dodo", "Dodo", "dodo");
         addRole(definitions, 302, Faction.BIRD, "duelingdodos", "Dueling Dodos", "dueling_dodo");
@@ -106,6 +108,8 @@ public final class PlayerMarkerCatalog {
         addRole(definitions, 307, Faction.BIRD, "raven", "Raven", "raven");
         addRole(definitions, 308, Faction.BIRD, "cuckoo", "Cuckoo", "cuckoo");
         addRole(definitions, 309, Faction.BIRD, "phoenix", "Phoenix", "phoenix");
+        addRole(definitions, 310, Faction.BIRD, "magpie", "Magpie", "magpie");
+        addRole(definitions, 311, Faction.BIRD, "seagull", "Seagull", "seagull");
         return Map.copyOf(definitions);
     }
 
