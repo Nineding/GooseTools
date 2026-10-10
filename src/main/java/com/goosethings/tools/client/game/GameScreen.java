@@ -10,7 +10,7 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.util.FormattedCharSequence;
 import java.util.Arrays;
 import java.util.Locale;
@@ -33,6 +33,7 @@ public final class GameScreen extends Screen implements com.goosethings.tools.cl
     private boolean trafficBrake;
     private int trafficSteer;
     private long trafficInputAt, trafficBrakeAt;
+    private long flapSoundAt = -1000;
 
     public GameScreen(GamePackets.Open open) {
         super(Component.translatableWithFallback("game.goosetools." + GameType.values()[open.game()].id + ".title", GameType.values()[open.game()].fallback));
@@ -42,10 +43,11 @@ public final class GameScreen extends Screen implements com.goosethings.tools.cl
     public GameType gameType() { return type; }
     public GameSnapshot currentState() { return state; }
     public void apply(GamePackets.State next) {
-        if (next.sessionId() != open.sessionId() || next.revision() < revision) return;
+        if (closing || next.sessionId() != open.sessionId() || next.revision() <= revision) return;
         GameSnapshot s = next.state(); previous = state;
         boolean newEvent = state != null && s.event() != state.event();
-        if (newEvent) { effectAt = now(); if (s.effect() != 1) sound(s.effect()); }
+        if (newEvent) effectAt = now();
+        for (GameSoundCues.Cue cue : GameSoundCues.between(type, state, s)) sound(cue);
         if (state != null && type == GameType.MERGE && s.event() != state.event() && !Arrays.equals(s.board(), state.board())) moveAt = now();
         if (type == GameType.FLAPPY && s.actors().length >= 2) {
             double[] a = s.actors();
@@ -395,7 +397,8 @@ public final class GameScreen extends Screen implements com.goosethings.tools.cl
     private void flap() {
         send(GameSession.FLAP, 0, 0, 0);
         double dt = Math.min(.12, (now() - birdCorrectionAt) / 1000.0);
-        predictedBirdY += predictedBirdV * dt + 245 * dt * dt; predictedBirdV = -155; birdCorrectionAt = now(); sound(1);
+        predictedBirdY += predictedBirdV * dt + 245 * dt * dt; predictedBirdV = -155; birdCorrectionAt = now();
+        if (now() - flapSoundAt >= 70) { flapSoundAt = now(); sound(GameSoundCues.Cue.FLAP); }
     }
     private void direction(int d) { send(GameSession.DIRECTION, d, 0, 0); }
     private void send(int action, int value, double x, double y) {
@@ -427,11 +430,10 @@ public final class GameScreen extends Screen implements com.goosethings.tools.cl
     @Override public void removed() { cancel(); }
     private void cancel() { if (!closing) { closing = true; send(GameSession.CANCEL, -1, 0, 0); } }
     public void closeFromServer() { closing = true; if (minecraft != null && minecraft.gui.screen() == this) minecraft.setScreenAndShow(null); }
-    private void sound(int effect) {
-        if (minecraft == null || effect == 0) return;
-        minecraft.getSoundManager().play(SimpleSoundInstance.forUI(effect == 2 || effect == 6 ? SoundEvents.NOTE_BLOCK_PLING
-                : effect == 5 ? SoundEvents.NOTE_BLOCK_BASS : effect == 1 ? SoundEvents.NOTE_BLOCK_HAT : SoundEvents.UI_BUTTON_CLICK,
-                effect == 7 ? 1.3F : effect == 6 ? 1.7F : 1.0F));
+    private void sound(GameSoundCues.Cue cue) {
+        if (minecraft == null || closing) return;
+        SoundEvent event = SoundEvent.createVariableRangeEvent(Identifier.fromNamespaceAndPath("goosetools", "game." + cue.path()));
+        minecraft.getSoundManager().play(SimpleSoundInstance.forUI(event, 1.0F, 0.85F));
     }
     private Component text(String key, String fallback, Object... args) { return Component.translatableWithFallback("game.goosetools.ui." + key, fallback, args); }
     private void center(GuiGraphicsExtractor g, Component s, int x, int y, int ink) { g.text(font, s, x - font.width(s) / 2, y, ink, false); }

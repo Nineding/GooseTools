@@ -107,7 +107,9 @@ Task and arcade screens temporarily block player movement, jump, sneak and sprin
 
 六款分别为 Flappy Bird、贪吃蛇、单人对 AI 的 Pong、三生命无尽打地鼠、经典扫雷和 2048。Pong 可选抢 11 分经典对局或无尽练习；扫雷支持 9×9/10 雷、16×16/40 雷、30×16/99 雷，通关后可继续下一盘；2048 获胜后可继续合成更大数字。Flappy 和蛇碰撞结束，蛇填满棋盘获胜；游戏没有固定任务得分或时间上限。操作提示显示在界面底部，P 暂停/继续，Esc 退出；暂停不会停止 Minecraft 世界。
 
-The six games use independent classic themes, pixel artwork, animations, sounds and server-owned rules. They are separate from tasks and do not grant task progress. Pong offers first-to-11 and endless practice, Minesweeper offers three classic board sizes and continued boards, and 2048 can continue beyond 2048. Flappy/Snake end on collision, Snake wins with a full board, and Whac-A-Mole ends after three lost lives. No fixed task score or duration ends a run.
+The seven games use independent classic themes, pixel artwork, animations, sounds and server-owned rules. They are separate from tasks and do not grant task progress. Pong offers first-to-11 and endless practice, Minesweeper offers three classic board sizes and continued boards, and 2048 can continue beyond 2048. Flappy/Snake end on collision, Snake wins with a full board, and Whac-A-Mole ends after three lost lives. No fixed task score or duration ends a run.
+
+小游戏提供 18 种原创街机音效，随 Minecraft 主音量及界面声音音量调整。声音资源位于 `assets/goosetools/sounds/game/`，资源包可使用相同路径覆盖。可编辑的 REAPER 分层工程和再生成说明见 [音效工程](docs/audio/arcade/README.md)。
 
 材质位于 `src/main/resources/assets/goosetools/textures/gui/games/`，资源包可使用相同路径覆盖 PNG。每位玩家的最高分和扫雷最快时间按模式/难度保存在存档的 `data/goosetools/arcade-records.json`。服务端 `GameServer.ACTIVITY` 事件预留给之后的游玩一分钟任务，只累计运行阶段，菜单/暂停/结算不计时。本版不注册该任务。
 

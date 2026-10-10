@@ -1,0 +1,146 @@
+{
+  "game.ui_click": {
+    "sounds": [
+      {
+        "name": "goosetools:game/ui_click",
+        "stream": false
+      }
+    ]
+  },
+  "game.start": {
+    "sounds": [
+      {
+        "name": "goosetools:game/start",
+        "stream": false
+      }
+    ]
+  },
+  "game.pause": {
+    "sounds": [
+      {
+        "name": "goosetools:game/pause",
+        "stream": false
+      }
+    ]
+  },
+  "game.resume": {
+    "sounds": [
+      {
+        "name": "goosetools:game/resume",
+        "stream": false
+      }
+    ]
+  },
+  "game.flap": {
+    "sounds": [
+      {
+        "name": "goosetools:game/flap",
+        "stream": false
+      }
+    ]
+  },
+  "game.score": {
+    "sounds": [
+      {
+        "name": "goosetools:game/score",
+        "stream": false
+      }
+    ]
+  },
+  "game.eat": {
+    "sounds": [
+      {
+        "name": "goosetools:game/eat",
+        "stream": false
+      }
+    ]
+  },
+  "game.pong_hit": {
+    "sounds": [
+      {
+        "name": "goosetools:game/pong_hit",
+        "stream": false
+      }
+    ]
+  },
+  "game.whack_hit": {
+    "sounds": [
+      {
+        "name": "goosetools:game/whack_hit",
+        "stream": false
+      }
+    ]
+  },
+  "game.miss": {
+    "sounds": [
+      {
+        "name": "goosetools:game/miss",
+        "stream": false
+      }
+    ]
+  },
+  "game.reveal": {
+    "sounds": [
+      {
+        "name": "goosetools:game/reveal",
+        "stream": false
+      }
+    ]
+  },
+  "game.flag": {
+    "sounds": [
+      {
+        "name": "goosetools:game/flag",
+        "stream": false
+      }
+    ]
+  },
+  "game.slide": {
+    "sounds": [
+      {
+        "name": "goosetools:game/slide",
+        "stream": false
+      }
+    ]
+  },
+  "game.merge": {
+    "sounds": [
+      {
+        "name": "goosetools:game/merge",
+        "stream": false
+      }
+    ]
+  },
+  "game.crash": {
+    "sounds": [
+      {
+        "name": "goosetools:game/crash",
+        "stream": false
+      }
+    ]
+  },
+  "game.win": {
+    "sounds": [
+      {
+        "name": "goosetools:game/win",
+        "stream": false
+      }
+    ]
+  },
+  "game.lane": {
+    "sounds": [
+      {
+        "name": "goosetools:game/lane",
+        "stream": false
+      }
+    ]
+  },
+  "game.brake": {
+    "sounds": [
+      {
+        "name": "goosetools:game/brake",
+        "stream": false
+      }
+    ]
+  }
+}

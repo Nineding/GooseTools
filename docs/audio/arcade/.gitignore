@@ -1,0 +1,6 @@
+exports/
+manifest.json
+import_render.lua
+*.rpp-bak
+*.reapeaks
+__pycache__/

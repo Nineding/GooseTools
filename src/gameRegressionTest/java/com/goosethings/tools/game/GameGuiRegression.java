@@ -2,6 +2,11 @@ package com.goosethings.tools.game;
 
 import com.goosethings.tools.GooseTools;
 import com.goosethings.tools.client.game.GameScreen;
+import com.goosethings.tools.client.game.GameSoundCues;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundSource;
 import com.goosethings.tools.client.task.TaskScreen;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
@@ -29,6 +34,8 @@ public final class GameGuiRegression implements ClientModInitializer {
     private long since, pauseAt, pauseElapsed;
     private volatile int[] safeCells;
     private volatile int mineCell=-1;
+    private boolean audioReady;
+    private final Set<String> heardCues = new HashSet<>();
     private final Map<String,Long> captureSince=new HashMap<>();
     private final Set<String> capturedNames=new HashSet<>();
     @Override public void onInitializeClient() { if(Boolean.getBoolean("goosetools.gameRegressionTest")) ClientTickEvents.END_CLIENT_TICK.register(this::tick); }
@@ -36,6 +43,21 @@ public final class GameGuiRegression implements ClientModInitializer {
     private void tick(Minecraft mc) {
         if(finished||!mc.isGameLoadFinished()) return;
         try {
+            if (!audioReady) {
+                audioReady = true;
+                mc.getSoundManager().addListener((sound, event, distance) -> {
+                    Identifier id = sound.getIdentifier();
+                    if (id.getNamespace().equals("goosetools") && id.getPath().startsWith("game.")) {
+                        require(sound.getSource() == SoundSource.UI, "arcade sound volume category");
+                        heardCues.add(id.getPath());
+                    }
+                });
+                for (GameSoundCues.Cue cue : GameSoundCues.Cue.values()) {
+                    Identifier id = Identifier.fromNamespaceAndPath("goosetools", "game." + cue.path());
+                    require(mc.getSoundManager().getSoundEvent(id) != null, "missing arcade sound " + id);
+                    require(mc.getResourceManager().getResource(Identifier.fromNamespaceAndPath("goosetools", "sounds/game/" + cue.path() + ".ogg")).isPresent(), "missing sound file " + id);
+                }
+            }
             if(!world) {
                 if(!language) {language=true;mc.options.languageCode="zh_cn";mc.getLanguageManager().setSelected("zh_cn");mc.reloadResourcePacks().whenComplete((v,e)->mc.execute(()->{if(e!=null)finish(mc,"FAIL language "+e);else languageReady=true;}));return;}
                 if(!languageReady)return;world=true;mc.options.pauseOnLostFocus=false;mc.getWindow().setWindowed(1280,900);
@@ -146,7 +168,22 @@ public final class GameGuiRegression implements ClientModInitializer {
         while(!q.isEmpty()){int c=q.removeFirst();for(int d=0;d<4;d++) {if(c==head&&d==(direction+2)%4)continue;int x=c%cols+(d==1?1:d==3?-1:0),y=c/cols+(d==2?1:d==0?-1:0);if(x<0||x>=cols||y<0||y>=rows)continue;int n=y*cols+x;if(b[n]==1||first[n]>=0)continue;first[n]=c==head?d:first[c];if(n==food)return first[n];q.add(n);}}
         return -1;
     }
-    private void done(GameScreen s){s.onClose();scenario++;requested=false;}
+    private void done(GameScreen s){
+        try {
+            Field revision = GameScreen.class.getDeclaredField("revision"); revision.setAccessible(true);
+            long current = revision.getLong(s);
+            GameSnapshot original = s.currentState();
+            GameSnapshot stale = new GameSnapshot(GameSession.RUNNING, original.mode(), original.difficulty(),
+                    original.cols(), original.rows(), original.score(), original.opponent(), original.lives(),
+                    original.elapsed(), original.clock(), original.event() + 1, 6, original.detail(),
+                    original.best(), original.bestTime(), original.wins(), original.board(), original.actors(), original.moves());
+            s.apply(new GamePackets.State(s.sessionId(), current, stale));
+            require(s.currentState() == original, "duplicate revision was accepted");
+            s.apply(new GamePackets.State(s.sessionId(), current - 1, stale));
+            require(s.currentState() == original, "out-of-order revision was accepted");
+        } catch (ReflectiveOperationException e) { throw new IllegalStateException(e); }
+        s.onClose();scenario++;requested=false;
+    }
     private void cleanup(Minecraft mc) {
         if(++frame%8!=0)return;String target=mc.player.getName().getString();
         switch(cleanup) {
@@ -171,5 +208,24 @@ public final class GameGuiRegression implements ClientModInitializer {
     private static void arrow(GameScreen s,int d){key(s,new int[]{InputConstants.KEY_UP,InputConstants.KEY_RIGHT,InputConstants.KEY_DOWN,InputConstants.KEY_LEFT}[d]);}
     private static void command(Minecraft mc,String cmd){mc.getSingleplayerServer().execute(()->{var server=mc.getSingleplayerServer();server.getCommands().performPrefixedCommand(server.createCommandSourceStack(),cmd);});}
     private static void require(boolean value,String message){if(!value)throw new IllegalStateException(message);}
-    private void finish(Minecraft mc,String message){if(finished)return;finished=true;try{Files.writeString(mc.gameDirectory.toPath().resolve("result.txt"),message);}catch(Exception e){GooseTools.LOGGER.error("Arcade result",e);}mc.stop();}
+    private void finish(Minecraft mc,String message){
+        if(finished)return;
+        if (message.startsWith("PASS ")) {
+            Set<String> required = Boolean.getBoolean("goosetools.trafficOnly")
+                    ? Set.of("game.start", "game.pause", "game.resume", "game.crash", "game.lane", "game.brake")
+                    : Set.of("game.start", "game.pause", "game.resume", "game.flap", "game.eat",
+                    "game.whack_hit", "game.reveal", "game.flag", "game.merge", "game.crash", "game.win", "game.lane", "game.brake");
+            if (!heardCues.containsAll(required)) { Set<String> missing = new HashSet<>(required); missing.removeAll(heardCues); message = "FAIL arcade sounds not played: " + missing; }
+            else {
+                // Exercise decoding/playback of less frequent cues as well as resource registration.
+                for (GameSoundCues.Cue cue : GameSoundCues.Cue.values()) {
+                    SoundEvent event = SoundEvent.createVariableRangeEvent(Identifier.fromNamespaceAndPath("goosetools", "game." + cue.path()));
+                    mc.getSoundManager().play(SimpleSoundInstance.forUI(event, 1, .25F));
+                }
+                if (heardCues.size() != GameSoundCues.Cue.values().length) message = "FAIL incomplete arcade playback: " + heardCues;
+                else message += "; 18 registered audio cues played via UI category; real game feedback and stale-packet rejection verified";
+            }
+        }
+        finished=true;try{Files.writeString(mc.gameDirectory.toPath().resolve("result.txt"),message);}catch(Exception e){GooseTools.LOGGER.error("Arcade result",e);}mc.stop();
+    }
 }
