@@ -685,6 +685,7 @@ public final class GooseToolsPayloads {
             String dimension,
             int kind,
             boolean retiring,
+            boolean riding,
             double x,
             double y,
             double z,
@@ -697,6 +698,7 @@ public final class GooseToolsPayloads {
         public static final int MEETING_PROXY = 0;
         public static final int MAP_BODY = 1;
         public static final int DREAM_CORPSE = 2;
+        public static final int LIVE_AVATAR = 3;
         private static final int EQUIPMENT_COUNT = EquipmentSlot.values().length;
 
         public DreamStandIn {
@@ -709,7 +711,7 @@ public final class GooseToolsPayloads {
             if (sourceName.length() > 64 || dimension.length() > 128 || pose.length() > 32) {
                 throw new IllegalArgumentException("Dream stand-in text field is too long");
             }
-            if (kind < MEETING_PROXY || kind > DREAM_CORPSE) {
+            if (kind < MEETING_PROXY || kind > LIVE_AVATAR) {
                 throw new IllegalArgumentException("Unknown dream stand-in kind: " + kind);
             }
             if (!Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(z)
@@ -733,6 +735,7 @@ public final class GooseToolsPayloads {
             buffer.writeUtf(dimension, 128);
             buffer.writeByte(kind);
             buffer.writeBoolean(retiring);
+            buffer.writeBoolean(riding);
             buffer.writeDouble(x);
             buffer.writeDouble(y);
             buffer.writeDouble(z);
@@ -754,6 +757,7 @@ public final class GooseToolsPayloads {
             String dimension = buffer.readUtf(128);
             int kind = buffer.readUnsignedByte();
             boolean retiring = buffer.readBoolean();
+            boolean riding = buffer.readBoolean();
             double x = buffer.readDouble();
             double y = buffer.readDouble();
             double z = buffer.readDouble();
@@ -767,7 +771,7 @@ public final class GooseToolsPayloads {
                 equipment.add(ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer));
             }
             return new DreamStandIn(fakeId, sourcePlayerId, appearancePlayerId,
-                    sourceName, dimension, kind, retiring,
+                    sourceName, dimension, kind, retiring, riding,
                     x, y, z, yRot, xRot, bodyRot, headRot, pose, equipment);
         }
     }

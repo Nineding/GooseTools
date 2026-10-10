@@ -7,8 +7,12 @@
   "entrypoints": {
     "client": [
       "com.goosethings.tools.client.noclip.FlightRegression",
-      "com.goosethings.tools.client.projection.ProjectionBodyRegression"
+      "com.goosethings.tools.client.projection.ProjectionBodyRegression",
+      "com.goosethings.tools.client.dream.DreamAvatarRegression"
     ]
   },
-  "depends": {"goosetools": "*", "goosethings": "*"}
+  "depends": {
+    "goosetools": "*",
+    "goosethings": "*"
+  }
 }

@@ -40,6 +40,8 @@ public final class GgdMapState {
         if (minecraft.player == null) {
             return null;
         }
+        Vec3 dreamPosition=com.goosethings.tools.client.dream.DreamAvatarClient.mapPosition(minecraft);
+        if (dreamPosition!=null) return dreamPosition;
 
         Vec3 playerPosition = minecraft.player.position();
         Marker meetingPosition = findMarker(minecraft, MEETING_LAST_POSITION);
@@ -81,6 +83,7 @@ public final class GgdMapState {
     }
 
     public static boolean isMeetingView(Minecraft minecraft) {
+        if (com.goosethings.tools.client.dream.DreamAvatarClient.active()) return false;
         if (!isGameActive(minecraft) || minecraft.player == null) {
             return false;
         }

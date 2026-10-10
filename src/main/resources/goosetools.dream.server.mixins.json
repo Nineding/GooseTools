@@ -1,0 +1,22 @@
+{
+  "required": true,
+  "package": "com.goosethings.tools.dream.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": [
+    "DreamChunkMapMixin",
+    "DreamEntityTrackingMixin",
+    "DreamGameplayPositionMixin",
+    "DreamFunctionMixin",
+    "DreamCommandQueueMixin",
+    "DreamInteractionMixin",
+    "DreamPlayerMixin",
+    "DreamEntityDataMixin",
+    "DreamLevelPlayersMixin",
+    "DreamSwingMixin",
+    "DreamHorseMixin",
+    "DreamBoatMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

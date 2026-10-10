@@ -48,6 +48,16 @@ public final class DreamStandInClient {
     private DreamStandInClient() {
     }
 
+    static DreamRemotePlayer liveAvatar(UUID owner) {
+        for (View view : VIEWS.values()) {
+            if (view.state.kind() == GooseToolsPayloads.DreamStandIn.LIVE_AVATAR
+                    && view.state.sourcePlayerId().equals(owner) && view.renderReady) {
+                return view.model;
+            }
+        }
+        return null;
+    }
+
     /** Returns whether the entity is a viewer-private proxy occupying a meeting chair. */
     public static boolean isMeetingProxy(Entity entity) {
         if (entity == null) {
@@ -320,6 +330,9 @@ public final class DreamStandInClient {
             bodyRot = next.bodyRot();
             headRot = next.headRot();
             pose = DreamStandInClient.pose(next.pose());
+            if (model != null && next.kind() == GooseToolsPayloads.DreamStandIn.LIVE_AVATAR) {
+                model.moveOrInterpolateTo(new Vec3(next.x(), next.y(), next.z()), yRot, xRot);
+            }
         }
 
         private void applyMotion(GooseToolsPayloads.DreamMotionS2C motion) {
@@ -347,6 +360,8 @@ public final class DreamStandInClient {
             model = new DreamRemotePlayer(
                     minecraft.level, visualProfile(state), this::visualSkin);
             model.setId(allocateEntityId(minecraft.level));
+            model.absSnapTo(state.x(), state.y(), state.z(), yRot, xRot);
+            model.setOldPosAndRot();
             modelLevel = minecraft.level;
             renderReady = false;
             NameTagClientState.registerLocalAlias(model.getUUID(), state.sourcePlayerId());
@@ -456,14 +471,17 @@ public final class DreamStandInClient {
             if (model == null) {
                 return;
             }
-            model.absSnapTo(state.x(), state.y(), state.z(), yRot, xRot);
-            model.yRotO = yRot;
-            model.xRotO = xRot;
+            if (state.kind() != GooseToolsPayloads.DreamStandIn.LIVE_AVATAR) {
+                model.absSnapTo(state.x(), state.y(), state.z(), yRot, xRot);
+                model.yRotO = yRot;
+                model.xRotO = xRot;
+            }
             model.setYBodyRot(bodyRot);
             model.yBodyRotO = bodyRot;
             model.setYHeadRot(headRot);
             model.yHeadRotO = headRot;
             model.setPose(pose);
+            model.dreamRiding=state.riding();
             model.setDeltaMovement(Vec3.ZERO);
             model.noPhysics = true;
             model.setNoGravity(true);

@@ -78,7 +78,8 @@ public final class DreamStandInServer {
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             UUID playerId = handler.player.getUUID();
             Session departing = SESSIONS.get(playerId);
-            if (departing != null) SNAPSHOTS.put(playerId, PlayerSnapshot.capture(handler.player));
+            if (departing != null && DreamAvatarServer.active(handler.player))
+                SNAPSHOTS.put(playerId, PlayerSnapshot.capture(handler.player));
             SESSIONS.remove(playerId);
             PENDING_WAKES.remove(playerId);
             RETIRING.remove(playerId);
@@ -142,10 +143,8 @@ public final class DreamStandInServer {
 
     private static int snapshot(MinecraftServer server, Iterable<ServerPlayer> players) {
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            ProjectionBodyServer.Kind kind = ProjectionBodyServer.kind(player.getUUID());
-            if (kind == ProjectionBodyServer.Kind.DREAM_LUCID
-                    || kind == ProjectionBodyServer.Kind.DREAM_RAVEN) {
-                ProjectionBodyServer.abandon(server, player);
+            if (DreamAvatarServer.active(player)) {
+                DreamAvatarServer.end(player);
             }
         }
         clearState();
@@ -166,40 +165,17 @@ public final class DreamStandInServer {
     }
 
     private static int prepare(MinecraftServer server, ServerPlayer player, DreamType type) {
-        PlayerSnapshot destination = SNAPSHOTS.get(player.getUUID());
-        if (destination == null || SESSIONS.containsKey(player.getUUID())
-                || !player.entityTags().contains("inTalk")) {
-            return 0;
-        }
-        ProjectionBodyServer.Kind projectionKind = type == DreamType.LUCID
-                ? ProjectionBodyServer.Kind.DREAM_LUCID
-                : ProjectionBodyServer.Kind.DREAM_RAVEN;
-        if (!ProjectionBodyServer.prepare(player, projectionKind)) {
-            return 0;
-        }
-        ProxySnapshot proxy = ProxySnapshot.capture(player);
-        Session session = new Session(
-                player.getUUID(), type, proxy, server.getTickCount(), false);
-        SESSIONS.put(player.getUUID(), session);
-        PENDING_WAKES.remove(player.getUUID());
-        RETIRING.remove(player.getUUID());
-        dirty = true;
-        syncAll(server);
-        return 1;
+        PlayerSnapshot destination=SNAPSHOTS.get(player.getUUID());
+        if(!readFlag(server, "FullBloodDLC", false) || destination==null || SESSIONS.containsKey(player.getUUID()) || !player.entityTags().contains("inTalk")
+                || player.getVehicle()==null) return 0;
+        SESSIONS.put(player.getUUID(),new Session(player.getUUID(),type,ProxySnapshot.capture(player),server.getTickCount(),false));
+        PENDING_WAKES.remove(player.getUUID());RETIRING.remove(player.getUUID());return 1;
     }
 
     private static int commit(MinecraftServer server, ServerPlayer player) {
-        Session session = SESSIONS.get(player.getUUID());
-        if (session == null) {
-            return 0;
-        }
-        if (!ProjectionBodyServer.commit(player)) {
-            return 0;
-        }
-        session.active = true;
-        dirty = true;
-        syncAll(server);
-        return 1;
+        Session session=SESSIONS.get(player.getUUID());
+        if(session==null || DreamAvatarServer.actor(player)==null)return 0;
+        session.active=true;dirty=true;syncAll(server);return 1;
     }
 
     private static int cancel(MinecraftServer server, ServerPlayer player) {
@@ -208,7 +184,7 @@ public final class DreamStandInServer {
             return 0;
         }
         SESSIONS.remove(player.getUUID());
-        ProjectionBodyServer.cancel(player);
+        DreamAvatarServer.end(player);
         dirty = true;
         syncAll(server);
         return 1;
@@ -232,9 +208,7 @@ public final class DreamStandInServer {
             return 0;
         }
         SNAPSHOTS.put(player.getUUID(), wake);
-        RETIRING.put(player.getUUID(), new RetiringProxy(
-                session.proxy, server.getTickCount() + RETIRE_TICKS));
-        ProjectionBodyServer.retire(player);
+        RETIRING.remove(player.getUUID());
         dirty = true;
         syncAll(server);
         return 1;
@@ -251,7 +225,7 @@ public final class DreamStandInServer {
         if (removed == null) {
             return 0;
         }
-        ProjectionBodyServer.abandon(server, player);
+        DreamAvatarServer.end(player);
         dirty = true;
         syncAll(server);
         return 1;
@@ -261,10 +235,8 @@ public final class DreamStandInServer {
         int count = SESSIONS.size() + RETIRING.size();
         clearState();
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            ProjectionBodyServer.Kind kind = ProjectionBodyServer.kind(player.getUUID());
-            if (kind == ProjectionBodyServer.Kind.DREAM_LUCID
-                    || kind == ProjectionBodyServer.Kind.DREAM_RAVEN) {
-                ProjectionBodyServer.abandon(server, player);
+            if (DreamAvatarServer.active(player)) {
+                DreamAvatarServer.end(player);
             }
         }
         dirty = true;
@@ -299,11 +271,11 @@ public final class DreamStandInServer {
             if (!session.active && tick - session.preparedAt > PREPARE_TIMEOUT_TICKS
                     && !player.entityTags().contains("inDream")) {
                 SESSIONS.remove(session.playerId);
-                ProjectionBodyServer.cancel(player);
+                DreamAvatarServer.end(player);
                 changed = true;
                 continue;
             }
-            if (session.active && player.entityTags().contains("dreamRemote")) {
+            if (session.active) {
                 updateRemoteProxy(server, player, session);
             }
         }
@@ -323,28 +295,31 @@ public final class DreamStandInServer {
 
     private static void updateRemoteProxy(
             MinecraftServer server, ServerPlayer player, Session session) {
-        float swingProgress = player.isSwinging() ? player.getSwingAnimation(1.0F) : -1.0F;
-        boolean newSwing = player.isSwinging()
+        Entity avatar = DreamAvatarServer.actor(player);
+        if (!(avatar instanceof LivingEntity living)) return;
+        float swingProgress = living.isSwinging() ? living.getSwingAnimation(1.0F) : -1.0F;
+        boolean newSwing = living.isSwinging()
                 && (session.lastSwingProgress < 0.0F || swingProgress < session.lastSwingProgress);
         session.lastSwingProgress = swingProgress;
         if (newSwing) {
             session.swingSequence++;
-            LivingEntity.SwingDescription swing = player.getCurrentSwing();
+            LivingEntity.SwingDescription swing = living.getCurrentSwing();
             session.offHand = swing != null && swing.hand() == InteractionHand.OFF_HAND;
         }
 
-        ProxySnapshot next = session.proxy.withMotion(player);
+        ProxySnapshot next = new ProxySnapshot(session.proxy.playerName, session.proxy.level, session.proxy.position, avatar.getYRot(), avatar.getXRot(), living.yBodyRot, living.getYHeadRot(), normalizePose(avatar.getPose()), session.proxy.equipment);
         boolean transformChanged = !next.sameMotion(session.proxy);
         if (!transformChanged && !newSwing) {
             return;
         }
         session.proxy = next;
         GooseToolsPayloads.DreamMotionS2C payload = new GooseToolsPayloads.DreamMotionS2C(
-                meetingFakeId(player.getUUID()),
+                namedId("avatar", player.getUUID(), player.getUUID()),
                 next.yRot, next.xRot, next.bodyRot, next.headRot, next.pose.name(),
                 session.swingSequence, session.offHand);
         for (ServerPlayer viewer : server.getPlayerList().getPlayers()) {
-            if (viewer.getUUID().equals(player.getUUID())
+            Session viewing = SESSIONS.get(viewer.getUUID());
+            if (viewing == null || !viewing.active
                     || !MandatoryHandshake.isVerified(viewer)
                     || !ServerPlayNetworking.canSend(
                             viewer, GooseToolsPayloads.DreamMotionS2C.TYPE)) {
@@ -352,6 +327,19 @@ public final class DreamStandInServer {
             }
             ServerPlayNetworking.send(viewer, payload);
         }
+    }
+
+    public static void avatarChanged() { dirty=true; }
+
+    public static void retainAvatarSnapshot(ServerPlayer player) {
+        if (SESSIONS.containsKey(player.getUUID()) && DreamAvatarServer.active(player))
+            SNAPSHOTS.put(player.getUUID(), PlayerSnapshot.capture(player));
+    }
+
+    public static boolean isPrepared(ServerPlayer player, boolean raven) {
+        Session session = SESSIONS.get(player.getUUID());
+        return session != null && !session.active && (session.type == DreamType.RAVEN) == raven
+                && readFlag(player.level().getServer(), "FullBloodDLC", false);
     }
 
     private static void syncAll(MinecraftServer server) {
@@ -393,22 +381,24 @@ public final class DreamStandInServer {
         List<Session> sessions = SESSIONS.values().stream()
                 .sorted(Comparator.comparing(session -> session.playerId))
                 .toList();
-        // Always publish a dedicated player copy at the chair. The authenticated
-        // ServerPlayer is the remote dream authority and may be hidden, untracked,
-        // or in an unloaded chunk for ordinary meeting viewers, so retaining that
-        // entity cannot provide a reliable meeting body on a dedicated server.
-        for (Session session : sessions) {
-            result.add(meetingStandIn(session.playerId, session.proxy, false));
-        }
-        RETIRING.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .filter(entry -> !entry.getKey().equals(viewer.getUUID()))
-                .forEach(entry -> result.add(meetingStandIn(
-                        entry.getKey(), entry.getValue().proxy, true)));
-
         Session ownSession = SESSIONS.get(viewer.getUUID());
-        if (ownSession == null) {
+        if (ownSession == null || !ownSession.active) {
             return List.copyOf(result);
+        }
+
+        for (Session session : sessions) {
+            ServerPlayer source=server.getPlayerList().getPlayer(session.playerId);
+            Entity actor=source==null?null:DreamAvatarServer.actor(source);
+            if(actor==null || !session.active)continue;
+            UUID appearance=ownSession.type==DreamType.LUCID && session.type==DreamType.RAVEN
+                    ?viewer.getUUID():session.playerId;
+            List<ItemStack> equipment=new ArrayList<>();
+            for(EquipmentSlot slot:EquipmentSlot.values())equipment.add(slot.isArmor() && !appearance.equals(session.playerId)
+                    ?viewer.getItemBySlot(slot).copy():source.getItemBySlot(slot).copy());
+            result.add(new GooseToolsPayloads.DreamStandIn(namedId("avatar",session.playerId,session.playerId),
+                    session.playerId,appearance,source.getGameProfile().name(),actor.level().dimension().identifier().toString(),
+                    GooseToolsPayloads.DreamStandIn.LIVE_AVATAR,false,actor.isPassenger(),actor.getX(),actor.getY(),actor.getZ(),
+                    actor.getYRot(),actor.getXRot(),actor.getYRot(),actor.getYRot(),actor.getPose().name(),List.copyOf(equipment)));
         }
 
         SNAPSHOTS.values().stream()
@@ -474,7 +464,7 @@ public final class DreamStandInServer {
             List<ItemStack> equipment) {
         return new GooseToolsPayloads.DreamStandIn(
                 fakeId, sourceId, appearanceId, playerName,
-                level.dimension().identifier().toString(), kind, retiring,
+                level.dimension().identifier().toString(), kind, retiring, false,
                 position.x, position.y, position.z,
                 yRot, xRot, bodyRot, headRot, pose.name(), copyEquipment(equipment));
     }
@@ -610,9 +600,14 @@ public final class DreamStandInServer {
             String seatTag) {
         private static PlayerSnapshot capture(ServerPlayer player) {
             return new PlayerSnapshot(
-                    player.getUUID(), player.getGameProfile().name(), player.level(),
-                    player.position(), player.getYRot(), player.getXRot(),
-                    player.yBodyRot, player.getYHeadRot(), normalizePose(player.getPose()),
+                    player.getUUID(), player.getGameProfile().name(),
+                    DreamAvatarServer.actor(player)==null?player.level():(ServerLevel)DreamAvatarServer.actor(player).level(),
+                    DreamAvatarServer.actor(player)==null?player.position():DreamAvatarServer.actor(player).position(),
+                    DreamAvatarServer.actor(player)==null?player.getYRot():DreamAvatarServer.actor(player).getYRot(),
+                    DreamAvatarServer.actor(player)==null?player.getXRot():DreamAvatarServer.actor(player).getXRot(),
+                    DreamAvatarServer.actor(player)==null?player.yBodyRot:DreamAvatarServer.actor(player).getYRot(),
+                    DreamAvatarServer.actor(player)==null?player.getYHeadRot():DreamAvatarServer.actor(player).getYRot(),
+                    normalizePose(DreamAvatarServer.actor(player)==null?player.getPose():DreamAvatarServer.actor(player).getPose()),
                     captureEquipment(player), DreamStandInServer.seatTag(player));
         }
     }

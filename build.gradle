@@ -205,6 +205,29 @@ loom {
             runDir 'build/projection-regression-test'
             vmArg '-Dgoosetools.projectionRegressionTest=true'
         }
+        dreamRegressionTest {
+            client()
+            source sourceSets.flightRegressionTest
+            runDir 'build/dream-regression-test'
+            vmArg '-Dgoosetools.dreamRegressionTest=true'
+        }
+    }
+}
+
+if (providers.gradleProperty('dreamGooseThingsJar').isPresent()) {
+    dependencies { flightRegressionTestRuntimeOnly files(providers.gradleProperty('dreamGooseThingsJar').get()) }
+}
+tasks.named('runDreamRegressionTest') {
+    timeout = java.time.Duration.ofMinutes(5)
+    doFirst {
+        def run = file('build/dream-regression-test'); run.mkdirs()
+        file('build/dream-regression-test/options.txt').text = 'pauseOnLostFocus:false\nrenderDistance:4\nlang:en_us\ntutorialStep:none\n'
+        file('build/dream-regression-test/dream-result.txt').delete()
+    }
+    doLast {
+        def result = file('build/dream-regression-test/dream-result.txt')
+        if (!result.isFile() || !result.text.startsWith('PASS ')) throw new GradleException('Dream regression failed; inspect dream-result.txt and logs/latest.log')
+        logger.lifecycle(result.text)
     }
 }
 

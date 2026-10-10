@@ -73,7 +73,7 @@ public abstract class GgdMinimapWriterMeetingMixin {
 
     private static Vec3 ggd$meetingPosition() {
         Minecraft minecraft = Minecraft.getInstance();
-        return GgdMapState.isMeetingView(minecraft)
+        return com.goosethings.tools.client.dream.DreamAvatarClient.active() || GgdMapState.isMeetingView(minecraft)
                 ? GgdMapState.effectiveMapPosition(minecraft)
                 : null;
     }

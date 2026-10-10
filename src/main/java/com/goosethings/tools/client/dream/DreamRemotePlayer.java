@@ -10,6 +10,12 @@ import java.util.function.Supplier;
 /** A visual-only player model that never captures the crosshair or pushes entities. */
 final class DreamRemotePlayer extends RemotePlayer {
     private final Supplier<PlayerSkin> skinSupplier;
+    boolean dreamRiding;
+
+    @Override
+    protected net.minecraft.world.entity.InterpolationHandler createInterpolationHandler() {
+        return new DreamInterpolation(this);
+    }
 
     DreamRemotePlayer(ClientLevel level, GameProfile profile, Supplier<PlayerSkin> skinSupplier) {
         super(level, profile);

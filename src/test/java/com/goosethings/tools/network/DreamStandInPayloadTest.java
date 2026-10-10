@@ -21,6 +21,7 @@ class DreamStandInPayloadTest {
                 "minecraft:overworld",
                 kind,
                 false,
+                false,
                 1.0D,
                 2.0D,
                 3.0D,
@@ -37,16 +38,17 @@ class DreamStandInPayloadTest {
         assertDoesNotThrow(() -> standIn(GooseToolsPayloads.DreamStandIn.MEETING_PROXY));
         assertDoesNotThrow(() -> standIn(GooseToolsPayloads.DreamStandIn.MAP_BODY));
         assertDoesNotThrow(() -> standIn(GooseToolsPayloads.DreamStandIn.DREAM_CORPSE));
+        assertDoesNotThrow(() -> standIn(GooseToolsPayloads.DreamStandIn.LIVE_AVATAR));
     }
 
     @Test
     void rejectsUnknownKindsAndNonFiniteTransforms() {
-        assertThrows(IllegalArgumentException.class, () -> standIn(3));
+        assertThrows(IllegalArgumentException.class, () -> standIn(4));
         GooseToolsPayloads.DreamStandIn valid =
                 standIn(GooseToolsPayloads.DreamStandIn.MEETING_PROXY);
         assertThrows(IllegalArgumentException.class, () -> new GooseToolsPayloads.DreamStandIn(
                 valid.fakeId(), valid.sourcePlayerId(), valid.appearancePlayerId(),
-                valid.sourceName(), valid.dimension(), valid.kind(), valid.retiring(),
+                valid.sourceName(), valid.dimension(), valid.kind(), valid.retiring(), valid.riding(),
                 Double.NaN, valid.y(), valid.z(), valid.yRot(), valid.xRot(),
                 valid.bodyRot(), valid.headRot(), valid.pose(), valid.equipment()));
     }
@@ -68,7 +70,7 @@ class DreamStandInPayloadTest {
                 standIn(GooseToolsPayloads.DreamStandIn.DREAM_CORPSE);
         assertThrows(IllegalArgumentException.class, () -> new GooseToolsPayloads.DreamStandIn(
                 valid.fakeId(), valid.sourcePlayerId(), valid.appearancePlayerId(),
-                valid.sourceName(), valid.dimension(), valid.kind(), valid.retiring(),
+                valid.sourceName(), valid.dimension(), valid.kind(), valid.retiring(), valid.riding(),
                 valid.x(), valid.y(), valid.z(), valid.yRot(), valid.xRot(),
                 valid.bodyRot(), valid.headRot(), valid.pose(), List.of()));
     }

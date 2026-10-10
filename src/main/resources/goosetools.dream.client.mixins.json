@@ -1,0 +1,17 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.goosethings.tools.client.dream.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "DreamKeyboardMixin",
+    "DreamMouseMixin",
+    "DreamHandsMixin",
+    "DreamLocalPlayerMixin",
+    "DreamClientLoadingMixin",
+    "DreamRidingRenderMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
