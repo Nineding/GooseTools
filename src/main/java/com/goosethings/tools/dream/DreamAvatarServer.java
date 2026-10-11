@@ -105,6 +105,7 @@ public final class DreamAvatarServer {
         });
     }
     public static Entity end(ServerPlayer owner) {
+        owner.getAdvancements().setPlayer(owner);
         DreamStandInServer.retainAvatarSnapshot(owner);
         Session s=SESSIONS.remove(owner.getUUID());
         if(s==null)return null;
@@ -222,6 +223,9 @@ public final class DreamAvatarServer {
     private static final class ViewPlayer extends ServerPlayer {
         ViewPlayer(ServerPlayer owner, ServerLevel level) {
             super(owner.level().getServer(), level, owner.getGameProfile(), owner.clientInformation());
+            // PlayerList caches advancements by UUID; super binds their rewards to this viewer.
+            // Inventory/skill rewards must keep executing as the authenticated meeting player.
+            owner.getAdvancements().setPlayer(owner);
         }
         @Override public boolean isClientAuthoritative() { return false; }
     }

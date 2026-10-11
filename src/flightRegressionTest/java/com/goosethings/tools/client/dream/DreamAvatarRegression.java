@@ -43,6 +43,7 @@ public final class DreamAvatarRegression implements ClientModInitializer {
     private Vec3 seatedPosition, movementStart;
     private int bodyId;
     private Vec3 vehicleStart;
+    private final Set<String> inventoryMacroArguments = new java.util.HashSet<>();
 
     @Override public void onInitializeClient() {
         if (!Boolean.getBoolean("goosetools.dreamRegressionTest")) return;
@@ -92,16 +93,37 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                         Files.createDirectories(pack.resolve("data/mainsys/advancement/test"));
                         Files.createDirectories(pack.resolve("data/mainsys/function"));
                         var datapack = java.nio.file.Path.of(System.getProperty("goosetools.dreamDatapack"));
-                        for (String file : java.util.List.of("cleanup_game_end", "cleanup_raven_moment"))
-                            Files.copy(datapack.resolve("data/ggd/function/skill/dream/" + file + ".mcfunction"),
-                                    pack.resolve("data/ggd/function/skill/dream/" + file + ".mcfunction"));
-                        Files.writeString(pack.resolve("data/ggd/function/canceltask.mcfunction"), "tag @s remove inTask\n");
-                        Files.writeString(pack.resolve("data/mainsys/advancement/test/ifinvchange.json"),
-                                "{\"criteria\":{\"changed\":{\"trigger\":\"minecraft:inventory_changed\"}},\"rewards\":{\"function\":\"mainsys:invchanged\"}}");
-                        Files.writeString(pack.resolve("data/mainsys/function/invchanged.mcfunction"),
-                                "execute if entity @s[tag=ggdInvProcessing] run return run advancement revoke @s only mainsys:test/ifinvchange\n"
-                                + "execute if entity @s[tag=ggdSkipInvChanged] run return run advancement revoke @s only mainsys:test/ifinvchange\n"
-                                + "scoreboard players add #InventoryRefresh dreamCheck 1\nadvancement revoke @s only mainsys:test/ifinvchange\n");
+                        var macro = java.util.regex.Pattern.compile("\\$\\((\\w+)\\)").matcher(Files.readString(
+                                datapack.resolve("data/ggd/function/invreplace.mcfunction")));
+                        while (macro.find()) inventoryMacroArguments.add(macro.group(1));
+                        // Use the shipped advancement and reward functions: a global counter cannot
+                        // detect rewards accidentally running as the synthetic chunk viewer.
+                        for (String relative : java.util.List.of(
+                                "mainsys/advancement/test/ifinvchange.json",
+                                "mainsys/function/invchanged.mcfunction", "mainsys/function/invchanged2.mcfunction",
+                                "ggd/function/canceltask.mcfunction", "ggd/function/rccheck.mcfunction",
+                                "ggd/function/invreplace.mcfunction", "ggd/function/invreplace_prepare.mcfunction",
+                                "ggd/function/skill/dream", "ggd/function/prox_gui_lock/clear_tags_only.mcfunction",
+                                "ggd/function/skill/kill/resolve_range.mcfunction",
+                                "ggd/function/skill/demolitionist/clear_item.mcfunction",
+                                "ggd/function/invrepevent", "ggd/function/talker/invreplace",
+                                "ggd/function/talker/marker_menu/give.mcfunction",
+                                "ggd/function/poolcore/inventory.mcfunction",
+                                "ggd/function/goosechapel/inventory.mcfunction", "ggd/function/goosechapel/strip_offmap.mcfunction",
+                                "lobby/function/invreplace/ggdgobalinvrp.mcfunction",
+                                "lobby/function/invreplace/ggd_init.mcfunction",
+                                "lobby/function/invreplace/set_time/arm_click_guard_if_pending.mcfunction",
+                                "lobby/function/game_guide/give.mcfunction",
+                                "lobby/function/trust/hotbar_slot0.mcfunction", "lobby/function/spectate/hotbar.mcfunction")) {
+                            var source = datapack.resolve("data/" + relative);
+                            try (var files = Files.walk(source)) {
+                                for (var file : files.filter(Files::isRegularFile).toList()) {
+                                    var destination = pack.resolve("data").resolve(datapack.resolve("data").relativize(file));
+                                    Files.createDirectories(destination.getParent());
+                                    Files.copy(file, destination);
+                                }
+                            }
+                        }
                         Files.writeString(pack.resolve("pack.mcmeta"), "{\"pack\":{\"description\":\"Dream regression\",\"min_format\":[121,0],\"max_format\":[121,0]}}");
                         Files.writeString(pack.resolve("data/ggd/function/task/dream_regression/root.mcfunction"),
                                 "scoreboard objectives add dreamCheck dummy\nexecute store result score #DreamX dreamCheck run data get entity @s Pos[0]\nexecute at @s store success score #FoundSelf dreamCheck if entity @a[distance=..1]\nexecute at @s run function ggd:task/dream_regression/child\nexecute store result score #ScopeAfter dreamCheck run data get entity @s Pos[0]\n");
@@ -130,6 +152,17 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                     command(p, "scoreboard objectives add ggdadv dummy");
                     command(p, "scoreboard objectives add dreamCheck dummy");
                     command(p, "scoreboard objectives add ggdDreamEnterCD dummy");
+                    for (String objective : java.util.List.of("ggdDreamCommand", "gamesetting", "ggdRoleSetting", "ggdKillAround",
+                            "ggdRushCD", "ggdCuckooCD", "ggdSniperCD", "ggdSniperScope", "ggdAstralCD", "ggdAstralTime",
+                            "ggdCupidCD", "ggdKillCDScore", "ggdItemNightmareEye", "ggdItemDamControl", "ggdItemDoor",
+                            "ggdItemPortalBlock", "ggdItemPowerCut", "ggdItemLighter", "ggdItemShipDoor", "menuSuppress", "page"))
+                        command(p, "scoreboard objectives add " + objective + " dummy");
+                    command(p, "scoreboard objectives add carrotrightclick minecraft.used:minecraft.carrot_on_a_stick");
+                    command(p, "scoreboard players set mode gamesetting 2");
+                    command(p, "scoreboard players set map gamesetting 0");
+                    command(p, "scoreboard players set HowRole ggdadv 1");
+                    for(String argument:inventoryMacroArguments) command(p,"data modify storage game:id " + argument
+                            + " set value " + (argument.endsWith("Stack") ? 1 : 0));
                     command(p, "team add ggd");
                     command(p, "scoreboard players set FullBloodDLC ggdadv 1");
                     command(p, "goosetools dream snapshot @s");
@@ -143,14 +176,13 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                     p.level().addFreshEntity(chair);
                     require(p.startRiding(chair, true, false), "chair mount");
                     chairId = chair.getUUID(); seatedPosition = p.position(); bodyId = p.getId();
-                    p.addTag("inTalk"); p.removeTag("LucidDreamer"); p.removeTag("Raven"); p.addTag(scenario == 0 ? "LucidDreamer" : "Raven"); p.addTag("gamingGGD");
+                    p.removeTag("lobby"); p.removeTag("endGame"); p.addTag("inTalk"); p.removeTag("LucidDreamer"); p.removeTag("Raven"); p.addTag(scenario == 0 ? "LucidDreamer" : "Raven"); p.addTag("gamingGGD");
                     p.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.STICK));
-                    command(p, "goosetools dream prepare @s " + (scenario == 0 ? "lucid" : "raven"));
-                    command(p, "gt dream enter @s " + (scenario == 0 ? "lucid" : "raven"));
-                    command(p, "goosetools dream commit @s");
+                    p.addTag("ravenTargetShown");
+                    command(p, "function ggd:skill/dream/enter_" + (scenario == 0 ? "lucid" : "raven"));
                     require(DreamAvatarServer.active(p), "dream entry failed");
                     GooseTools.LOGGER.info("Dream test scenario={} meeting={} avatar={} scope={}", scenario, p.level().dimension(), DreamAvatarServer.actor(p).level().dimension(), DreamSpatialContext.enabled());
-                    p.addTag("inDream"); p.removeTag("inTalk");
+                    assertDreamToolbar(p);
                     assertSeated(p);
                 });
                 stage = 1; ticks = 0;
@@ -159,7 +191,7 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                 DreamRemotePlayer body = DreamStandInClient.liveAvatar(mc.player.getUUID());
                 if (body == null || mc.getCameraEntity() != body || !mc.player.connection.hasClientLoaded()) return;
                 require(body.getX() > 500 && mc.player.getX() < 10, "camera/body not separated");
-                require(body.getMainHandItem().is(Items.STICK), "dream equipment missing");
+                if (!body.getMainHandItem().is(Items.CARROT_ON_A_STICK)) return;
                 require(body.getSkin() != null, "dream skin missing");
                 require(com.goosethings.tools.xaero.GgdMapState.effectiveMapPosition(mc).equals(body.position()), "map followed meeting body");
                 require(mc.level.dimension() == (scenario == 0 ? net.minecraft.world.level.Level.OVERWORLD : net.minecraft.world.level.Level.END), "view dimension wrong");
@@ -167,8 +199,7 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                 if (!mc.level.getBlockState(new BlockPos(512,100,0)).is(Blocks.STONE)) return;
                 mc.options.setCameraType(CameraType.FIRST_PERSON);
                 pending = server(mc, p -> {
-                    for (int slot=0;slot<9;slot++) p.getInventory().setItem(slot,new ItemStack(
-                            slot==1?Items.CARROT_ON_A_STICK:slot==0?Items.STICK:Items.PAPER,slot==1?1:slot+1));
+                    assertDreamToolbar(p);
                     p.inventoryMenu.sendAllDataToRemote();
                     var actor=DreamAvatarServer.actor(p);
                     actor.level().setBlock(new BlockPos(512,102,2),Blocks.CHEST.defaultBlockState(),3);
@@ -206,13 +237,25 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                         require(p.getStats().getValue(net.minecraft.stats.Stats.ITEM_USED.get(Items.CARROT_ON_A_STICK))>=scenario+1,
                                 "native right-click did not reach carrot use/stat");
                         require(p.containerMenu==p.inventoryMenu,"interactive block swallowed dream toolbar button");
+                        command(p,"function ggd:rccheck");
+                        require(p.entityTags().contains("dreamRemote"),"native right-click did not enable actual remote skill");
+                        require(p.getInventory().getItem(1).getOrDefault(net.minecraft.core.component.DataComponents.ENCHANTMENT_GLINT_OVERRIDE,false),
+                                "remote skill did not redraw the owner's toolbar");
                         var actor=DreamAvatarServer.actor(p);
                         actor.level().setBlock(new BlockPos(512,102,2),Blocks.AIR.defaultBlockState(),3);
                         assertSeated(p);
                     });
 
+                }
+                if(ticks==25) net.minecraft.client.KeyMapping.click(mc.options.keyUse.getDefaultKey());
+                if(ticks==30) {
+                    pending=server(mc,p -> {
+                        command(p,"function ggd:rccheck");
+                        require(!p.entityTags().contains("dreamRemote"),"second native right-click did not disable remote skill");
+                        assertDreamToolbar(p);
+                    });
                     movementStart=DreamStandInClient.liveAvatar(mc.player.getUUID()).position();
-                    mc.options.setCameraType(CameraType.THIRD_PERSON_BACK); stage=2;ticks=0;
+                    mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);stage=2;ticks=0;
                 }
             } else if (stage == 2) {
                 DreamRemotePlayer body = DreamStandInClient.liveAvatar(mc.player.getUUID());
@@ -290,23 +333,28 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                         catch (Exception error) { GooseTools.LOGGER.error("Dream screenshot", error); }
                     });
                     mc.options.setCameraType(CameraType.FIRST_PERSON);
+                    net.minecraft.client.KeyMapping.click(mc.options.keyHotbarSlots[0].getDefaultKey());
+                }
+                if(ticks==168 && scenario==0) net.minecraft.client.KeyMapping.click(mc.options.keyUse.getDefaultKey());
+                if(ticks==172) {
                     pending = server(mc, p -> {
                         assertSeated(p);
                         if (scenario==0) {
-                            command(p, "goosetools dream prepare-wake @s");
-                            command(p, "gt dream wake @s");
-                            command(p, "goosetools dream commit-wake @s");
+                            command(p,"function ggd:rccheck");
+                            require(p.entityTags().contains("inTalk") && !p.entityTags().contains("inDream"),"actual wake skill did not restore meeting state");
+                            require(hasFlag(p.getInventory().getItem(4),"DreamEnter"),"wake did not redraw the real meeting inventory");
                         } else {
                             p.addTag("endGame");p.addTag("dreamMeetingParticipant");
                             for(String tag:java.util.List.of("ggdInvProcessing","inGGDInvReplacing","ggdSkipInvChanged","dontGoMainInvClickCheck")) p.addTag(tag);
                             command(p,"function ggd:skill/dream/cleanup_game_end");
                             for(String tag:java.util.List.of("inDream","dreamMeetingParticipant","ggdInvProcessing","inGGDInvReplacing","ggdSkipInvChanged","dontGoMainInvClickCheck"))
                                 require(!p.entityTags().contains(tag),"force-end left stale tag "+tag);
-                            int before=score(p,"#InventoryRefresh");
-                            command(p,"item replace entity @s hotbar.7 with minecraft:gold_ingot");
+                            p.removeTag("endGame");p.removeTag("inTalk");p.removeTag("gamingGGD");p.addTag("lobby");
+                            p.addTag("dontGoMainInvClickCheck");
+                            command(p,"item replace entity @s inventory.11 with minecraft:gold_ingot");
                             command(p,"advancement grant @s only mainsys:test/ifinvchange");
-                            require(score(p,"#InventoryRefresh")>before,"inventory refresh remained locked after force-end");
-                            p.removeTag("endGame");
+                            require(hasFlag(p.getInventory().getItem(20),"openAchievementMenu") && hasFlag(p.getInventory().getItem(20),"NeedClear"),
+                                    "actual lobby inventory reward targeted the wrong player after force-end");
                         }
                         p.removeTag("inDream"); p.addTag("inTalk");
                         require(!DreamAvatarServer.active(p), "avatar survived wake");
@@ -322,7 +370,7 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                 stage = 4;
             } else if (stage == 4 && scenario == 0) { scenario++; stage = 0; ticks = 0; }
             else if (stage == 4) finish(mc, "PASS overworld Lucid and cross-dimension End Raven: separated body/camera, far-away chunks, visible skin/equipment, "
-                    + "walking, original Raven flight speed, nine number-key slots, native carrot right-click at an interactive chest, first-person hands, map coordinates, boat/camel steering, native input isolation, task coordinates/NBT/teleport/nested scopes, swing isolation, wake/force-end camera cleanup and inventory refresh; "
+                    + "walking, original Raven flight speed, nine number-key slots, actual dream inventory rewards and native remote skill right-click at an interactive chest, first-person hands, map coordinates, boat/camel steering, native input isolation, task coordinates/NBT/teleport/nested scopes, swing isolation, actual wake and meeting redraw, force-end cleanup and real lobby inventory reward; "
                     + "meeting UUID/entity ID/position/passenger unchanged throughout");
         } catch (Throwable error) {
             GooseTools.LOGGER.error("Dream avatar regression failed", error);
@@ -334,6 +382,16 @@ public final class DreamAvatarRegression implements ClientModInitializer {
         require(player.getId() == bodyId && player.position().distanceToSqr(seatedPosition) < 1E-6,
                 "meeting body moved or changed entity ID");
         require(player.getVehicle() != null && player.getVehicle().getUUID().equals(chairId), "meeting mount changed");
+    }
+    private static boolean hasFlag(ItemStack item,String flag) {
+        return item.getOrDefault(net.minecraft.core.component.DataComponents.CUSTOM_DATA,
+                net.minecraft.world.item.component.CustomData.EMPTY).copyTag().getBooleanOr(flag,false);
+    }
+    private static void assertDreamToolbar(ServerPlayer player) {
+        require(hasFlag(player.getInventory().getItem(0),"DreamWake"),"actual owner did not receive DreamWake reward");
+        require(hasFlag(player.getInventory().getItem(1),"DreamRemote"),"actual owner did not receive DreamRemote reward");
+        require(hasFlag(player.getInventory().getItem(8),player.entityTags().contains("Raven")?"RavenDreamKill":"LucidRush"),
+                "actual owner did not receive role dream skill reward");
     }
     private static void command(ServerPlayer player, String command) {
         player.level().getServer().getCommands().performPrefixedCommand(
