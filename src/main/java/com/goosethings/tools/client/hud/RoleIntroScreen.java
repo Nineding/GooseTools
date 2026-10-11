@@ -21,7 +21,6 @@ import net.minecraft.world.entity.player.PlayerSkin;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -135,7 +134,8 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
     private void drawRow(GuiGraphicsExtractor g, List<RoleIntroPayload.Appearance> row,
                          float left, float right, float floor, float maxScale, double seconds) {
         if (row.isEmpty()) return;
-        float step = (right - left) / row.size();
+        float step = RoleIntroScene.rowStep(right - left, row.size(), maxScale);
+        left = (left + right - step * row.size()) * .5F;
         int scale = Math.max(5, Math.round(Math.min(maxScale, step * .86F)));
         float baseNameScale = Math.min(.9F * uiScale(), step / 43F);
         for (int i = 0; i < row.size(); i++) {
@@ -146,7 +146,6 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
             var camera = minecraft.getCameraEntity();
             if (camera != null) model.setPos(camera.position());
             float center = left + step * (i + .5F);
-            float bob = (float) Math.sin(seconds * 2.2 + i * .9) * scale * .018F;
             var renderer = minecraft.getEntityRenderDispatcher().getRenderer(model);
             var state = renderer.createRenderState(model, 1);
             state.shadowPieces.clear(); state.outlineColor = 0; state.nameTag = null;
@@ -156,22 +155,26 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
                 living.yRot = (float) Math.sin(seconds + i) * 4;
                 living.xRot = 0;
                 living.walkAnimationPos = (float) (seconds * 1.5 + i);
-                living.walkAnimationSpeed = .07F;
+                living.walkAnimationSpeed = 0;
             }
-            int top = Math.round(floor - scale * 2.05F - bob), bottom = Math.round(floor - bob);
-            g.entity(state, scale, new Vector3f(0, state.boundingBoxHeight * .5F, 0),
+            int top = Math.round(floor - scale * 2.05F), bottom = Math.round(floor);
+            // GUI entity renders start at the rectangle center; anchor the actual feet
+            // to its bottom rather than centering the shorter collision bounding box.
+            float feetOffset = (bottom - top) * .5F / scale;
+            drawContactShadow(g, center, bottom, scale);
+            g.entity(state, scale, new Vector3f(0, feetOffset, 0),
                     new Quaternionf().rotateZ((float) Math.PI), new Quaternionf(),
                     Math.round(center - step * .48F), top, Math.round(center + step * .48F), bottom);
             float nameScale = Math.max(.45F, baseNameScale);
             // Stagger dense roster labels above the models as in the reference.
             float nameY = top - 12 * nameScale - (row.size() > 9 && (i & 1) == 0 ? 11 * nameScale : 0);
-            MeetingNameTagHud.drawScaled(g, minecraft, appearance.id(), appearance.name(),
+            MeetingNameTagHud.drawIntro(g, minecraft, appearance.id(), appearance.name(),
                     center, nameY, nameScale, Math.max(12, (int) ((step - 3) / nameScale)));
         }
     }
 
     private RemotePlayer model(RoleIntroPayload.Appearance appearance, int index) {
-        UUID isolated = UUID.nameUUIDFromBytes(("goosetools:role-intro:" + appearance.id()).getBytes(StandardCharsets.UTF_8));
+        UUID isolated = RoleIntroScene.modelId(appearance.id());
         MeetingAlertRemotePlayer model = new MeetingAlertRemotePlayer(minecraft.level,
                 new GameProfile(isolated, appearance.name()), () -> skin(appearance.id()));
         model.showAllSkinLayers();
@@ -187,6 +190,16 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
     }
 
     private float uiScale() { return Math.max(.55F, Math.min(width / 640F, height / 360F)); }
+    private void drawContactShadow(GuiGraphicsExtractor g, float center, float floor, int scale) {
+        float radius = scale * .46F;
+        int depth = Math.max(2, Math.round(scale * .06F));
+        for (int y = -depth; y <= depth; y++) {
+            float extent = radius * (float) Math.sqrt(Math.max(0, 1 - (float) y * y / (depth * depth)));
+            int alpha = Math.round(46F * (1 - Math.abs(y) / (depth + 1F)));
+            g.fill(Math.round(center - extent), Math.round(floor) + y,
+                    Math.round(center + extent), Math.round(floor) + y + 1, alpha << 24);
+        }
+    }
     private void centered(GuiGraphicsExtractor g, Component text, float x, float y, float scale, int color) {
         g.pose().pushMatrix(); g.pose().translate(x, y); g.pose().scale(scale, scale);
         g.text(font, text, -font.width(text) / 2, 0, color, true); g.pose().popMatrix();

@@ -94,4 +94,15 @@ final class NameTagVisibilityPolicyTest {
                 false, Set.of("players"), Set.of("Parasite"),
                 Set.of("Parasite", "parasiteInside", "inTalk", "parasiteMeetingVisible")));
     }
+
+    @Test
+    void parasiteOpeningStandInRetainsItsNameWithoutRevealingItsCameraBody() {
+        Set<String> parasite = Set.of("Parasite", "parasiteInside", "players");
+        assertFalse(NameTagVisibilityPolicy.concealOpeningModel(false, Set.of("players"), parasite));
+        assertFalse(NameTagVisibilityPolicy.concealOpeningModel(true, parasite, parasite));
+        assertTrue(NameTagVisibilityPolicy.concealIdentity(false, Set.of("players"), parasite));
+        assertTrue(NameTagVisibilityPolicy.concealIdentity(true, parasite, parasite));
+        assertTrue(NameTagVisibilityPolicy.concealOpeningModel(false,
+                Set.of("Astral", "astralProjected"), parasite));
+    }
 }

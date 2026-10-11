@@ -39,10 +39,15 @@ final class MeetingNameTagHud {
         graphics.text(font, label, left, top + 1, argb(0xffffff, alpha), false);
     }
 
-    static void drawScaled(GuiGraphicsExtractor graphics, Minecraft minecraft,
+    static void drawIntro(GuiGraphicsExtractor graphics, Minecraft minecraft,
                            UUID playerId, String snapshotName, float centerX, float top,
                            float scale, int maxWidth) {
-        MeetingAlertIdentityPolicy.Label data = resolve(playerId, snapshotName);
+        GooseToolsPayloads.NameTagEntry preview = NameTagClientState.entry(
+                com.goosethings.tools.intro.RoleIntroScene.modelId(playerId));
+        MeetingAlertIdentityPolicy.Label data = preview == null ? resolve(playerId, snapshotName)
+                : MeetingAlertIdentityPolicy.nametag(snapshotName, playerId,
+                preview.identityPlayerId(), preview.name(), preview.rgb(), preview.serialNumber(),
+                preview.attachmentFlags(), null, 0xffffff, 0, 0);
         if (data.concealed()) return;
         // Reserve the whole badge before shortening dense-roster names.
         int badgeWidth = minecraft.font.width(SerialBadgeStyle.glyphComponent(data.serial(), data.rgb()));

@@ -108,4 +108,22 @@ class RoleIntroPolicyTest {
         assertEquals(0,RoleIntroScene.brightness(4_000_000_000L));
         assertEquals(0,RoleIntroScene.brightness(Long.MAX_VALUE));
     }
+
+    @Test void smallRostersCloseTheGapsWithoutShrinkingModelsOrCrowdingFullRosters() {
+        float scale=61.2F;
+        assertEquals(scale*1.4F,RoleIntroScene.rowStep(524.8F,2,scale));
+        assertEquals(scale*1.4F,RoleIntroScene.rowStep(524.8F,3,scale));
+        assertEquals(scale*1.4F,RoleIntroScene.rowStep(275.2F,2,scale));
+        assertEquals(524.8F/21,RoleIntroScene.rowStep(524.8F,21,scale));
+        assertNotEquals(RoleIntroScene.modelId(player(1).id()),player(1).id());
+        assertNotEquals(RoleIntroScene.modelId(player(1).id()),RoleIntroScene.modelId(player(2).id()));
+    }
+
+    @Test void followingParasiteReceivesTheOpeningOnlyWhileParticipantsAreLocked() {
+        assertTrue(RoleIntroPolicy.hasOpeningLock(Set.of("Parasite","parasiteInside"),true));
+        assertFalse(RoleIntroPolicy.hasOpeningLock(Set.of("Parasite","parasiteInside"),false));
+        assertFalse(RoleIntroPolicy.hasOpeningLock(Set.of("Parasite","parasiteFree"),true));
+        assertFalse(RoleIntroPolicy.hasOpeningLock(Set.of("Goose"),true));
+        assertTrue(RoleIntroPolicy.hasOpeningLock(Set.of("ggdRoleShowLocked"),false));
+    }
 }

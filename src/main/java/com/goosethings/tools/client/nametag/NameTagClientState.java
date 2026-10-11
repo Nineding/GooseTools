@@ -123,6 +123,11 @@ public final class NameTagClientState {
         SCOREBOARD_NAMES.clear();
         for (GooseToolsPayloads.NameTagEntry entry : snapshot.entries()) {
             ENTRIES.put(entry.playerId(), entry);
+            // Preview-only labels must not replace player-head metadata or the
+            // real player's cached identity, especially while its body is hidden.
+            if (entry.playerId().equals(com.goosethings.tools.intro.RoleIntroScene.modelId(entry.identityPlayerId()))
+                    || snapshot.aliases().stream().anyMatch(alias -> alias.entityId().equals(entry.playerId())
+                    && alias.playerId().equals(entry.playerId()))) continue;
             SCOREBOARD_NAMES.put(entry.scoreboardName().toLowerCase(Locale.ROOT), entry);
             ITEM_PROFILES.put(entry.playerId(), entry);
             ITEM_PROFILES.put(menuProfileId(entry.playerId()), entry);

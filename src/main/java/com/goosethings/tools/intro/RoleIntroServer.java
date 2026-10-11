@@ -21,7 +21,8 @@ import java.util.Map;
 import java.util.UUID;
 
 public final class RoleIntroServer {
-    private static final Map<UUID, Integer> ACTIVE = new HashMap<>();
+    private record Session(int expires, List<UUID> roster) {}
+    private static final Map<UUID, Session> ACTIVE = new HashMap<>();
     private RoleIntroServer() {}
 
     public static void register() {
@@ -50,7 +51,7 @@ public final class RoleIntroServer {
         List<RoleIntroPolicy.Player> identities = participants.stream().map(RoleIntroServer::identity).toList();
         int sent = 0;
         for (ServerPlayer viewer : viewers) {
-            if (!participants.contains(viewer) || !viewer.entityTags().contains("ggdRoleShowLocked")
+            if (!participants.contains(viewer) || !openingLocked(server, viewer)
                     || !MandatoryHandshake.isVerified(viewer)
                     || !ServerPlayNetworking.canSend(viewer, RoleIntroPayload.TYPE)) continue;
             List<RoleIntroPayload.Appearance> roster = RoleIntroPolicy.roster(identity(viewer), identities).stream()
@@ -62,7 +63,8 @@ public final class RoleIntroServer {
             ServerPlayNetworking.send(viewer, new RoleIntroPayload(true,
                     RoleIntroCatalog.resolve(viewer.entityTags()).tag(), RoleIntroPolicy.theme(viewer.entityTags()),
                     Math.clamp(score(server, "ggdadv", ScoreHolder.forNameOnly("HowRole")), 0, 2), roster));
-            ACTIVE.put(viewer.getUUID(), server.getTickCount() + 80);
+            ACTIVE.put(viewer.getUUID(), new Session(server.getTickCount() + 80,
+                    roster.stream().map(RoleIntroPayload.Appearance::id).toList()));
             sent++;
         }
         return sent;
@@ -80,13 +82,32 @@ public final class RoleIntroServer {
             var entry = iterator.next();
             ServerPlayer viewer = server.getPlayerList().getPlayer(entry.getKey());
             if (viewer == null) { iterator.remove(); continue; }
-            if (!dlc || !viewer.entityTags().contains("ggdRoleShowLocked")
+            if (!dlc || !openingLocked(server, viewer)
                     || !viewer.entityTags().contains("players") || viewer.entityTags().contains("endGame")
-                    || viewer.entityTags().contains("spectator") || server.getTickCount() >= entry.getValue()) {
+                    || viewer.entityTags().contains("spectator") || server.getTickCount() >= entry.getValue().expires()) {
                 sendClose(viewer);
                 iterator.remove();
             }
         }
+    }
+
+    /** Public appearance data is scoped to this viewer's already filtered opening roster. */
+    public static List<ServerPlayer> appearancePlayers(MinecraftServer server, ServerPlayer viewer) {
+        Session session = ACTIVE.get(viewer.getUUID());
+        if (session == null || server.getTickCount() >= session.expires()
+                || !openingLocked(server, viewer)
+                || viewer.entityTags().contains("spectator") || viewer.entityTags().contains("endGame")
+                || score(server, "ggdadv", ScoreHolder.forNameOnly("FullBloodDLC")) != 1) return List.of();
+        return session.roster().stream().map(id -> server.getPlayerList().getPlayer(id))
+                .filter(java.util.Objects::nonNull).toList();
+    }
+
+    private static boolean openingLocked(MinecraftServer server, ServerPlayer viewer) {
+        // The datapack deliberately omits a following Parasite from the teleport
+        // lock, but it still receives the opening while other participants are locked.
+        return RoleIntroPolicy.hasOpeningLock(viewer.entityTags(), server.getPlayerList().getPlayers().stream()
+                .anyMatch(player -> player.entityTags().contains("ggdRoleShowLocked")
+                && RoleIntroPolicy.eligible(true, player.entityTags(), score(server, "ready", player))));
     }
 
     private static int close(Collection<ServerPlayer> viewers) {

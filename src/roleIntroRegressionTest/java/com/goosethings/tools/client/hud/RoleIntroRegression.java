@@ -27,7 +27,9 @@ import java.util.concurrent.CompletableFuture;
 /** One isolated real client: commands/network, every stage tint, dense roster, pair and cleanup. */
 public final class RoleIntroRegression implements ClientModInitializer {
     private boolean world, finished, requested, captured;
-    private int warmup, scenario, captures;
+    private final int startScenario=Integer.getInteger("goosetools.roleIntroRegressionStart",0);
+    private final int endScenario=Integer.getInteger("goosetools.roleIntroRegressionEnd",13);
+    private int warmup, scenario=startScenario, captures;
     private long since;
     private CompletableFuture<Void> pending;
     @Override public void onInitializeClient() {
@@ -50,30 +52,51 @@ public final class RoleIntroRegression implements ClientModInitializer {
             if (mc.player == null || mc.level == null || mc.getSingleplayerServer() == null
                     || !mc.player.connection.hasClientLoaded() || ++warmup < 40) return;
             if (pending != null) { if (!pending.isDone()) return; pending.join(); pending = null; }
-            if (scenario == 9) {
-                require(captures == 6,"all screenshots complete");
-                finish(mc,"PASS DLC gate; four server-sent themes; 21 models with enabled outer layers; optional 3D Skin Layers meshes verified when installed; colored serial nametags and Lover pink names; Lover pair and smaller teammates; GUI scales 2/3; ESC/movement block; timeout/admin/DLC/lock cleanup; six GPU screenshots"); return;
+            if (scenario == endScenario) {
+                require(captures == java.util.stream.IntStream.range(startScenario,endScenario)
+                        .filter(i -> i<=5||i>=9).count(),"all screenshots complete");
+                if(startScenario!=0) {
+                    finish(mc,"PASS focused ordinary Parasite mannequin name/serial; real camera body stays hidden; GPU screenshot");return;
+                }
+                finish(mc,"PASS DLC gate; four themes; 21 layered models; optional 3D meshes; colored serial nametags; compact pair/triple and Lover teammates; grounded feet; ordinary Parasite mannequin and DLC Parasite label while real body stays hidden; GUI scales 2/3; input/cleanup; ten GPU screenshots"); return;
             }
             if (!requested) {
                 requested = true; captured = false; since = now();
-                if (scenario <= 3 || scenario >= 6) fixture(mc);
+                if (scenario <= 3 || scenario >= 6 && scenario <= 10) fixture(mc);
                 else {
                     mc.options.guiScale().set(scenario == 4 ? 2 : 3); mc.resizeGui();
                     List<RoleIntroPayload.Appearance> roster = new ArrayList<>();
                     roster.add(new RoleIntroPayload.Appearance(mc.player.getUUID(),mc.player.getGameProfile().name(),false));
                     if (scenario == 4) {
                         for (int i=2;i<=21;i++) roster.add(new RoleIntroPayload.Appearance(new UUID(5,i),"Player"+i,false));
-                    } else {
+                    } else if (scenario == 5) {
                         roster.add(new RoleIntroPayload.Appearance(new UUID(5,2),"Partner",false));
                         for (int i=3;i<=8;i++) roster.add(new RoleIntroPayload.Appearance(new UUID(5,i),"Duck"+i,true));
+                    } else {
+                        for (int i=2;i<=(scenario==11?2:3);i++)
+                            roster.add(new RoleIntroPayload.Appearance(new UUID(5,i),"Duck"+i,false));
                     }
                     labels(roster, scenario == 5);
-                    RoleIntroScreen.apply(new RoleIntroPayload(true,scenario==4?"Astral":"Spy",scenario==4?0:3,1,roster));
+                    RoleIntroScreen.apply(new RoleIntroPayload(true,scenario==4?"Astral":"Spy",scenario==4?0:scenario==5?3:1,1,roster));
                 }
                 return;
             }
             if (scenario == 0 && now()-since<400) return;
             require(now()-since<12000,"scenario timed out: "+scenario);
+            if (scenario == 9) {
+                if (now()-since<1400) return;
+                require(!(mc.gui.screen() instanceof RoleIntroScreen),"non-DLC opening changed form");
+                var body=NameTagClientState.entry(mc.player.getUUID());
+                require(body!=null&&body.name().isEmpty(),"Parasite camera revealed");
+                net.minecraft.world.entity.Entity preview=null;
+                for(var entity:mc.level.entitiesForRendering())
+                    if(entity instanceof net.minecraft.world.entity.decoration.Mannequin) preview=entity;
+                require(preview!=null,"ordinary opening mannequin missing");
+                var label=NameTagClientState.entry(preview);
+                require(label!=null&&!label.name().isEmpty()&&label.serialNumber()==1,"ordinary Parasite name/serial missing");
+                require(NameTagClientState.sourcePlayerId(preview).equals(preview.getUUID()),"ordinary label still aliases hidden body");
+                capture(mc);next();return;
+            }
             if (scenario == 0 && captured && !(mc.gui.screen() instanceof RoleIntroScreen)) {
                 next(); return;
             }
@@ -83,13 +106,13 @@ public final class RoleIntroRegression implements ClientModInitializer {
             if (scenario == 0 && !(mc.gui.screen() instanceof RoleIntroScreen)) {
                 pending = command(mc,"scoreboard players set FullBloodDLC ggdadv 1","goosetools role-intro open @a"); return;
             }
-            if (scenario <= 5) {
+            if (scenario <= 5 || scenario >= 10) {
                 if (!(mc.gui.screen() instanceof RoleIntroScreen screen)) {
                     if (captured && now()-since>4500) { next(); return; }
                     return;
                 }
                 if (now()-since<1400) return;
-                int expectedTheme=scenario==4?0:scenario==5?3:scenario;
+                int expectedTheme=scenario==4?0:scenario==5?3:scenario>=10?1:scenario;
                 require(screen.payload().theme()==expectedTheme,"wrong theme");
                 require(GuiMovementGuard.blocks(screen),"input ownership missing");
                 require(!screen.isPauseScreen(),"world paused");
@@ -101,12 +124,14 @@ public final class RoleIntroRegression implements ClientModInitializer {
                 mc.options.keyUp.setDown(false);
                 if (!captured) {
                     verifyModels(mc, screen);
+                    if(scenario==10) {
+                        var body=NameTagClientState.entry(mc.player.getUUID());
+                        var preview=NameTagClientState.entry(com.goosethings.tools.intro.RoleIntroScene.modelId(mc.player.getUUID()));
+                        require(body!=null&&body.name().isEmpty(),"DLC Parasite camera revealed");
+                        require(preview!=null&&!preview.name().isEmpty()&&preview.serialNumber()==1,"DLC Parasite name/serial missing");
+                    }
                     captured=true;
-                    String name="intro-"+scenario+".png";
-                    Screenshot.takeScreenshot(mc.gameRenderer.mainRenderTarget(),img->{
-                        try(img) { img.writeToFile(mc.gameDirectory.toPath().resolve(name)); captures++; }
-                        catch(Exception e) { mc.execute(()->finish(mc,"FAIL screenshot "+e)); }
-                    });
+                    capture(mc);
                 }
             } else {
                 if (mc.gui.screen() instanceof RoleIntroScreen && now()-since>500 && !captured) {
@@ -122,16 +147,30 @@ public final class RoleIntroRegression implements ClientModInitializer {
         } catch(Throwable e) { finish(mc,"FAIL "+e); }
     }
     private void fixture(Minecraft mc) {
+        if(scenario==9) {
+            var id=mc.player.getUUID();
+            String uuid="[I;"+(int)(id.getMostSignificantBits()>>32)+","+(int)id.getMostSignificantBits()+","+
+                    (int)(id.getLeastSignificantBits()>>32)+","+(int)id.getLeastSignificantBits()+"]";
+            mc.player.setYRot(0);mc.player.setXRot(0);
+            pending=command(mc,"scoreboard objectives add ggdadv dummy","scoreboard objectives add ready dummy",
+                    "scoreboard players set @a ready 1","tag @a add players","tag @a add p1",
+                    "scoreboard players set FullBloodDLC ggdadv 0","tag @a remove Lover",
+                    "tag @a remove Spy","tag @a add Parasite","tag @a add parasiteInside",
+                    "tag @a add ggdRoleShowLocked","goosetools role-intro open @a",
+                    "execute at @a run summon mannequin ~ ~ ~4 {profile:{id:"+uuid+"},pose:\"standing\",Rotation:[180F,0F],immovable:1b,hide_description:1b,NoGravity:1b,Tags:[\"showFaction\",\"introTestModel\"]}");return;
+        }
         List<String> commands=new ArrayList<>(List.of("scoreboard objectives add ggdadv dummy",
                 "scoreboard objectives add ready dummy","scoreboard players set FullBloodDLC ggdadv "+(scenario==0?0:1),
                 "scoreboard players set HowRole ggdadv 1","scoreboard players set @a ready 1"));
-        for(String tag:List.of("good","evil","Lover","Goose","Spy","Dodo")) commands.add("tag @a remove "+tag);
+        commands.add("kill @e[tag=introTestModel]");
+        for(String tag:List.of("good","evil","Lover","Goose","Spy","Dodo","Parasite","parasiteInside")) commands.add("tag @a remove "+tag);
         commands.add("tag @a add players"); commands.add("tag @a add p1"); commands.add("tag @a add ggdRoleShowLocked");
-        String role=scenario==0?"Goose":scenario==2?"Dodo":"Spy";
+        String role=scenario==0?"Goose":scenario==2?"Dodo":scenario==10?"Parasite":"Spy";
         commands.add("tag @a add "+role);
         if(scenario==0)commands.add("tag @a add good");
         else if(scenario!=2)commands.add("tag @a add evil");
         if(scenario==3)commands.add("tag @a add Lover");
+        if(scenario==10)commands.add("tag @a add parasiteInside");
         commands.add("goosetools role-intro open @a");
         pending=command(mc,commands.toArray(String[]::new));
     }
@@ -144,6 +183,13 @@ public final class RoleIntroRegression implements ClientModInitializer {
         }); return result;
     }
     private void next(){scenario++;requested=false;captured=false;}
+    private void capture(Minecraft mc) {
+        String name="intro-"+scenario+".png";
+        Screenshot.takeScreenshot(mc.gameRenderer.mainRenderTarget(),img->{
+            try(img) { img.writeToFile(mc.gameDirectory.toPath().resolve(name)); captures++; }
+            catch(Exception e) { mc.execute(()->finish(mc,"FAIL screenshot "+e)); }
+        });
+    }
     private static void labels(List<RoleIntroPayload.Appearance> roster, boolean lover) throws Exception {
         int[] palette={0xff5555,0xffaa00,0xffff55,0x55ff55,0x55ffff,0x5555ff,0xaa00aa,0xffffff};
         List<GooseToolsPayloads.NameTagEntry> entries=new ArrayList<>();

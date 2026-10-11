@@ -4,6 +4,8 @@ import com.goosethings.tools.marker.PlayerMarkerPolicy;
 import com.goosethings.tools.network.GooseToolsPayloads;
 import com.goosethings.tools.network.MandatoryHandshake;
 import com.goosethings.tools.player.RoomOrderManager;
+import com.goosethings.tools.intro.RoleIntroServer;
+import com.goosethings.tools.intro.RoleIntroScene;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -155,6 +157,11 @@ public final class NameTagSync {
             identities.put(target.getUUID(), identityOf(server, target, playersBySeat, fullBlood));
         }
         List<GooseToolsPayloads.NameTagAlias> aliases = dreamAliases(server, playersBySeat);
+        Map<UUID, ServerPlayer> openingModels = openingModels(server);
+        List<GooseToolsPayloads.NameTagAlias> allAliases = new ArrayList<>(aliases);
+        openingModels.keySet().stream()
+                .limit(GooseToolsPayloads.NameTagSnapshotS2C.MAX_ALIASES - allAliases.size())
+                .forEach(id -> allAliases.add(new GooseToolsPayloads.NameTagAlias(id, id)));
         for (ServerPlayer viewer : onlinePlayers) {
             if (!MandatoryHandshake.isVerified(viewer)
                     || !ServerPlayNetworking.canSend(viewer, GooseToolsPayloads.NameTagSnapshotS2C.TYPE)) {
@@ -213,14 +220,57 @@ public final class NameTagSync {
                                 viewer, labelPlayer, identity, fullBlood,
                                 spectatorStatusView, attachmentConfig)));
             }
+            // Opening stand-ins are visible identities, independently of the Parasite's
+            // hidden camera body. Their own UUIDs keep world hiding rules intact.
+            for (var model : openingModels.entrySet()) {
+                if (allAliases.stream().noneMatch(alias -> alias.entityId().equals(model.getKey()))) continue;
+                if (entries.size() >= GooseToolsPayloads.NameTagSnapshotS2C.MAX_ENTRIES) break;
+                entries.add(openingEntry(server, viewer, model.getValue(), model.getKey(),
+                        fullBlood, activeLoverCount));
+            }
+            for (ServerPlayer target : RoleIntroServer.appearancePlayers(server, viewer)) {
+                if (entries.size() >= GooseToolsPayloads.NameTagSnapshotS2C.MAX_ENTRIES) break;
+                entries.add(openingEntry(server, viewer, target, RoleIntroScene.modelId(target.getUUID()),
+                        fullBlood, activeLoverCount));
+            }
             GooseToolsPayloads.NameTagSnapshotS2C snapshot =
-                    new GooseToolsPayloads.NameTagSnapshotS2C(entries, aliases);
+                    new GooseToolsPayloads.NameTagSnapshotS2C(entries, allAliases);
             if (snapshot.equals(LAST_SENT.get(viewer.getUUID()))) {
                 continue;
             }
             ServerPlayNetworking.send(viewer, snapshot);
             LAST_SENT.put(viewer.getUUID(), snapshot);
         }
+    }
+
+    private static Map<UUID, ServerPlayer> openingModels(MinecraftServer server) {
+        Map<UUID, ServerPlayer> result = new HashMap<>();
+        for (ServerLevel level : server.getAllLevels()) {
+            for (Entity entity : level.getAllEntities()) {
+                if (!(entity instanceof Mannequin mannequin)
+                        || !entity.entityTags().contains("showFaction")) continue;
+                ServerPlayer source = server.getPlayerList().getPlayer(mannequin.getProfile().partialProfile().id());
+                if (source != null && source.entityTags().contains("parasiteInside")
+                        && RoomOrderManager.orderOf(server, source) > 0) {
+                    result.put(entity.getUUID(), source);
+                }
+            }
+        }
+        return result;
+    }
+
+    private static GooseToolsPayloads.NameTagEntry openingEntry(
+            MinecraftServer server, ServerPlayer viewer, ServerPlayer target, UUID modelId,
+            boolean fullBlood, int activeLoverCount) {
+        VisualIdentity identity = snapshotOf(server, target, fullBlood);
+        boolean hidden = NameTagVisibilityOverrides.isHidden(viewer.getUUID(), target.getUUID())
+                || NameTagVisibilityPolicy.concealOpeningModel(viewer == target,
+                viewer.entityTags(), identity.tags());
+        int flags = !hidden && fullBlood
+                ? attachmentFlags(viewer, target, identity, activeLoverCount, false) & LOVER : 0;
+        return new GooseToolsPayloads.NameTagEntry(modelId, target.getUUID(), target.getScoreboardName(),
+                hidden ? "" : identity.name(), hidden ? 0 : identity.rgb(),
+                hidden ? 0 : identity.serialNumber(), flags, 0, false, List.of());
     }
 
     private static int markerCode(MinecraftServer server,

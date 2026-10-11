@@ -7,6 +7,12 @@ final class NameTagVisibilityPolicy {
     private NameTagVisibilityPolicy() {
     }
 
+    static boolean concealOpeningModel(boolean samePlayer, Set<String> viewerTags, Set<String> identityTags) {
+        // The server calls this only for an opening mannequin or a filtered DLC
+        // appearance, never for the live body of the hidden spectator camera.
+        return concealIdentity(samePlayer, viewerTags, identityTags, Set.of());
+    }
+
     static boolean concealIdentity(boolean samePlayer,
                                    Set<String> viewerTags,
                                    Set<String> targetTags) {

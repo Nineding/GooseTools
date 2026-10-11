@@ -1,9 +1,21 @@
 package com.goosethings.tools.intro;
 
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
+
 /** Animation and procedural stage lighting, independent of Minecraft rendering. */
 public final class RoleIntroScene {
     public static final long DURATION_NANOS = 4_000_000_000L;
     private RoleIntroScene() {}
+
+    public static UUID modelId(UUID playerId) {
+        return UUID.nameUUIDFromBytes(("goosetools:role-intro:" + playerId).getBytes(StandardCharsets.UTF_8));
+    }
+
+    /** Small rosters keep the same model size and form a compact centered group. */
+    public static float rowStep(float availableWidth, int count, float maxScale) {
+        return Math.min(availableWidth / Math.max(1, count), maxScale * 1.4F);
+    }
 
     public static float brightness(long elapsed) {
         double seconds = Math.max(0, elapsed) / 1_000_000_000.0;
