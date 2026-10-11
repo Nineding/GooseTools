@@ -162,6 +162,13 @@ final class NameTagAttachmentConfigTest {
                 false,
                 Set.of("players", "spectator", "dlcDeadViewer"),
                 Set.of("players"),
+                Set.of("players", "inTalk", "detectiveCheckedAngel"),
+                true,
+                false));
+        assertFalse(angel.visible(
+                false,
+                Set.of("players", "spectator", "dlcDeadViewer"),
+                Set.of("players"),
                 Set.of("players", "spectator", "detectiveCheckedAngel"),
                 true,
                 true));
@@ -294,6 +301,43 @@ final class NameTagAttachmentConfigTest {
                 Set.of("players"),
                 Set.of("players", "inTalk", "silencedActive"),
                 true,
+                true));
+        assertTrue(pending.visible(
+                false,
+                Set.of("players", "spectator", "dlcDeadViewer"),
+                Set.of("players"),
+                Set.of("players", "silencedPending"),
+                true,
+                false));
+        assertTrue(pending.visible(
+                false,
+                Set.of("players", "dlcDeadViewer"),
+                Set.of("players"),
+                Set.of("players", "silencedPending"),
+                true));
+        assertTrue(pending.visible(
+                false,
+                Set.of("players", "spectator"),
+                Set.of("players"),
+                Set.of("players", "silencedPending"),
+                true));
+        assertTrue(active.visible(
+                false,
+                Set.of("players", "spectator"),
+                Set.of("players"),
+                Set.of("players", "inTalk", "silencedActive"),
+                true));
+        assertFalse(pending.visible(
+                false,
+                Set.of("players", "spectator", "inTutorial"),
+                Set.of("players"),
+                Set.of("players", "silencedPending"),
+                true));
+        assertFalse(pending.visible(
+                false,
+                Set.of("players", "dlcDeadViewer", "endGame"),
+                Set.of("players"),
+                Set.of("players", "silencedPending"),
                 true));
         assertFalse(active.visible(
                 false,
