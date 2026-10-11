@@ -63,7 +63,7 @@ public final class RoleIntroServer {
             ServerPlayNetworking.send(viewer, new RoleIntroPayload(true,
                     RoleIntroCatalog.resolve(viewer.entityTags()).tag(), RoleIntroPolicy.theme(viewer.entityTags()),
                     Math.clamp(score(server, "ggdadv", ScoreHolder.forNameOnly("HowRole")), 0, 2), roster));
-            ACTIVE.put(viewer.getUUID(), new Session(server.getTickCount() + 80,
+            ACTIVE.put(viewer.getUUID(), new Session(server.getTickCount() + RoleIntroScene.DURATION_TICKS,
                     roster.stream().map(RoleIntroPayload.Appearance::id).toList()));
             sent++;
         }

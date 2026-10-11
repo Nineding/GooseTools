@@ -104,8 +104,11 @@ class RoleIntroPolicyTest {
         assertTrue((pink&255)>(pink>>8&255));
         assertEquals(0,RoleIntroScene.brightness(0));
         assertEquals(1,RoleIntroScene.brightness(600_000_000L));
-        assertEquals(1,RoleIntroScene.brightness(3_400_000_000L));
-        assertEquals(0,RoleIntroScene.brightness(4_000_000_000L));
+        assertEquals(140,RoleIntroScene.DURATION_TICKS);
+        assertEquals(7_000_000_000L,RoleIntroScene.DURATION_NANOS);
+        assertEquals(1,RoleIntroScene.brightness(4_000_000_000L));
+        assertEquals(1,RoleIntroScene.brightness(6_400_000_000L));
+        assertEquals(0,RoleIntroScene.brightness(7_000_000_000L));
         assertEquals(0,RoleIntroScene.brightness(Long.MAX_VALUE));
     }
 

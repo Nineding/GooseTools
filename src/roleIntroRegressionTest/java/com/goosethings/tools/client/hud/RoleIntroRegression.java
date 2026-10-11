@@ -1,6 +1,7 @@
 package com.goosethings.tools.client.hud;
 
 import com.goosethings.tools.intro.RoleIntroPayload;
+import com.goosethings.tools.intro.RoleIntroScene;
 import com.goosethings.tools.client.input.GuiMovementGuard;
 import com.goosethings.tools.client.nametag.NameTagClientState;
 import com.goosethings.tools.network.GooseToolsPayloads;
@@ -108,7 +109,7 @@ public final class RoleIntroRegression implements ClientModInitializer {
             }
             if (scenario <= 5 || scenario >= 10) {
                 if (!(mc.gui.screen() instanceof RoleIntroScreen screen)) {
-                    if (captured && now()-since>4500) { next(); return; }
+                    if (captured && now()-since>RoleIntroScene.DURATION_NANOS/1_000_000L+500) { next(); return; }
                     return;
                 }
                 if (now()-since<1400) return;

@@ -5,7 +5,8 @@ import java.util.UUID;
 
 /** Animation and procedural stage lighting, independent of Minecraft rendering. */
 public final class RoleIntroScene {
-    public static final long DURATION_NANOS = 4_000_000_000L;
+    public static final int DURATION_TICKS = 140;
+    public static final long DURATION_NANOS = DURATION_TICKS * 50_000_000L;
     private RoleIntroScene() {}
 
     public static UUID modelId(UUID playerId) {
@@ -19,7 +20,8 @@ public final class RoleIntroScene {
 
     public static float brightness(long elapsed) {
         double seconds = Math.max(0, elapsed) / 1_000_000_000.0;
-        double value = Math.min(seconds / .6, (4.0 - seconds) / .6);
+        double durationSeconds = DURATION_NANOS / 1_000_000_000.0;
+        double value = Math.min(seconds / .6, (durationSeconds - seconds) / .6);
         value = Math.clamp(value, 0, 1);
         return (float) (value * value * (3 - 2 * value));
     }
