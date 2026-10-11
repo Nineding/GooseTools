@@ -78,9 +78,11 @@ public record NameTagAttachmentConfig(List<Attachment> attachments) {
             }
             Set<String> targetTags = identityTags ? identityTagsSet : renderedTags;
             boolean borrowedDetective = NameTagRolePolicy.hasBorrowedRole(viewerTags, "Detective");
-            return (spectatorStatusView || containsAllViewerTags(viewerTags, viewerTagsAll))
+            boolean skipViewerRole = NameTagSpectatorStatusPolicy.bypassViewerRoleFilter(
+                    id, spectatorStatusView, viewerTags);
+            return (skipViewerRole || containsAllViewerTags(viewerTags, viewerTagsAll))
                     && containsAllTargetTags(targetTags, targetTagsAll, borrowedDetective)
-                    && (spectatorStatusView || disjoint(viewerTags, viewerTagsNone))
+                    && (skipViewerRole || disjoint(viewerTags, viewerTagsNone))
                     && disjointTargetTags(
                     targetTags, targetTagsNone, borrowedDetective, spectatorStatusView);
         }
