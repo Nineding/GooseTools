@@ -1,0 +1,7 @@
+{
+  "required": true,
+  "package": "com.goosethings.tools.client.dream.testmixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": ["DreamServerLatencyMixin", "DreamClientLatencyMixin"],
+  "injectors": {"defaultRequire": 1}
+}

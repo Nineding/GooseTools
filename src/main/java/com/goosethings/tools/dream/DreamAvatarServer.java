@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.ArrayDeque;
 
 /** Independent dream physics. The authenticated player never leaves their meeting chair. */
 public final class DreamAvatarServer {
@@ -133,13 +134,17 @@ public final class DreamAvatarServer {
         if(s==null || level!=s.body.level() || !Double.isFinite(position.lengthSqr())
                 || !level.getWorldBorder().isWithinBounds(position.x,position.z))return false;
         s.body.absSnapTo(position.x,position.y,position.z,yaw,pitch);
-        s.body.setDeltaMovement(Vec3.ZERO);s.body.fallDistance=0;track(s);return true;
+        s.body.setDeltaMovement(Vec3.ZERO);s.body.fallDistance=0;s.epoch++;track(s);return true;
     }
     private static void input(ServerPlayer owner,DreamAvatarPackets.Input input) {
         Session s=SESSIONS.get(owner.getUUID());
-        if(s==null || !s.ready || input.session()!=s.id || input.sequence()<=s.sequence
+        if(s==null || !s.ready || input.session()!=s.id || input.sequence()<=s.receivedSequence
                 || !MandatoryHandshake.isVerified(owner))return;
-        s.sequence=input.sequence();s.input=input;s.lastInput=owner.level().getServer().getTickCount();
+        s.receivedSequence=input.sequence();s.input=input;s.lastInput=owner.level().getServer().getTickCount();
+        if(s.raven) {
+            if(s.pending.size()>=32)s.pending.removeFirst();
+            s.pending.addLast(input);
+        }
     }
     private static void tick(MinecraftServer server) {
         for(Session s:List.copyOf(SESSIONS.values())) {
@@ -153,7 +158,11 @@ public final class DreamAvatarServer {
             }
             track(s);
             if(!s.ready || !s.body.level().hasChunkAt(s.body.blockPosition()))continue;
-            var input=server.getTickCount()-s.lastInput<=5?s.input:null;
+            var input=s.raven?s.pending.pollFirst():server.getTickCount()-s.lastInput<=5?s.input:null;
+            // Consume each flight input once, at most one per server tick. Repeating
+            // or skipping batched inputs breaks client replay when the network jitters.
+            if(s.raven && input==null) {sendFlight(s);continue;}
+            if(input!=null)s.sequence=input.sequence();
             if(input!=null) {
                 s.body.setYRot(input.yaw());s.body.setXRot(input.pitch());
                 s.body.setYHeadRot(input.yaw());s.body.setYBodyRot(input.yaw());
@@ -196,15 +205,22 @@ public final class DreamAvatarServer {
             }
             if(!s.body.level().getWorldBorder().isWithinBounds(s.body.getBoundingBox())) {
                 s.body.absSnapTo(s.lastSafe.x,s.lastSafe.y,s.lastSafe.z);s.body.setDeltaMovement(Vec3.ZERO);
+                s.epoch++;
             } else s.lastSafe=s.body.position();
             if(tags.contains("dreamRemote")) {
                 s.owner.setYRot(s.body.getYRot());s.owner.setXRot(s.body.getXRot());
                 s.owner.setYBodyRot(s.body.yBodyRot);s.owner.setYHeadRot(s.body.getYHeadRot());
             }
             s.owner.setPose(tags.contains("dreamRemote") ? s.body.getPose() : s.meetingPose);
+            if(s.raven)sendFlight(s);
             // Scene samples preserve a moving player body rather than a hidden camera.
             DreamStandInServer.avatarChanged();
         }
+    }
+    private static void sendFlight(Session s) {
+        ServerPlayNetworking.send(s.owner,new DreamAvatarPackets.Flight(s.id,
+                s.owner.level().getServer().getTickCount(),s.sequence,s.epoch,
+                s.body.position(),s.body.getDeltaMovement(),!s.body.isPassenger()));
     }
     private static void track(Session s) {
         ChunkPos center=s.body.chunkPosition();
@@ -220,7 +236,8 @@ public final class DreamAvatarServer {
     private static final class Session {
         final long id;final ServerPlayer owner;final Body body; final ServerPlayer viewer; final boolean raven;final int started;
         final Pose meetingPose;
-        long sequence=-1;int lastInput=-100,jumpCharge;boolean ready;DreamAvatarPackets.Input input;
+        long sequence=-1,receivedSequence=-1,epoch;int lastInput=-100,jumpCharge;boolean ready;DreamAvatarPackets.Input input;
+        final ArrayDeque<DreamAvatarPackets.Input> pending=new ArrayDeque<>();
         ChunkPos chunk;int radius;Vec3 lastSafe;
         Session(long id,ServerPlayer owner,Body body,boolean raven) {
             this.id=id;this.owner=owner;this.body=body;this.raven=raven;
@@ -250,10 +267,9 @@ public final class DreamAvatarServer {
         @Override public void travel(Vec3 input) {
             if (!raven) {super.travel(input);return;}
             // Match native flying acceleration and drag, without floor/fluid slowdown for noclip.
-            moveRelative(isSprinting()?0.2F:0.1F,input);
-            move(net.minecraft.world.entity.MoverType.SELF,getDeltaMovement());
-            Vec3 movement=getDeltaMovement();
-            setDeltaMovement(movement.x*0.91,movement.y*0.6,movement.z*0.91);
+            var motion=DreamFlightMotion.travel(position(),getDeltaMovement(),input,getYRot(),isSprinting());
+            move(net.minecraft.world.entity.MoverType.SELF,motion.position().subtract(position()));
+            setDeltaMovement(motion.velocity());
         }
         @Override public boolean hurtServer(ServerLevel level,DamageSource source,float amount) {
             if(raven)return false;

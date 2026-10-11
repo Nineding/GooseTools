@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "name": "GooseTools flight regression test",
   "environment": "client",
+  "mixins": ["goosetools.dream.test.mixins.json"],
   "entrypoints": {
     "client": [
       "com.goosethings.tools.client.noclip.FlightRegression",

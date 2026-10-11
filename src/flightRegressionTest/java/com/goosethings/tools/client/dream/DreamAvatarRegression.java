@@ -43,10 +43,26 @@ public final class DreamAvatarRegression implements ClientModInitializer {
     private Vec3 seatedPosition, movementStart;
     private int bodyId;
     private Vec3 vehicleStart;
+    private ItemStack stableEquipment;
+    private double previousFlightZ;
+    private volatile int stableRefreshes;
     private final Set<String> inventoryMacroArguments = new java.util.HashSet<>();
 
     @Override public void onInitializeClient() {
         if (!Boolean.getBoolean("goosetools.dreamRegressionTest")) return;
+        DreamTestLatency.register();
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(server -> {
+            if (stage != 5 && stage != 2) return;
+            for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+                if (!DreamAvatarServer.active(player)) continue;
+                var before = new ItemStack[9];
+                for (int slot=0;slot<9;slot++) before[slot]=player.getInventory().getItem(slot);
+                command(player,"advancement grant @s only mainsys:test/ifinvchange");
+                for (int slot=0;slot<9;slot++) require(player.getInventory().getItem(slot)==before[slot],
+                        "stable hotbar slot " + slot + " was rewritten during sustained inventory rewards");
+                stableRefreshes++;
+            }
+        });
         ClientTickEvents.START_CLIENT_TICK.register(mc -> {
             if (stage == 2 && (ticks > 5 && ticks < 35 || ticks > 70 && ticks < 100 || ticks > 115 && ticks < 145)) mc.options.keyUp.setDown(true);
             else mc.options.keyUp.setDown(false);
@@ -184,6 +200,7 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                     require(DreamAvatarServer.active(p), "dream entry failed");
                     GooseTools.LOGGER.info("Dream test scenario={} meeting={} avatar={} scope={}", scenario, p.level().dimension(), DreamAvatarServer.actor(p).level().dimension(), DreamSpatialContext.enabled());
                     assertDreamToolbar(p);
+                    for (int slot=2;slot<8;slot++) p.getInventory().setItem(slot,new ItemStack(Items.FEATHER));
                     var wake = p.getInventory().getItem(0);
                     var remote = p.getInventory().getItem(1);
                     var skill = p.getInventory().getItem(8);
@@ -233,6 +250,15 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                 stage = 5; ticks = 0; targetWait = 0;
             } else if (stage == 5) {
                 ++ticks;
+                if(ticks==5) {
+                    for(int slot=0;slot<9;slot++) {
+                        var stack=mc.player.getInventory().getItem(slot);
+                        require(!stack.isEmpty(),"missing hotbar animation fixture slot " + slot);
+                        stack.setPopTime(5);
+                    }
+                }
+                if(ticks==11) for(int slot=0;slot<9;slot++) require(mc.player.getInventory().getItem(slot).getPopTime()==0,
+                        "dream froze pickup animation in hotbar slot " + slot);
                 if (ticks<=9) {
                     if (ticks>1) require(mc.player.getInventory().getSelectedSlot()==ticks-2,"number-key hotbar selection failed");
                     net.minecraft.client.KeyMapping.click(mc.options.keyHotbarSlots[ticks-1].getDefaultKey());
@@ -308,13 +334,27 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                     });
                     DreamAvatarClient.turn(-40/0.15,10/0.15);
                     movementStart=DreamStandInClient.liveAvatar(mc.player.getUUID()).position();
+                    previousFlightZ=movementStart.z;
+                    DreamTestLatency.enabled=scenario==1;
                     mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);stage=2;ticks=0;
                 }
             } else if (stage == 2) {
                 DreamRemotePlayer body = DreamStandInClient.liveAvatar(mc.player.getUUID());
                 require(body != null && mc.getCameraEntity() == body, "visible model lost");
                 require(mc.player.input.keyPresses.equals(Input.EMPTY), "movement leaked to seated player");
-                if (++ticks == 40) {
+                ++ticks;
+                if(ticks==3) stableEquipment=body.getMainHandItem();
+                if(ticks>=4 && ticks<=20) require(body.getMainHandItem()==stableEquipment,"unchanged dream equipment was rebuilt");
+                if(scenario==1 && ticks==8) require(body.getZ()-movementStart.z>.05,
+                        "Raven camera waited for delayed authoritative movement");
+                if(scenario==1 && ticks>=9 && ticks<=34) {
+                    require(body.getZ()>=previousFlightZ-.001,"delayed flight reconciliation pulled the camera backwards");
+                    previousFlightZ=body.getZ();
+                }
+                if (ticks == 40) {
+                    DreamTestLatency.enabled=false;
+                    if(scenario==1) require(DreamTestLatency.delayedInputs>25 && DreamTestLatency.delayedStates>25,
+                            "real input/state transport did not exercise artificial latency");
                     require(body.position().subtract(movementStart).horizontalDistanceSqr() > .25,
                             "dream body failed to walk");
                     if (scenario==1) require(body.position().subtract(movementStart).horizontalDistanceSqr()>100,
@@ -464,6 +504,9 @@ public final class DreamAvatarRegression implements ClientModInitializer {
         if (!condition) throw new AssertionError(message);
     }
     private void finish(Minecraft mc, String result) {
+        DreamTestLatency.enabled=false;
+        GooseTools.LOGGER.info("Dream sustained refreshes={}, delayed inputs={}, delayed states={}",
+                stableRefreshes,DreamTestLatency.delayedInputs,DreamTestLatency.delayedStates);
         finished = true; mc.options.keyUp.setDown(false);mc.options.keyJump.setDown(false);mc.options.keyShift.setDown(false);
         try { Files.writeString(mc.gameDirectory.toPath().resolve("dream-result.txt"), result); }
         catch (Exception error) { GooseTools.LOGGER.error("Dream regression result", error); }

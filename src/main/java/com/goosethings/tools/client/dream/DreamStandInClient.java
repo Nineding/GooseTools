@@ -489,7 +489,9 @@ public final class DreamStandInClient {
             model.setNoGravity(true);
             for (EquipmentSlot slot : EquipmentSlot.values()) {
                 ItemStack stack = state.equipment().get(slot.ordinal());
-                model.setItemSlot(slot, stack.copy());
+                if (!ItemStack.matches(model.getItemBySlot(slot), stack)) {
+                    model.setItemSlot(slot, stack.copy());
+                }
             }
             var entry = NameTagClientState.entry(state.sourcePlayerId());
             model.setGlowingTag(entry != null && entry.markerNameTagVisible());

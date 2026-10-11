@@ -17,6 +17,10 @@ final class DreamInterpolation implements InterpolationHandler {
     DreamInterpolation(Entity entity) { this.entity = entity; }
     @Override public PositionAndRotation target() { return pending; }
     @Override public boolean interpolateTo(PositionPath path, float yaw, float pitch, boolean rotation) {
+        if (DreamAvatarClient.predicts(entity)) {
+            cancel();
+            return true;
+        }
         pending = PositionAndRotation.of(path == null ? entity.position() : path.endPosition(),
                 rotation ? yaw : entity.getYRot(), rotation ? pitch : entity.getXRot());
         // Compare authoritative samples, not the delayed rendered position: fast flight

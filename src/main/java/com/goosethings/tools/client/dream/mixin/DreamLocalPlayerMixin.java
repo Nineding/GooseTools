@@ -16,6 +16,9 @@ public abstract class DreamLocalPlayerMixin {
         if (!DreamAvatarClient.active()) return;
         LocalPlayer player = (LocalPlayer) (Object) this;
         player.input.tick();
+        // Player.aiStep normally advances pickup animations. Cancelling it without
+        // this tick leaves every updated hotbar stack bouncing forever.
+        player.getInventory().tick();
         player.setDeltaMovement(Vec3.ZERO);
         player.fallDistance = 0;
         callback.cancel();

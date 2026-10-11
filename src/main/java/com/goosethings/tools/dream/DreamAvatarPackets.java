@@ -10,6 +10,7 @@ public final class DreamAvatarPackets {
  private static <T extends CustomPacketPayload> CustomPacketPayload.Type<T> type(String name) {return new CustomPacketPayload.Type<>(Identifier.fromNamespaceAndPath(GooseTools.MOD_ID,name));}
  public static void register() {
   PayloadTypeRegistry.clientboundPlay().register(View.TYPE,View.CODEC);
+  PayloadTypeRegistry.clientboundPlay().register(Flight.TYPE,Flight.CODEC);
   PayloadTypeRegistry.serverboundPlay().register(Input.TYPE,Input.CODEC);
   PayloadTypeRegistry.serverboundPlay().register(Ready.TYPE,Ready.CODEC);
  }
@@ -34,5 +35,24 @@ public final class DreamAvatarPackets {
   public static final Type<Ready> TYPE=DreamAvatarPackets.type("dream_avatar_ready_v1");
   public static final StreamCodec<RegistryFriendlyByteBuf,Ready> CODEC=StreamCodec.of((b,p)->b.writeLong(p.session),b->new Ready(b.readLong()));
   @Override public Type<Ready> type(){return TYPE;}
+ }
+ public record Flight(long session,long tick,long sequence,long epoch,
+                      net.minecraft.world.phys.Vec3 position,net.minecraft.world.phys.Vec3 velocity,
+                      boolean flying) implements CustomPacketPayload {
+  public static final Type<Flight> TYPE=DreamAvatarPackets.type("dream_avatar_flight_v1");
+  public static final StreamCodec<RegistryFriendlyByteBuf,Flight> CODEC=StreamCodec.of(
+   (b,p)->{b.writeLong(p.session);b.writeLong(p.tick);b.writeLong(p.sequence);b.writeLong(p.epoch);
+    b.writeDouble(p.position.x);b.writeDouble(p.position.y);b.writeDouble(p.position.z);
+    b.writeDouble(p.velocity.x);b.writeDouble(p.velocity.y);b.writeDouble(p.velocity.z);b.writeBoolean(p.flying);},
+   b->new Flight(b.readLong(),b.readLong(),b.readLong(),b.readLong(),
+    new net.minecraft.world.phys.Vec3(b.readDouble(),b.readDouble(),b.readDouble()),
+    new net.minecraft.world.phys.Vec3(b.readDouble(),b.readDouble(),b.readDouble()),b.readBoolean()));
+  public Flight {
+   if(session<=0||tick<0||sequence< -1||epoch<0||position==null||velocity==null
+    ||!Double.isFinite(position.lengthSqr())||!Double.isFinite(velocity.lengthSqr())
+    ||Math.abs(position.x)>30000000||Math.abs(position.z)>30000000||Math.abs(position.y)>20000)
+    throw new IllegalArgumentException("Invalid dream flight state");
+  }
+  @Override public Type<Flight> type(){return TYPE;}
  }
 }

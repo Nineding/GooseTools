@@ -30,4 +30,14 @@ class DreamAvatarPacketsTest {
         assertThrows(IllegalArgumentException.class, () -> new DreamAvatarPackets.View(1, true, 30_000_001, 0, 0, false));
         assertThrows(IllegalArgumentException.class, () -> new DreamAvatarPackets.Ready(0));
     }
+
+    @Test void validatesFlightAcknowledgementsAndAuthoritativeMotion() {
+        var zero = net.minecraft.world.phys.Vec3.ZERO;
+        assertDoesNotThrow(() -> new DreamAvatarPackets.Flight(1, 0, -1, 0, zero, zero, true));
+        assertThrows(IllegalArgumentException.class, () -> new DreamAvatarPackets.Flight(1, -1, -1, 0, zero, zero, true));
+        assertThrows(IllegalArgumentException.class, () -> new DreamAvatarPackets.Flight(1, 0, -2, 0, zero, zero, true));
+        assertThrows(IllegalArgumentException.class, () -> new DreamAvatarPackets.Flight(1, 0, 0, -1, zero, zero, true));
+        assertThrows(IllegalArgumentException.class, () -> new DreamAvatarPackets.Flight(1, 0, 0, 0, zero,
+                new net.minecraft.world.phys.Vec3(0, Double.NaN, 0), true));
+    }
 }
