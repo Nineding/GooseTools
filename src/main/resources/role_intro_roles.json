@@ -1,0 +1,587 @@
+[
+  {
+    "tag": "Cannibal",
+    "key": "role.evil.cannibal",
+    "fallback": "Cannibal Duck",
+    "descriptionKey": "role.evil.cannibal.subtitle",
+    "descriptionFallback": "Once per game, you can eat a body",
+    "color": 16741235,
+    "faction": 1
+  },
+  {
+    "tag": "Morphling",
+    "key": "role.evil.morphling",
+    "fallback": "Morphling",
+    "descriptionKey": "role.evil.morphling.subtitle",
+    "descriptionFallback": "You can morph into other players",
+    "color": 16741235,
+    "faction": 1
+  },
+  {
+    "tag": "Professional",
+    "key": "role.evil.professional",
+    "fallback": "Professional Killer",
+    "descriptionKey": "role.evil.professional.subtitle",
+    "descriptionFallback": "Your kills are invisible; Geese auto-report nearby bodies; you cannot report",
+    "color": 16741235,
+    "faction": 1
+  },
+  {
+    "tag": "Spy",
+    "key": "role.evil.spy",
+    "fallback": "Spy",
+    "descriptionKey": "role.evil.spy.subtitle",
+    "descriptionFallback": "If you alone vote for someone, you learn their role after the meeting",
+    "color": 16741235,
+    "faction": 1
+  },
+  {
+    "tag": "Assassin",
+    "key": "role.evil.assassin",
+    "fallback": "Assassin",
+    "descriptionKey": "role.evil.assassin.subtitle",
+    "descriptionFallback": "Two chances to guess a role in meetings — right they die, wrong you die",
+    "color": 16741235,
+    "faction": 1
+  },
+  {
+    "tag": "Demolitionist",
+    "key": "role.evil.demolitionist",
+    "fallback": "Demolitionist",
+    "descriptionKey": "role.evil.demolitionist.subtitle",
+    "descriptionFallback": "You can plant bombs on other players",
+    "color": 16741235,
+    "faction": 1
+  },
+  {
+    "tag": "IdentityThief",
+    "key": "role.evil.identitythief",
+    "fallback": "Identity Thief",
+    "descriptionKey": "role.evil.identitythief.subtitle",
+    "descriptionFallback": "Until a meeting is called, you morph into your most recent kill",
+    "color": 16741235,
+    "faction": 1
+  },
+  {
+    "tag": "Ninja",
+    "key": "role.evil.ninja",
+    "fallback": "Ninja",
+    "descriptionKey": "role.evil.ninja.subtitle",
+    "descriptionFallback": "Kill two birds in range at once, but kill cooldown is triple",
+    "color": 16741235,
+    "faction": 1
+  },
+  {
+    "tag": "Invisibility",
+    "key": "role.evil.invisibility",
+    "fallback": "Invisible",
+    "descriptionKey": "role.evil.invisibility.subtitle",
+    "descriptionFallback": "You can turn invisible",
+    "color": 16741235,
+    "faction": 1
+  },
+  {
+    "tag": "Party",
+    "key": "role.evil.party",
+    "fallback": "Party",
+    "descriptionKey": "role.evil.party.subtitle",
+    "descriptionFallback": "Right-click others for helium; drop for yourself",
+    "color": 16741235,
+    "faction": 1
+  },
+  {
+    "tag": "Clown",
+    "key": "role.evil.clown",
+    "fallback": "Clown",
+    "descriptionKey": "role.evil.clown.subtitle",
+    "descriptionFallback": "Stick balloons on people; twice, and enjoy the show",
+    "color": 16741235,
+    "faction": 1
+  },
+  {
+    "tag": "Silencer",
+    "key": "role.evil.silencer",
+    "fallback": "Silencer",
+    "descriptionKey": "role.evil.silencer.subtitle",
+    "descriptionFallback": "Mute someone for the next meeting — and they never know",
+    "color": 16741235,
+    "faction": 1
+  },
+  {
+    "tag": "Sniper",
+    "key": "role.evil.sniper",
+    "fallback": "Sniper",
+    "descriptionKey": "role.evil.sniper.subtitle",
+    "descriptionFallback": "Use a scoped rifle to eliminate players from a distance",
+    "color": 16741235,
+    "faction": 1
+  },
+  {
+    "tag": "Goose",
+    "key": "role.good.goose",
+    "fallback": "Goose",
+    "descriptionKey": "role.good.goose.subtitle",
+    "descriptionFallback": "Just a regular Goose — cannot be sniped by the Assassin",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Canadian",
+    "key": "role.good.canadian",
+    "fallback": "Canadian Goose",
+    "descriptionKey": "role.good.canadian.subtitle",
+    "descriptionFallback": "Your body auto-reports when you are killed or swallowed",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Sheriff",
+    "key": "role.good.sheriff",
+    "fallback": "Sheriff",
+    "descriptionKey": "role.good.sheriff.subtitle",
+    "descriptionFallback": "You can kill any player, but killing a Goose is fatal",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Mimic",
+    "key": "role.good.mimic",
+    "fallback": "Mimic",
+    "descriptionKey": "role.good.mimic.subtitle",
+    "descriptionFallback": "Ducks see you as one of their own",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Vigilante",
+    "key": "role.good.vigilante",
+    "fallback": "Vigilante",
+    "descriptionKey": "role.good.vigilante.subtitle",
+    "descriptionFallback": "Once per game you can kill one bird — choose carefully",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Medium",
+    "key": "role.good.medium",
+    "fallback": "Medium",
+    "descriptionKey": "role.good.medium.subtitle",
+    "descriptionFallback": "You can sense how many ghosts there are",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Detective",
+    "key": "role.good.detective",
+    "fallback": "Detective",
+    "descriptionKey": "role.good.detective.subtitle",
+    "descriptionFallback": "Investigate players to see if they have killed this round",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Mortician",
+    "key": "role.good.mortician",
+    "fallback": "Mortician",
+    "descriptionKey": "role.good.mortician.subtitle",
+    "descriptionFallback": "Examine bodies to see their roles",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Celebrity",
+    "key": "role.good.celebrity",
+    "fallback": "Celebrity",
+    "descriptionKey": "role.good.celebrity.subtitle",
+    "descriptionFallback": "All Geese get an alert when you are killed",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Avenger",
+    "key": "role.good.avenger",
+    "fallback": "Avenger",
+    "descriptionKey": "role.good.avenger.subtitle",
+    "descriptionFallback": "Witness a kill and briefly gain the ability to kill",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Engineer",
+    "key": "role.good.engineer",
+    "fallback": "Engineer",
+    "descriptionKey": "role.good.engineer.subtitle",
+    "descriptionFallback": "Enter the sewers, but only for 60 seconds at a time",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Neptune",
+    "key": "role.good.neptune",
+    "fallback": "Neptune",
+    "descriptionKey": "role.good.neptune.subtitle",
+    "descriptionFallback": "Activate Duck Potential for up to 60 seconds",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Stalker",
+    "key": "role.good.stalker",
+    "fallback": "Stalker",
+    "descriptionKey": "role.good.stalker.subtitle",
+    "descriptionFallback": "Track any player with a compass that follows the target",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Sensor",
+    "key": "role.good.sensor",
+    "fallback": "Sensor",
+    "descriptionKey": "role.good.sensor.subtitle",
+    "descriptionFallback": "Privately detects other living non-ghost players",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Gravy",
+    "key": "role.good.gravy",
+    "fallback": "Gravy",
+    "descriptionKey": "role.good.gravy.subtitle",
+    "descriptionFallback": "Complete tasks for bounty and stay close to other Geese for protection",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Bodyguard",
+    "key": "role.good.bodyguard",
+    "fallback": "Bodyguard",
+    "descriptionKey": "role.good.bodyguard.subtitle",
+    "descriptionFallback": "Stay near the shared target and intercept ordinary knife attacks",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Soldier",
+    "key": "role.good.soldier",
+    "fallback": "Soldier",
+    "descriptionKey": "role.good.soldier.subtitle",
+    "descriptionFallback": "Complete tasks to gain a kill without friendly-fire suicide",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Guard",
+    "key": "role.good.guard",
+    "fallback": "Guard",
+    "descriptionKey": "role.good.guard.subtitle",
+    "descriptionFallback": "Finish tasks once, then shield another player",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Broker",
+    "key": "role.good.broker",
+    "fallback": "Broker",
+    "descriptionKey": "role.good.broker.subtitle",
+    "descriptionFallback": "Bind your fate with another",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Spook",
+    "key": "role.good.spook",
+    "fallback": "Spook",
+    "descriptionKey": "role.good.spook.subtitle",
+    "descriptionFallback": "Read the room. Name the enemy.",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Lobbyist",
+    "key": "role.good.lobbyist",
+    "fallback": "Lobbyist",
+    "descriptionKey": "role.good.lobbyist.subtitle",
+    "descriptionFallback": "Earn a kill by receiving enough votes in meetings",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "FortuneTeller",
+    "key": "role.good.fortuneteller",
+    "fallback": "Fortune Teller",
+    "descriptionKey": "role.good.fortuneteller.subtitle",
+    "descriptionFallback": "Report a body yourself to receive a suspect list containing the true killer",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Scientist",
+    "key": "role.good.scientist",
+    "fallback": "Scientist",
+    "descriptionKey": "role.good.scientist.subtitle",
+    "descriptionFallback": "Highlight nearby bodies with a radar",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Coroner",
+    "key": "role.good.coroner",
+    "fallback": "Coroner",
+    "descriptionKey": "role.good.coroner.subtitle",
+    "descriptionFallback": "Reporting a body grants an extra vote this meeting",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Birdwatcher",
+    "key": "role.good.birdwatcher",
+    "fallback": "Birdwatcher",
+    "descriptionKey": "role.good.birdwatcher.subtitle",
+    "descriptionFallback": "Watch through walls with your spyglass",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Correspondent",
+    "key": "role.good.correspondent",
+    "fallback": "Correspondent",
+    "descriptionKey": "role.good.correspondent.subtitle",
+    "descriptionFallback": "Intercept voices hidden in the static",
+    "color": 12447487,
+    "faction": 0
+  },
+  {
+    "tag": "Survivalist",
+    "key": "role.good.survivalist",
+    "fallback": "Survivalist",
+    "descriptionKey": "role.good.survivalist.subtitle",
+    "descriptionFallback": "Blocks Duck majority wins and holds out in the endgame",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Politician",
+    "key": "role.good.politician",
+    "fallback": "Politician",
+    "descriptionKey": "role.good.politician.subtitle",
+    "descriptionFallback": "You cannot be sent to jail in a tie",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Locksmith",
+    "key": "role.good.locksmith",
+    "fallback": "Locksmith",
+    "descriptionKey": "role.good.locksmith.subtitle",
+    "descriptionFallback": "You always have a jail key",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Astral",
+    "key": "role.good.astral",
+    "fallback": "Astral",
+    "descriptionKey": "role.good.astral.subtitle",
+    "descriptionFallback": "Leave your body and scout through walls",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Hitman",
+    "key": "role.evil.hitman",
+    "fallback": "Hitman",
+    "descriptionKey": "role.evil.hitman.subtitle",
+    "descriptionFallback": "Track and personally kill the shared target for a bounty",
+    "color": 16741235,
+    "faction": 1
+  },
+  {
+    "tag": "SerialKiller",
+    "key": "role.evil.serialkiller",
+    "fallback": "Serial Killer",
+    "descriptionKey": "role.evil.serialkiller.subtitle",
+    "descriptionFallback": "Hunt a hidden target; correct kills shorten CD, wrong kills lengthen it",
+    "color": 16741235,
+    "faction": 1
+  },
+  {
+    "tag": "Esper",
+    "key": "role.evil.esper",
+    "fallback": "Esper",
+    "descriptionKey": "role.evil.esper.subtitle",
+    "descriptionFallback": "Mark, possess, and remotely finish a target",
+    "color": 16741235,
+    "faction": 1
+  },
+  {
+    "tag": "Mime",
+    "key": "role.evil.mime",
+    "fallback": "Mime",
+    "descriptionKey": "role.evil.mime.subtitle",
+    "descriptionFallback": "Mark a player, then control their body",
+    "color": 16741235,
+    "faction": 1
+  },
+  {
+    "tag": "Snitch",
+    "key": "role.evil.snitch",
+    "fallback": "Snitch",
+    "descriptionKey": "role.evil.snitch.subtitle",
+    "descriptionFallback": "A unique vote sends the target to jail",
+    "color": 16741235,
+    "faction": 1
+  },
+  {
+    "tag": "Cupid",
+    "key": "role.evil.cupid",
+    "fallback": "Cupid",
+    "descriptionKey": "role.evil.cupid.subtitle",
+    "descriptionFallback": "Bind two players with a Heart Chain",
+    "color": 16741235,
+    "faction": 1
+  },
+  {
+    "tag": "Marauder",
+    "key": "role.evil.marauder",
+    "fallback": "Marauder",
+    "descriptionKey": "role.evil.marauder.subtitle",
+    "descriptionFallback": "Drag bodies to mislead reports",
+    "color": 16741235,
+    "faction": 1
+  },
+  {
+    "tag": "WitchDoctor",
+    "key": "role.evil.witch_doctor",
+    "fallback": "Witch Doctor",
+    "descriptionKey": "role.evil.witch_doctor.subtitle",
+    "descriptionFallback": "Watch the cursed target until the curse becomes fatal",
+    "color": 16741235,
+    "faction": 1
+  },
+  {
+    "tag": "Carrier",
+    "key": "role.evil.carrier",
+    "fallback": "Carrier",
+    "descriptionKey": "role.evil.carrier.subtitle",
+    "descriptionFallback": "Inject the Parasite and share its life",
+    "color": 16741235,
+    "faction": 1
+  },
+  {
+    "tag": "Parasite",
+    "key": "role.evil.parasite",
+    "fallback": "Parasite",
+    "descriptionKey": "role.evil.parasite.subtitle",
+    "descriptionFallback": "Kill from within and steal the victim's form",
+    "color": 16741235,
+    "faction": 1
+  },
+  {
+    "tag": "Dodo",
+    "key": "role.neutral.dodo",
+    "fallback": "Dodo",
+    "descriptionKey": "role.neutral.dodo.subtitle",
+    "descriptionFallback": "You only win by being voted out",
+    "color": 16646003,
+    "faction": 2
+  },
+  {
+    "tag": "DuelingDodos",
+    "key": "role.neutral.duelingdodos",
+    "fallback": "Dueling Dodos",
+    "descriptionKey": "role.neutral.duelingdodos.subtitle",
+    "descriptionFallback": "Kill the other Dueling Dodo, then get voted out to win",
+    "color": 16646003,
+    "faction": 2
+  },
+  {
+    "tag": "Vulture",
+    "key": "role.neutral.vulture",
+    "fallback": "Vulture",
+    "descriptionKey": "role.neutral.vulture.subtitle",
+    "descriptionFallback": "Win by eating bodies",
+    "color": 16646003,
+    "faction": 2
+  },
+  {
+    "tag": "Pigeon",
+    "key": "role.neutral.pigeon",
+    "fallback": "Pigeon",
+    "descriptionKey": "role.neutral.pigeon.subtitle",
+    "descriptionFallback": "Infect every living player to win",
+    "color": 16646003,
+    "faction": 2
+  },
+  {
+    "tag": "Falcon",
+    "key": "role.neutral.falcon",
+    "fallback": "Falcon",
+    "descriptionKey": "role.neutral.falcon.subtitle",
+    "descriptionFallback": "Survive to the end — while you live, Geese can only win by tasks",
+    "color": 16646003,
+    "faction": 2
+  },
+  {
+    "tag": "Pelican",
+    "key": "role.neutral.pelican",
+    "fallback": "Pelican",
+    "descriptionKey": "role.neutral.pelican.subtitle",
+    "descriptionFallback": "Win as the last survivor. You can swallow players whole",
+    "color": 16646003,
+    "faction": 2
+  },
+  {
+    "tag": "LucidDreamer",
+    "key": "role.good.lucid_dreamer",
+    "fallback": "Lucid Dreamer",
+    "descriptionKey": "role.good.lucid_dreamer.subtitle",
+    "descriptionFallback": "A meeting is no prison; you can still roam and complete tasks in dreams",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
+    "tag": "Raven",
+    "key": "role.neutral.raven",
+    "fallback": "Raven",
+    "descriptionKey": "role.neutral.raven.subtitle",
+    "descriptionFallback": "Find the assigned identity in a dream and let the dream rewrite reality",
+    "color": 16646003,
+    "faction": 2
+  },
+  {
+    "tag": "Cuckoo",
+    "key": "role.neutral.cuckoo",
+    "fallback": "Cuckoo",
+    "descriptionKey": "role.neutral.cuckoo.subtitle",
+    "descriptionFallback": "Hatch your eggs and let your children hunt everyone",
+    "color": 16646003,
+    "faction": 2
+  },
+  {
+    "tag": "Phoenix",
+    "key": "role.neutral.phoenix",
+    "fallback": "Phoenix",
+    "descriptionKey": "role.neutral.phoenix.subtitle",
+    "descriptionFallback": "Rise from ashes and hunt before the flame dies",
+    "color": 16646072,
+    "faction": 2
+  },
+  {
+    "tag": "Magpie",
+    "key": "role.neutral.magpie",
+    "fallback": "Magpie",
+    "descriptionKey": "role.neutral.magpie.subtitle",
+    "descriptionFallback": "Identify the required number of roles in one meeting",
+    "color": 16646072,
+    "faction": 2
+  },
+  {
+    "tag": "Seagull",
+    "key": "role.neutral.seagull",
+    "fallback": "Seagull",
+    "descriptionKey": "role.neutral.seagull.subtitle",
+    "descriptionFallback": "Take one complete ability and win when 3 or fewer remain",
+    "color": 16774043,
+    "faction": 2
+  }
+]

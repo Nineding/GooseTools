@@ -45,6 +45,8 @@ public final class ClientHandshake {
                 context.client().execute(() -> BroadcastHud.apply(payload.active(), payload.speakerUuid())));
         ClientPlayNetworking.registerGlobalReceiver(GooseToolsPayloads.MeetingAlertS2C.TYPE, (payload, context) ->
                 context.client().execute(() -> MeetingAlertHud.apply(payload)));
+        ClientPlayNetworking.registerGlobalReceiver(com.goosethings.tools.intro.RoleIntroPayload.TYPE, (payload, context) ->
+                context.client().execute(() -> com.goosethings.tools.client.hud.RoleIntroScreen.apply(payload)));
         ClientPlayNetworking.registerGlobalReceiver(GooseToolsPayloads.VisionStateS2C.TYPE, (payload, context) ->
                 context.client().execute(() -> VisionFogState.apply(
                         payload.active(),

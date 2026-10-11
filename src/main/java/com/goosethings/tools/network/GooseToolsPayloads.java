@@ -35,6 +35,8 @@ public final class GooseToolsPayloads {
         PayloadTypeRegistry.serverboundPlay().register(WebRequestC2S.TYPE, WebRequestC2S.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(BroadcastHudS2C.TYPE, BroadcastHudS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(MeetingAlertS2C.TYPE, MeetingAlertS2C.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(
+                com.goosethings.tools.intro.RoleIntroPayload.TYPE, com.goosethings.tools.intro.RoleIntroPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(VisionStateS2C.TYPE, VisionStateS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(BlackoutAssistStateS2C.TYPE, BlackoutAssistStateS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(GamePresenceStateS2C.TYPE, GamePresenceStateS2C.CODEC);

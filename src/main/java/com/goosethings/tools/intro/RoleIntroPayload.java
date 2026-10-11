@@ -1,0 +1,76 @@
+package com.goosethings.tools.intro;
+
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.UUID;
+
+/** Only the viewer's role and the filtered public appearance roster are transmitted. */
+public record RoleIntroPayload(boolean active, String role, int theme, int mode, List<Appearance> roster)
+        implements CustomPacketPayload {
+    public static final Type<RoleIntroPayload> TYPE = new Type<>(
+            Identifier.fromNamespaceAndPath("goosetools", "role_intro_s2c_v1"));
+    public static final StreamCodec<RegistryFriendlyByteBuf, RoleIntroPayload> CODEC =
+            StreamCodec.of(RoleIntroPayload::write, RoleIntroPayload::read);
+    public static final RoleIntroPayload CLOSE = new RoleIntroPayload(false, "", 0, 0, List.of());
+
+    public RoleIntroPayload {
+        if (role == null || role.length() > 64 || theme < 0 || theme > 3 || mode < 0 || mode > 2) {
+            throw new IllegalArgumentException("Invalid role intro header");
+        }
+        roster = List.copyOf(roster);
+        if (roster.size() > RoleIntroPolicy.MAX_PLAYERS || active && roster.isEmpty()) {
+            throw new IllegalArgumentException("Invalid role intro roster size");
+        }
+        HashSet<UUID> ids = new HashSet<>();
+        for (Appearance player : roster) if (!ids.add(player.id())) {
+            throw new IllegalArgumentException("Duplicate role intro player");
+        }
+        if (!active && (!roster.isEmpty() || !role.isEmpty())) {
+            throw new IllegalArgumentException("Inactive intro carries no identities");
+        }
+    }
+
+    private static void write(RegistryFriendlyByteBuf buffer, RoleIntroPayload payload) {
+        buffer.writeBoolean(payload.active());
+        buffer.writeUtf(payload.role(), 64);
+        buffer.writeByte(payload.theme());
+        buffer.writeByte(payload.mode());
+        buffer.writeVarInt(payload.roster().size());
+        for (Appearance player : payload.roster()) {
+            buffer.writeUUID(player.id());
+            buffer.writeUtf(player.name(), 64);
+            buffer.writeBoolean(player.small());
+        }
+    }
+
+    private static RoleIntroPayload read(RegistryFriendlyByteBuf buffer) {
+        boolean active = buffer.readBoolean();
+        String role = buffer.readUtf(64);
+        int theme = buffer.readUnsignedByte(), mode = buffer.readUnsignedByte();
+        int count = buffer.readVarInt();
+        if (count < 0 || count > RoleIntroPolicy.MAX_PLAYERS) {
+            throw new IllegalArgumentException("Role intro roster exceeds limit");
+        }
+        List<Appearance> roster = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            roster.add(new Appearance(buffer.readUUID(), buffer.readUtf(64), buffer.readBoolean()));
+        }
+        return new RoleIntroPayload(active, role, theme, mode, roster);
+    }
+
+    @Override public Type<RoleIntroPayload> type() { return TYPE; }
+
+    public record Appearance(UUID id, String name, boolean small) {
+        public Appearance {
+            if (id == null || name == null || name.isBlank() || name.length() > 64) {
+                throw new IllegalArgumentException("Invalid intro appearance");
+            }
+        }
+    }
+}

@@ -78,6 +78,10 @@ tasks.named('jar') {
 
 // An isolated client mod exercises real GPU draws; it is never packaged in the release JAR.
 sourceSets {
+    roleIntroRegressionTest {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
     stationRegressionTest {
         compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
         runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
@@ -108,6 +112,8 @@ sourceSets {
     }
 }
 configurations {
+    roleIntroRegressionTestImplementation.extendsFrom implementation
+    roleIntroRegressionTestRuntimeOnly.extendsFrom runtimeOnly
     stationRegressionTestImplementation.extendsFrom implementation
     stationRegressionTestRuntimeOnly.extendsFrom runtimeOnly
     gameRegressionTestImplementation.extendsFrom implementation
@@ -125,6 +131,7 @@ configurations {
 }
 loom {
     mods {
+        goosetools_intro_test { sourceSet sourceSets.roleIntroRegressionTest }
         goosetools_station_test { sourceSet sourceSets.stationRegressionTest }
         goosetools_game_test { sourceSet sourceSets.gameRegressionTest }
         goosetools_update_test { sourceSet sourceSets.updateRegressionTest }
@@ -135,6 +142,16 @@ loom {
         goosetools_flight_test { sourceSet sourceSets.flightRegressionTest }
     }
     runs {
+        roleIntroRegressionTest {
+            client()
+            source sourceSets.roleIntroRegressionTest
+            runDir 'build/role-intro-regression-test'
+            vmArg '-Dgoosetools.roleIntroRegressionTest=true'
+            programArg '--width'
+            programArg '1280'
+            programArg '--height'
+            programArg '720'
+        }
         stationRegressionTest {
             client()
             source sourceSets.stationRegressionTest
@@ -252,6 +269,20 @@ tasks.named('runStationRegressionTest') {
         def result = layout.buildDirectory.file(directory + '/result.txt').get().asFile
         if (!result.isFile() || !result.text.startsWith('PASS ')) {
             throw new GradleException('Station / input regression failed; inspect build/' + directory + '/logs/latest.log and result.txt')
+        }
+        logger.lifecycle(result.text)
+    }
+}
+
+tasks.named('runRoleIntroRegressionTest') {
+    timeout = java.time.Duration.ofMinutes(4)
+    doFirst {
+        java.nio.file.Files.deleteIfExists(layout.buildDirectory.file('role-intro-regression-test/result.txt').get().asFile.toPath())
+    }
+    doLast {
+        def result = layout.buildDirectory.file('role-intro-regression-test/result.txt').get().asFile
+        if (!result.isFile() || !result.text.startsWith('PASS ')) {
+            throw new GradleException('Opening stage regression failed; inspect build/role-intro-regression-test/result.txt and screenshots')
         }
         logger.lifecycle(result.text)
     }

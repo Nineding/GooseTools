@@ -823,5 +823,13 @@
   "text.logs.purification": "%s was purged by the purification chamber.",
   "ggd.log.purification": "%s was purged by the purification chamber.",
   "task.goosetools.ui.purify_paused": "Paused. Progress saved; click to continue.",
-  "task.goosetools.ui.purify_clicks": "Keep clicking; pauses preserve progress."
+  "task.goosetools.ui.purify_clicks": "Keep clicking; pauses preserve progress.",
+  "intro.goosetools.title": "Your role",
+  "intro.goosetools.mode.classic": "Game mode: Classic",
+  "intro.goosetools.mode.draft": "Game mode: Role Draft",
+  "intro.goosetools.mode.killer": "Game mode: Killer",
+  "intro.goosetools.teammates": "Duck teammates",
+  "role.lover.goose_suffix": " [Lover Goose]",
+  "role.lover.duck_suffix": " [Lover Duck]",
+  "intro.goosetools.duck_description": "Eliminate the Geese"
 }

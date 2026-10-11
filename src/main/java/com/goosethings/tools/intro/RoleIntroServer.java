@@ -1,0 +1,107 @@
+package com.goosethings.tools.intro;
+
+import com.goosethings.tools.network.MandatoryHandshake;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.scores.ScoreHolder;
+
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+public final class RoleIntroServer {
+    private static final Map<UUID, Integer> ACTIVE = new HashMap<>();
+    private RoleIntroServer() {}
+
+    public static void register() {
+        ServerTickEvents.END_SERVER_TICK.register(RoleIntroServer::tick);
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> ACTIVE.remove(handler.player.getUUID()));
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> ACTIVE.clear());
+    }
+
+    public static LiteralArgumentBuilder<CommandSourceStack> command() {
+        return Commands.literal("role-intro")
+                .then(Commands.literal("open").then(Commands.argument("players", EntityArgument.players())
+                        .executes(context -> open(context.getSource().getServer(),
+                                EntityArgument.getPlayers(context, "players")))))
+                .then(Commands.literal("close").then(Commands.argument("players", EntityArgument.players())
+                        .executes(context -> close(EntityArgument.getPlayers(context, "players")))));
+    }
+
+    private static int open(MinecraftServer server, Collection<ServerPlayer> viewers) {
+        boolean dlc = score(server, "ggdadv", ScoreHolder.forNameOnly("FullBloodDLC")) == 1;
+        // Recheck DLC server-side as well as at the datapack entry, including direct commands.
+        if (!dlc) return close(viewers);
+        List<ServerPlayer> participants = server.getPlayerList().getPlayers().stream()
+                .filter(player -> RoleIntroPolicy.eligible(true, player.entityTags(), score(server, "ready", player)))
+                .sorted(Comparator.comparingInt(player -> RoleIntroPolicy.seat(player.entityTags())))
+                .limit(RoleIntroPolicy.MAX_PLAYERS).toList();
+        List<RoleIntroPolicy.Player> identities = participants.stream().map(RoleIntroServer::identity).toList();
+        int sent = 0;
+        for (ServerPlayer viewer : viewers) {
+            if (!participants.contains(viewer) || !viewer.entityTags().contains("ggdRoleShowLocked")
+                    || !MandatoryHandshake.isVerified(viewer)
+                    || !ServerPlayNetworking.canSend(viewer, RoleIntroPayload.TYPE)) continue;
+            List<RoleIntroPayload.Appearance> roster = RoleIntroPolicy.roster(identity(viewer), identities).stream()
+                    .map(member -> {
+                        ServerPlayer player = participants.stream().filter(p -> p.getUUID().equals(member.id()))
+                                .findFirst().orElseThrow();
+                        return new RoleIntroPayload.Appearance(member.id(), player.getGameProfile().name(), member.small());
+                    }).toList();
+            ServerPlayNetworking.send(viewer, new RoleIntroPayload(true,
+                    RoleIntroCatalog.resolve(viewer.entityTags()).tag(), RoleIntroPolicy.theme(viewer.entityTags()),
+                    Math.clamp(score(server, "ggdadv", ScoreHolder.forNameOnly("HowRole")), 0, 2), roster));
+            ACTIVE.put(viewer.getUUID(), server.getTickCount() + 80);
+            sent++;
+        }
+        return sent;
+    }
+
+    private static RoleIntroPolicy.Player identity(ServerPlayer player) {
+        return new RoleIntroPolicy.Player(player.getUUID(), RoleIntroPolicy.seat(player.entityTags()), player.entityTags());
+    }
+
+    private static void tick(MinecraftServer server) {
+        if (ACTIVE.isEmpty()) return;
+        boolean dlc = score(server, "ggdadv", ScoreHolder.forNameOnly("FullBloodDLC")) == 1;
+        var iterator = ACTIVE.entrySet().iterator();
+        while (iterator.hasNext()) {
+            var entry = iterator.next();
+            ServerPlayer viewer = server.getPlayerList().getPlayer(entry.getKey());
+            if (viewer == null) { iterator.remove(); continue; }
+            if (!dlc || !viewer.entityTags().contains("ggdRoleShowLocked")
+                    || !viewer.entityTags().contains("players") || viewer.entityTags().contains("endGame")
+                    || viewer.entityTags().contains("spectator") || server.getTickCount() >= entry.getValue()) {
+                sendClose(viewer);
+                iterator.remove();
+            }
+        }
+    }
+
+    private static int close(Collection<ServerPlayer> viewers) {
+        for (ServerPlayer viewer : viewers) { ACTIVE.remove(viewer.getUUID()); sendClose(viewer); }
+        return viewers.size();
+    }
+    private static void sendClose(ServerPlayer viewer) {
+        if (ServerPlayNetworking.canSend(viewer, RoleIntroPayload.TYPE)) {
+            ServerPlayNetworking.send(viewer, RoleIntroPayload.CLOSE);
+        }
+    }
+    private static int score(MinecraftServer server, String objectiveName, ScoreHolder holder) {
+        var objective = server.getScoreboard().getObjective(objectiveName);
+        if (objective == null) return 0;
+        var value = server.getScoreboard().getPlayerScoreInfo(holder, objective);
+        return value == null ? 0 : value.value();
+    }
+}

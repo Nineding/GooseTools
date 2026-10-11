@@ -823,5 +823,13 @@
   "text.logs.purification": "%s 被净化仓驱除。",
   "ggd.log.purification": "%s 被净化仓驱除。",
   "task.goosetools.ui.purify_paused": "已暂停，进度已保留；继续点按即可充能。",
-  "task.goosetools.ui.purify_clicks": "连续点按累计五秒，中断时保留进度。"
+  "task.goosetools.ui.purify_clicks": "连续点按累计五秒，中断时保留进度。",
+  "intro.goosetools.title": "你的身份",
+  "intro.goosetools.mode.classic": "游戏模式：经典模式",
+  "intro.goosetools.mode.draft": "游戏模式：轮抽选角",
+  "intro.goosetools.mode.killer": "游戏模式：杀戮模式",
+  "intro.goosetools.teammates": "鸭阵营队友",
+  "role.lover.goose_suffix": " [恋人鹅]",
+  "role.lover.duck_suffix": " [恋人鸭]",
+  "intro.goosetools.duck_description": "消灭鹅阵营玩家"
 }
