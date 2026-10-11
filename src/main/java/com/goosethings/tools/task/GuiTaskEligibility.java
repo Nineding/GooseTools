@@ -24,6 +24,9 @@ final class GuiTaskEligibility {
                     && tags.contains("task.artisan_" + kind + ".available");
         }
         if (!tags.contains("spectator") && !tags.contains("dlcGhostActive")) return true;
+        if (tags.contains("spectator") && tags.contains("deadInMap") && tags.contains("dlcGhostActive")
+                && tags.contains("dlcGhostEvil") && tags.contains("evil")
+                && Set.of("keepgreen", "cutwires", "purificationlaser").contains(kind)) return true;
         return Set.of("traffic", "whack", "pipes", "knobs", "timing", "arcade").contains(kind);
     }
 

@@ -35,6 +35,20 @@ class GuiTaskEligibilityTest {
         }
     }
 
+    @Test void deadDucksCanDoOnlyTheirThreeGuiPrerequisites() {
+        var duck = new HashSet<>(GHOST); duck.add("evil"); duck.add("dlcGhostEvil");
+        for (String kind : Set.of("keepgreen", "cutwires", "purificationlaser")) {
+            assertTrue(GuiTaskEligibility.eligible(duck, 11, true));
+            assertTrue(GuiTaskEligibility.kindAllowed(duck, kind, 11), kind);
+            for (String required : Set.of("spectator", "deadInMap", "dlcGhostActive", "dlcGhostEvil", "evil")) {
+                var missing = new HashSet<>(duck); missing.remove(required);
+                assertFalse(GuiTaskEligibility.kindAllowed(missing, kind, 11), required);
+            }
+        }
+        for (String forbidden : Set.of("cleaning", "purification", "sacrificebell", "civil", "foodsafety", "nuclear", "powerstation", "telecom"))
+            assertFalse(GuiTaskEligibility.kindAllowed(duck, forbidden, 11), forbidden);
+    }
+
     @Test void professionalResultsRequireTheCurrentLivingPlayersCommission() {
         for (String kind : Set.of("civil", "foodsafety", "nuclear", "powerstation", "telecom")) {
             var tags = new HashSet<>(Set.of("players", "inTaskArtisan", "artisan.assigned",

@@ -30,7 +30,7 @@ public final class PurificationStation {
         if (!GuiTaskBridge.eligible(p) || !GuiTaskEligibility.kindAllowed(p.entityTags(), type.id)
                 || GuiTaskBridge.map(p) != 11 || !p.level().dimension().equals(Level.OVERWORLD)
                 || p.distanceToSqr(-1649.5, 72.5, -546.5) > 36) return false;
-        if (type == TaskType.PURIFICATIONLASER) return p.entityTags().contains("evil") && !p.entityTags().contains("dlcGhostActive");
+        if (type == TaskType.PURIFICATIONLASER) return p.entityTags().contains("evil");
         return value(p, "#Live") == 1 && value(p, "#Disabled") == 0;
     }
     private static int value(ServerPlayer p, String holder) {
