@@ -210,6 +210,8 @@ loom {
             source sourceSets.flightRegressionTest
             runDir 'build/dream-regression-test'
             vmArg '-Dgoosetools.dreamRegressionTest=true'
+            if (providers.gradleProperty('dreamDatapack').isPresent())
+                vmArg '-Dgoosetools.dreamDatapack=' + providers.gradleProperty('dreamDatapack').get()
         }
     }
 }

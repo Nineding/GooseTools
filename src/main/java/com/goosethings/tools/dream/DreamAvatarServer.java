@@ -73,6 +73,11 @@ public final class DreamAvatarServer {
         Session session = SESSIONS.get(player.getUUID());
         return session != null && session.owner == player;
     }
+    /** The connection remains authenticated as the owner; only chunk source and priority use the viewer. */
+    public static ServerPlayer chunkViewer(ServerPlayer player) {
+        Session session = SESSIONS.get(player.getUUID());
+        return session != null && session.owner == player ? session.viewer : player;
+    }
     public static Entity owner(Entity entity) {
         return entity instanceof Body body ? body.owner : entity;
     }
@@ -154,7 +159,7 @@ public final class DreamAvatarServer {
             s.viewer.setLastClientInput(new net.minecraft.world.entity.player.Input(
                     forward>0,forward<0,side>0,side<0,(buttons&1)!=0,(buttons&2)!=0,(buttons&4)!=0));
             s.body.setPose((buttons&2)!=0 && !s.raven?Pose.CROUCHING:Pose.STANDING);
-            s.body.setSprinting((buttons&4)!=0 && !s.raven);
+            s.body.setSprinting((buttons&4)!=0);
             if(s.body.isPassenger()) {
                 if ((buttons & 2) != 0) s.body.stopRiding();
                 else {
@@ -170,11 +175,10 @@ public final class DreamAvatarServer {
                 }
             } else if(s.raven) {
                 s.jumpCharge=0;
-                double yaw=Math.toRadians(s.body.getYRot());
-                Vec3 direction=new Vec3(side*Math.cos(yaw)-forward*Math.sin(yaw),
-                        ((buttons&1)!=0?1:0)-((buttons&2)!=0?1:0),side*Math.sin(yaw)+forward*Math.cos(yaw));
-                if(direction.lengthSqr()>1)direction=direction.normalize();
-                s.body.setDeltaMovement(direction.scale(0.2));
+                s.body.xxa=side;s.body.zza=forward;
+                // The existing Raven multiplier is 2: vanilla .05 flying speed becomes .1.
+                int vertical=((buttons&1)!=0?1:0)-((buttons&2)!=0?1:0);
+                s.body.setDeltaMovement(s.body.getDeltaMovement().add(0,vertical*0.3,0));
                 s.body.tick();s.body.setOnGround(false);
             } else {
                 s.jumpCharge=0;
@@ -230,6 +234,14 @@ public final class DreamAvatarServer {
             getAttribute(Attributes.STEP_HEIGHT).setBaseValue(owner.getAttributeValue(Attributes.STEP_HEIGHT));
         }
         @Override public ServerLevel level() { return (ServerLevel)super.level(); }
+        @Override public void travel(Vec3 input) {
+            if (!raven) {super.travel(input);return;}
+            // Match native flying acceleration and drag, without floor/fluid slowdown for noclip.
+            moveRelative(isSprinting()?0.2F:0.1F,input);
+            move(net.minecraft.world.entity.MoverType.SELF,getDeltaMovement());
+            Vec3 movement=getDeltaMovement();
+            setDeltaMovement(movement.x*0.91,movement.y*0.6,movement.z*0.91);
+        }
         @Override public boolean hurtServer(ServerLevel level,DamageSource source,float amount) {
             if(raven)return false;
             return DreamSpatialContext.run(false,()->owner.hurtServer(level,source,amount));

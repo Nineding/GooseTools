@@ -1,6 +1,7 @@
 package com.goosethings.tools.client.parasite.mixin;
 
 import com.goosethings.tools.client.parasite.ParasiteSpectatorClient;
+import com.goosethings.tools.client.dream.DreamAvatarClient;
 import net.minecraft.client.gui.Hud;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
@@ -33,7 +34,7 @@ abstract class GuiParasiteSpectatorMixin {
                     value = "INVOKE",
                     target = "Lnet/minecraft/client/gui/Hud;getCameraPlayer()Lnet/minecraft/world/entity/player/Player;"))
     private Player goosetools$renderParasiteHotbar(Hud hud) {
-        if (ParasiteSpectatorClient.isActive(this.minecraft)) {
+        if (ParasiteSpectatorClient.isActive(this.minecraft) || DreamAvatarClient.active()) {
             return this.minecraft.player;
         }
         Entity camera = this.minecraft.getCameraEntity();

@@ -12,7 +12,7 @@ public final class DreamSpatialContext {
  public static Entity actor(Entity owner){return enabled()?DreamAvatarServer.actor(owner):null;}
  public static <T> T run(boolean active,Supplier<T> operation){Boolean previous=CURRENT.get();CURRENT.set(active);try{return operation.get();}finally{if(previous==null)CURRENT.remove();else CURRENT.set(previous);}}
  public static boolean gameplay(Identifier id){String p=id.getPath();if(id.getNamespace().equals("lobby"))return p.equals("achievement/check_cuckoo_egg_dream");if(!id.getNamespace().equals("ggd"))return false;
-  return !(p.startsWith("talker/")||p.startsWith("session/")||p.startsWith("gameendevents/")||p.startsWith("role_extensions/")||p.startsWith("deadveent/")||p.startsWith("skill/dream/enter")||p.startsWith("skill/dream/wake")||p.startsWith("skill/dream/meeting")||p.startsWith("skill/dream/death/"));}
+  return !(p.startsWith("talker/")||p.startsWith("session/")||p.startsWith("gameendevents/")||p.startsWith("role_extensions/")||p.startsWith("deadveent/")||p.startsWith("skill/dream/enter")||p.startsWith("skill/dream/wake")||p.startsWith("skill/dream/meeting")||p.startsWith("skill/dream/cleanup")||p.startsWith("skill/dream/death/"));}
  public static <T> List<UnboundEntryAction<T>> functions(List<UnboundEntryAction<T>> entries,Identifier id){boolean active=gameplay(id);return entries.stream().<UnboundEntryAction<T>>map(a->(s,c,f)->run(active,()->{a.execute(active?origin(s):s,c,f);return null;})).toList();}
  @SuppressWarnings("unchecked")
  private static <T> T origin(T source) {

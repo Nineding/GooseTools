@@ -37,8 +37,10 @@ public final class AimClaimClient {
         }
 
         float partialTick = minecraft.getDeltaTracker().getGameTimeDeltaPartialTick(false);
-        Vec3 origin = player.getEyePosition(partialTick);
-        Vec3 direction = player.getViewVector(partialTick).normalize();
+        Entity viewpoint = com.goosethings.tools.client.dream.DreamAvatarClient.active()
+                && minecraft.getCameraEntity() != null ? minecraft.getCameraEntity() : player;
+        Vec3 origin = viewpoint.getEyePosition(partialTick);
+        Vec3 direction = viewpoint.getViewVector(partialTick).normalize();
         Vec3 maximumEnd = origin.add(direction.scale(MAX_RAY_DISTANCE));
         BlockHitResult blockHit = level.clip(new ClipContext(
                 origin,
@@ -55,8 +57,9 @@ public final class AimClaimClient {
         Vec3 nearestHit = null;
         Vec3 nearestCenter = null;
         double nearestDistance = Double.POSITIVE_INFINITY;
-        AABB searchBox = player.getBoundingBox().expandTowards(direction.scale(unobstructedDistance)).inflate(1.0D);
+        AABB searchBox = viewpoint.getBoundingBox().expandTowards(direction.scale(unobstructedDistance)).inflate(1.0D);
         for (Entity entity : level.getEntities(player, searchBox, AimClaimClient::isVisualAimEntity)) {
+            if (entity == viewpoint || NameTagClientState.sourcePlayerId(entity).equals(player.getUUID())) continue;
             Vec3 interpolatedPosition = entity.getPosition(partialTick);
             AABB renderedBox = entity.getBoundingBox().move(interpolatedPosition.subtract(entity.position()));
             Vec3 intersection = renderedBox.contains(origin)

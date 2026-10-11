@@ -8,6 +8,7 @@
     "DreamMouseMixin",
     "DreamHandsMixin",
     "DreamLocalPlayerMixin",
+    "DreamItemUseMixin",
     "DreamClientLoadingMixin",
     "DreamRidingRenderMixin"
   ],
