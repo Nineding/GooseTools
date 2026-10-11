@@ -141,6 +141,10 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
         for (int i = 0; i < row.size(); i++) {
             RoleIntroPayload.Appearance appearance = row.get(i);
             RemotePlayer model = models.computeIfAbsent(appearance.id(), id -> model(appearance, models.size()));
+            // Skin Layers uses the entity's world distance for LOD even in GUI renders.
+            // Keep this isolated preview at the camera so its voxel layers remain enabled.
+            var camera = minecraft.getCameraEntity();
+            if (camera != null) model.setPos(camera.position());
             float center = left + step * (i + .5F);
             float bob = (float) Math.sin(seconds * 2.2 + i * .9) * scale * .018F;
             var renderer = minecraft.getEntityRenderDispatcher().getRenderer(model);
@@ -159,18 +163,18 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
                     new Quaternionf().rotateZ((float) Math.PI), new Quaternionf(),
                     Math.round(center - step * .48F), top, Math.round(center + step * .48F), bottom);
             float nameScale = Math.max(.45F, baseNameScale);
-            String name = font.plainSubstrByWidth(appearance.name(), Math.max(12, (int) ((step - 3) / nameScale)));
             // Stagger dense roster labels above the models as in the reference.
             float nameY = top - 12 * nameScale - (row.size() > 9 && (i & 1) == 0 ? 11 * nameScale : 0);
-            centered(g, Component.literal(name), center, nameY, nameScale,
-                    appearance.id().equals(minecraft.player.getUUID()) ? 0xFFFFFFFF : 0xFFE3E3E3);
+            MeetingNameTagHud.drawScaled(g, minecraft, appearance.id(), appearance.name(),
+                    center, nameY, nameScale, Math.max(12, (int) ((step - 3) / nameScale)));
         }
     }
 
     private RemotePlayer model(RoleIntroPayload.Appearance appearance, int index) {
         UUID isolated = UUID.nameUUIDFromBytes(("goosetools:role-intro:" + appearance.id()).getBytes(StandardCharsets.UTF_8));
-        RemotePlayer model = new MeetingAlertRemotePlayer(minecraft.level,
+        MeetingAlertRemotePlayer model = new MeetingAlertRemotePlayer(minecraft.level,
                 new GameProfile(isolated, appearance.name()), () -> skin(appearance.id()));
+        model.showAllSkinLayers();
         model.setId(0x6A120000 + index);
         model.refreshDimensions();
         return model;

@@ -24,6 +24,11 @@ final class MeetingAlertRemotePlayer extends RemotePlayer {
         return skin == null ? super.getSkin() : skin;
     }
 
+    /** Preview entities have no server model-customization byte to enable the outer layers. */
+    void showAllSkinLayers() {
+        getEntityData().set(DATA_PLAYER_MODE_CUSTOMISATION, (byte) 0x7f);
+    }
+
     @Override
     public boolean isPickable() {
         return false;

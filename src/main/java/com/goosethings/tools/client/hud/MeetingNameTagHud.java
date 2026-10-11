@@ -11,6 +11,8 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 
+import java.util.UUID;
+
 /** Draws the colour and serial-number portion of the viewer's managed nametag in a HUD. */
 final class MeetingNameTagHud {
     private MeetingNameTagHud() {
@@ -23,11 +25,44 @@ final class MeetingNameTagHud {
             int centerX,
             int top,
             float alpha) {
-        GooseToolsPayloads.NameTagEntry live = NameTagClientState.entry(appearance.playerId());
-        GooseToolsPayloads.NameTagEntry cached = NameTagClientState.trueIdentityEntry(appearance.playerId());
-        MeetingAlertIdentityPolicy.Label labelData = MeetingAlertIdentityPolicy.nametag(
-                appearance.playerName(),
-                appearance.playerId(),
+        MeetingAlertIdentityPolicy.Label labelData = resolve(appearance.playerId(), appearance.playerName());
+        if (labelData.concealed()) return;
+        Font font = minecraft.font;
+        MutableComponent label = label(labelData, labelData.name());
+        int totalWidth = font.width(label);
+        int left = centerX - totalWidth / 2;
+        int bottom = top + 11;
+
+        graphics.fill(RenderPipelines.GUI,
+                left - 2, top - 2, left + totalWidth + 2, bottom + 1,
+                argb(0x000000, alpha * 0.34F));
+        graphics.text(font, label, left, top + 1, argb(0xffffff, alpha), false);
+    }
+
+    static void drawScaled(GuiGraphicsExtractor graphics, Minecraft minecraft,
+                           UUID playerId, String snapshotName, float centerX, float top,
+                           float scale, int maxWidth) {
+        MeetingAlertIdentityPolicy.Label data = resolve(playerId, snapshotName);
+        if (data.concealed()) return;
+        // Reserve the whole badge before shortening dense-roster names.
+        int badgeWidth = minecraft.font.width(SerialBadgeStyle.glyphComponent(data.serial(), data.rgb()));
+        String name = minecraft.font.plainSubstrByWidth(data.name(), Math.max(0, maxWidth - badgeWidth));
+        MutableComponent label = label(data, name);
+        int width = minecraft.font.width(label);
+        graphics.pose().pushMatrix();
+        graphics.pose().translate(centerX, top);
+        graphics.pose().scale(scale, scale);
+        graphics.fill(RenderPipelines.GUI, -width / 2 - 2, -2, -width / 2 + width + 2, 12, 0x57000000);
+        graphics.text(minecraft.font, label, -width / 2, 1, 0xffffffff, false);
+        graphics.pose().popMatrix();
+    }
+
+    private static MeetingAlertIdentityPolicy.Label resolve(UUID playerId, String snapshotName) {
+        GooseToolsPayloads.NameTagEntry live = NameTagClientState.entry(playerId);
+        GooseToolsPayloads.NameTagEntry cached = NameTagClientState.trueIdentityEntry(playerId);
+        return MeetingAlertIdentityPolicy.nametag(
+                snapshotName,
+                playerId,
                 live == null ? null : live.identityPlayerId(),
                 live == null ? null : live.name(),
                 live == null ? 0xffffff : live.rgb(),
@@ -37,16 +72,12 @@ final class MeetingNameTagHud {
                 cached == null ? 0xffffff : cached.rgb(),
                 cached == null ? 0 : cached.serialNumber(),
                 cached == null ? 0 : cached.attachmentFlags());
-        if (labelData.concealed()) {
-            // Preserve the server's per-viewer identity-concealment decision.
-            return;
-        }
+    }
 
-        String name = labelData.name();
+    private static MutableComponent label(MeetingAlertIdentityPolicy.Label labelData, String name) {
         int baseRgb = labelData.rgb();
         int nameRgb = labelData.lover() ? 0xff55ff : baseRgb;
         int serial = labelData.serial();
-        Font font = minecraft.font;
         MutableComponent label = Component.empty();
         if (serial > 0) {
             label.append(SerialBadgeStyle.glyphComponent(serial, baseRgb));
@@ -55,14 +86,7 @@ final class MeetingNameTagHud {
                 .withColor(nameRgb)
                 .withItalic(false)
                 .withoutShadow()));
-        int totalWidth = font.width(label);
-        int left = centerX - totalWidth / 2;
-        int bottom = top + 11;
-
-        graphics.fill(RenderPipelines.GUI,
-                left - 2, top - 2, left + totalWidth + 2, bottom + 1,
-                argb(0x000000, alpha * 0.34F));
-        graphics.text(font, label, left, top + 1, argb(0xffffff, alpha), false);
+        return label;
     }
 
     static int contrastColour(int rgb) {
