@@ -669,3 +669,47 @@ tasks.named('processPurificationRegressionTestResources') {
         include 'data/**/dialog/**', 'data/**/predicate/**'
     }
 }
+
+// An isolated client checks the production artisan functions and their server-owned GUI sessions.
+sourceSets { artisanRegressionTest {
+    compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+    runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+} }
+configurations {
+    artisanRegressionTestImplementation.extendsFrom implementation, testImplementation
+    artisanRegressionTestRuntimeOnly.extendsFrom runtimeOnly, testRuntimeOnly
+}
+def artisanFixture = file(findProperty('artisanFixtureRoot') ?: '../../')
+dependencies {
+    artisanRegressionTestRuntimeOnly files(new File(artisanFixture, 'mods/goosethings-1.14.0+Alpha0.51.jar'), new File(artisanFixture, 'mods/voicechat-fabric-2.6.23+26.3.jar'), new File(artisanFixture, 'mods/cloth-config-26.3.158.jar'), new File(artisanFixture, 'mods/sound-physics-remastered-fabric-1.5.1+26.3.jar'))
+}
+loom {
+    mods { goosetools_artisan_test { sourceSet sourceSets.artisanRegressionTest } }
+    runs { artisanRegressionTest {
+        client()
+        source sourceSets.artisanRegressionTest
+        runDir 'build/artisan-regression-test'
+        vmArg '-Dartisan.fixtureRoot=' + artisanFixture.absolutePath
+        vmArg '-Dartisan.startScenario=' + (findProperty('artisanStartScenario') ?: '0')
+        programArg '--width'
+        programArg '1400'
+        programArg '--height'
+        programArg '1000'
+    } }
+}
+tasks.named('runArtisanRegressionTest') {
+    timeout = java.time.Duration.ofMinutes(6)
+    doFirst {
+        def run = file('build/artisan-regression-test');run.mkdirs()
+        new File(run,'result.txt').delete()
+        new File(run,'options.txt').text = 'lang:zh_cn\nguiScale:2\npauseOnLostFocus:false\ntutorialStep:none\nresourcePacks:["file/artisan-assets"]\n'
+        def config = new File(run,'config/goosetools/task_markers.json');config.parentFile.mkdirs()
+        config.bytes = new File(artisanFixture,'config/goosetools/task_markers.json').bytes
+        copy { from new File(artisanFixture,'resourcepacks/whois'); into new File(run,'resourcepacks/artisan-assets') }
+    }
+    doLast {
+        def result = file('build/artisan-regression-test/result.txt')
+        if(!result.isFile() || !result.text.startsWith('PASS ')) throw new GradleException('Artisan regression failed; inspect result.txt and logs/latest.log')
+        logger.lifecycle(result.text)
+    }
+}

@@ -5,7 +5,8 @@
     "duck": "#D09D3030",
     "emergency": "#D0C2185B",
     "gold": "#D0C9A227",
-    "series": "#D02879C8"
+    "series": "#D02879C8",
+    "artisan": "#D0C9A227"
   },
   "tasks": {
     "rhythmmaster": {
@@ -587,11 +588,45 @@
       "translation_key": "item.task.emergency.eagleton_power_b.available",
       "fallback": "Restore Power: Panel B",
       "category": "emergency"
+    },
+    "artisan": {
+      "translation_key": "item.task.artisan.available",
+      "fallback": "Fine Artisan Series",
+      "category": "artisan"
+    },
+    "artisan_civil": {
+      "translation_key": "item.task.artisan_civil.available",
+      "fallback": "Artisan Commission - Civil Engineering",
+      "category": "artisan"
+    },
+    "artisan_foodsafety": {
+      "translation_key": "item.task.artisan_foodsafety.available",
+      "fallback": "Artisan Commission - Food Safety",
+      "category": "artisan"
+    },
+    "artisan_nuclear": {
+      "translation_key": "item.task.artisan_nuclear.available",
+      "fallback": "Artisan Commission - Nuclear Engineering",
+      "category": "artisan"
+    },
+    "artisan_powerstation": {
+      "translation_key": "item.task.artisan_powerstation.available",
+      "fallback": "Artisan Commission - Electrical Engineering",
+      "category": "artisan"
+    },
+    "artisan_telecom": {
+      "translation_key": "item.task.artisan_telecom.available",
+      "fallback": "Artisan Commission - Telecommunications",
+      "category": "artisan"
     }
   },
   "gradients": {
     "series": {
       "start": "#D02879C8",
+      "end": "#D026A66A"
+    },
+    "artisan": {
+      "start": "#D0C9A227",
       "end": "#D026A66A"
     }
   }

@@ -64,4 +64,21 @@ class TaskMarkerConfigTest {
         assertThrows(RuntimeException.class, () -> TaskMarkerConfig.parse(json + "{}"));
         assertThrows(RuntimeException.class, () -> TaskMarkerConfig.parse(" ".repeat(TaskMarkerConfig.MAX_BYTES + 1)));
     }
+
+    @Test void customGradientCategoriesRoundTripWithoutChangingExistingSeries() {
+        var root = com.google.gson.JsonParser.parseString(TaskMarkerConfig.defaults().toJson()).getAsJsonObject();
+        root.getAsJsonObject("colors").addProperty("future_custom", "#D0C9A227");
+        root.getAsJsonObject("gradients").add("future_custom", com.google.gson.JsonParser.parseString(
+                "{\"start\":\"#D0C9A227\",\"end\":\"#D026A66A\"}"));
+        root.getAsJsonObject("tasks").add("future_commission", com.google.gson.JsonParser.parseString(
+                "{\"translation_key\":\"future.name\",\"fallback\":\"Future\",\"category\":\"future_custom\"}"));
+        var config = TaskMarkerConfig.parse(root.toString());
+        assertEquals(0xD0C9A227, config.backgroundAt("future_commission", "normal", 0));
+        assertEquals(0xD026A66A, config.backgroundAt("future_commission", "normal", 1));
+        assertEquals(0xD02879C8, config.backgroundAt("wipeglass_hut", "normal", 0));
+        assertEquals(config, TaskMarkerConfig.parse(config.toJson()));
+        root.getAsJsonObject("gradients").add("undefined", com.google.gson.JsonParser.parseString(
+                "{\"start\":\"#D0C9A227\",\"end\":\"#D026A66A\"}"));
+        assertThrows(IllegalArgumentException.class, () -> TaskMarkerConfig.parse(root.toString()));
+    }
 }

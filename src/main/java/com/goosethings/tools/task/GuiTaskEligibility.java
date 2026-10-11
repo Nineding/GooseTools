@@ -17,7 +17,21 @@ final class GuiTaskEligibility {
     }
 
     static boolean kindAllowed(Set<String> tags, String kind) {
+        if (artisanKind(kind)) {
+            return !tags.contains("spectator") && !tags.contains("dlcGhostActive")
+                    && tags.contains("task.artisan.available") && !tags.contains("task.artisan.finished")
+                    && tags.contains("artisan.assigned") && tags.contains("inTaskArtisan")
+                    && tags.contains("task.artisan_" + kind + ".available");
+        }
         if (!tags.contains("spectator") && !tags.contains("dlcGhostActive")) return true;
         return Set.of("traffic", "whack", "pipes", "knobs", "timing", "arcade").contains(kind);
+    }
+
+    static boolean artisanKind(String kind) {
+        return Set.of("civil", "foodsafety", "nuclear", "powerstation", "telecom").contains(kind);
+    }
+
+    static boolean kindAllowed(Set<String> tags, String kind, int map) {
+        return (!artisanKind(kind) || map == 11) && kindAllowed(tags, kind);
     }
 }

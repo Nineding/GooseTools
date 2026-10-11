@@ -35,7 +35,7 @@ public final class GuiTaskBridge {
                 if (player == null) { bindings.remove(id); continue; }
                 Binding binding = bindings.get(id);
                 if (binding != null && (!player.entityTags().contains("inTaskGooseGui") || !eligible(player)
-                        || !GuiTaskEligibility.kindAllowed(player.entityTags(), binding.kind))) clear(player);
+                        || !GuiTaskEligibility.kindAllowed(player.entityTags(), binding.kind, map(player)))) clear(player);
             }
         });
         ArcadeStations.register();
@@ -50,7 +50,7 @@ public final class GuiTaskBridge {
     }
     public static LiteralArgumentBuilder<CommandSourceStack> command() {
         var players = Commands.argument("players", EntityArgument.players());
-        for (String kind : new String[]{"traffic", "whack", "pipes", "knobs", "timing", "cleaning", "keepgreen", "cutwires", "purification", "purificationlaser", "arcade"}) {
+        for (String kind : new String[]{"traffic", "whack", "pipes", "knobs", "timing", "cleaning", "keepgreen", "cutwires", "purification", "purificationlaser", "arcade", "civil", "foodsafety", "nuclear", "powerstation", "telecom"}) {
             players.then(Commands.literal(kind).executes(c -> {
                 int opened = 0;
                 for (ServerPlayer p : EntityArgument.getPlayers(c, "players")) if (start(p, kind)) opened++;
@@ -68,7 +68,7 @@ public final class GuiTaskBridge {
     }
     private static boolean start(ServerPlayer p, String kind) {
         clear(p);
-        if (!eligible(p) || !GuiTaskEligibility.kindAllowed(p.entityTags(), kind)
+        if (!eligible(p) || !GuiTaskEligibility.kindAllowed(p.entityTags(), kind, map(p))
                 || !MandatoryHandshake.isVerified(p) || !p.entityTags().contains("inTaskGooseGui")) return false;
         long id;
         if (kind.equals("arcade")) id = 0;
@@ -91,7 +91,7 @@ public final class GuiTaskBridge {
     }
     public static void gameProgress(ServerPlayer p, GameSession game, boolean station) {
         Binding b = bindings.get(p.getUUID());
-        if (b == null || b.ended || !eligible(p) || !GuiTaskEligibility.kindAllowed(p.entityTags(), b.kind)) return;
+        if (b == null || b.ended || !eligible(p) || !GuiTaskEligibility.kindAllowed(p.entityTags(), b.kind, map(p))) return;
         if (b.kind.equals("arcade")) {
             if (!station || !ArcadeStations.insideArcade(p)) return;
             // Each station session owns a delta cursor; closing/reopening never replays old time.
@@ -114,11 +114,11 @@ public final class GuiTaskBridge {
         Binding b = bindings.get(p.getUUID());
         if (b != null && !b.ended && b.session == id && !b.kind.equals("traffic")
                 && !b.kind.equals("whack") && !b.kind.equals("arcade") && eligible(p)
-                && GuiTaskEligibility.kindAllowed(p.entityTags(), b.kind) && complete) success(p, b);
+                && GuiTaskEligibility.kindAllowed(p.entityTags(), b.kind, map(p)) && complete) success(p, b);
     }
     public static boolean taskBound(ServerPlayer p, long id) {
         Binding b = bindings.get(p.getUUID());
-        return b != null && b.session == id && (b.kind.equals("pipes") || b.kind.equals("knobs") || b.kind.equals("timing") || b.kind.equals("cleaning") || b.kind.equals("keepgreen") || b.kind.equals("cutwires") || b.kind.equals("purification") || b.kind.equals("purificationlaser"));
+        return b != null && b.session == id && !b.kind.equals("traffic") && !b.kind.equals("whack") && !b.kind.equals("arcade");
     }
     public static void taskClosed(ServerPlayer p, long id) {
         Binding b = bindings.get(p.getUUID());

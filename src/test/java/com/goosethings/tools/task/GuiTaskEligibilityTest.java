@@ -34,4 +34,22 @@ class GuiTaskEligibilityTest {
             assertTrue(GuiTaskEligibility.kindAllowed(Set.of("players"), denied), denied);
         }
     }
+
+    @Test void professionalResultsRequireTheCurrentLivingPlayersCommission() {
+        for (String kind : Set.of("civil", "foodsafety", "nuclear", "powerstation", "telecom")) {
+            var tags = new HashSet<>(Set.of("players", "inTaskArtisan", "artisan.assigned",
+                    "task.artisan.available", "task.artisan_" + kind + ".available"));
+            assertTrue(GuiTaskEligibility.kindAllowed(tags, kind, 11));
+            assertFalse(GuiTaskEligibility.kindAllowed(tags, kind, 8));
+            assertFalse(GuiTaskEligibility.kindAllowed(Set.of("players"), kind, 11));
+            for (String required : Set.of("inTaskArtisan", "artisan.assigned", "task.artisan.available", "task.artisan_" + kind + ".available")) {
+                var missing = new HashSet<>(tags); missing.remove(required);
+                assertFalse(GuiTaskEligibility.kindAllowed(missing, kind, 11), required);
+            }
+            for (String forbidden : Set.of("spectator", "dlcGhostActive", "task.artisan.finished")) {
+                var invalid = new HashSet<>(tags); invalid.add(forbidden);
+                assertFalse(GuiTaskEligibility.kindAllowed(invalid, kind, 11), forbidden);
+            }
+        }
+    }
 }

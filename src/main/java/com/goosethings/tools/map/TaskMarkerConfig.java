@@ -65,17 +65,25 @@ public record TaskMarkerConfig(Map<String, Integer> colors, Map<String, Task> ta
                 throw new IllegalArgumentException("schema_version must be 1");
             }
             JsonObject palette = root.getAsJsonObject("colors");
-            keys(palette, CATEGORIES);
+            if (palette == null || palette.size() > 32) {
+                throw new IllegalArgumentException("colors must contain at most 32 categories");
+            }
             Map<String, Integer> colors = new LinkedHashMap<>();
             for (String category : CATEGORIES) {
                 colors.put(category, "series".equals(category) && !palette.has(category)
                         ? SERIES_DEFAULT.start() : color(palette, category));
             }
+            for (String category : palette.keySet()) {
+                if (!category.matches("[a-z][a-z0-9_]{0,15}")) {
+                    throw new IllegalArgumentException("Invalid task category: " + category);
+                }
+                colors.put(category, color(palette, category));
+            }
             Map<String, Gradient> gradients = new LinkedHashMap<>();
             gradients.put("series", SERIES_DEFAULT);
             if (root.has("gradients")) {
                 JsonObject ramps = root.getAsJsonObject("gradients");
-                keys(ramps, CATEGORIES);
+                keys(ramps, colors.keySet());
                 for (var entry : ramps.entrySet()) {
                     JsonObject ramp = entry.getValue().getAsJsonObject();
                     keys(ramp, Set.of("start", "end"));
@@ -99,7 +107,7 @@ public record TaskMarkerConfig(Map<String, Integer> colors, Map<String, Task> ta
                 }
                 String fallback = string(task, "fallback", 160);
                 String category = string(task, "category", 16);
-                if (!CATEGORIES.contains(category)) {
+                if (!colors.containsKey(category)) {
                     throw new IllegalArgumentException("Unknown task category: " + category);
                 }
                 tasks.put(entry.getKey(), new Task(key, fallback, category));
@@ -155,7 +163,7 @@ public record TaskMarkerConfig(Map<String, Integer> colors, Map<String, Task> ta
         // category used for duck prerequisites. Unknown IDs still honor runtime emergency/gold.
         return "gold".equals(kind) ? "gold"
                 : tasks.containsKey(id) ? tasks.get(id).category()
-                : CATEGORIES.contains(kind) ? kind : "normal";
+                : colors.containsKey(kind) ? kind : "normal";
     }
 
     public String toJson() {
