@@ -73,6 +73,11 @@ public final class DreamAvatarServer {
         Session session = SESSIONS.get(player.getUUID());
         return session != null && session.owner == player;
     }
+    public static Pose meetingPose(ServerPlayer player) {
+        Session session = SESSIONS.get(player.getUUID());
+        return session == null || session.owner != player ? null
+                : player.entityTags().contains("dreamRemote") ? session.body.getPose() : session.meetingPose;
+    }
     /** The connection remains authenticated as the owner; only chunk source and priority use the viewer. */
     public static ServerPlayer chunkViewer(ServerPlayer player) {
         Session session = SESSIONS.get(player.getUUID());
@@ -109,6 +114,7 @@ public final class DreamAvatarServer {
         DreamStandInServer.retainAvatarSnapshot(owner);
         Session s=SESSIONS.remove(owner.getUUID());
         if(s==null)return null;
+        owner.setPose(s.meetingPose);
         s.body.stopRiding();
         if(s.chunk!=null) s.body.level().getChunkSource().removeTicketWithRadius(VIEW_TICKET,s.chunk,s.radius);
         ((DreamChunkTracking)(Object)s.body.level().getChunkSource().chunkMap).dream$removeViewer(s.viewer);
@@ -195,6 +201,7 @@ public final class DreamAvatarServer {
                 s.owner.setYRot(s.body.getYRot());s.owner.setXRot(s.body.getXRot());
                 s.owner.setYBodyRot(s.body.yBodyRot);s.owner.setYHeadRot(s.body.getYHeadRot());
             }
+            s.owner.setPose(tags.contains("dreamRemote") ? s.body.getPose() : s.meetingPose);
             // Scene samples preserve a moving player body rather than a hidden camera.
             DreamStandInServer.avatarChanged();
         }
@@ -212,10 +219,12 @@ public final class DreamAvatarServer {
     }
     private static final class Session {
         final long id;final ServerPlayer owner;final Body body; final ServerPlayer viewer; final boolean raven;final int started;
+        final Pose meetingPose;
         long sequence=-1;int lastInput=-100,jumpCharge;boolean ready;DreamAvatarPackets.Input input;
         ChunkPos chunk;int radius;Vec3 lastSafe;
         Session(long id,ServerPlayer owner,Body body,boolean raven) {
             this.id=id;this.owner=owner;this.body=body;this.raven=raven;
+            meetingPose = owner.getPose();
             viewer = new ViewPlayer(owner, body.level());
             started=owner.level().getServer().getTickCount();lastSafe=body.position();
         }

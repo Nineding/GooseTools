@@ -11,6 +11,7 @@
     "DreamCommandQueueMixin",
     "DreamInteractionMixin",
     "DreamPlayerMixin",
+    "DreamMeetingPoseMixin",
     "DreamEntityDataMixin",
     "DreamLevelPlayersMixin",
     "DreamSwingMixin",

@@ -51,6 +51,7 @@ public final class DreamAvatarRegression implements ClientModInitializer {
             if (stage == 2 && (ticks > 5 && ticks < 35 || ticks > 70 && ticks < 100 || ticks > 115 && ticks < 145)) mc.options.keyUp.setDown(true);
             else mc.options.keyUp.setDown(false);
             mc.options.keyJump.setDown(stage==2 && ticks>=125 && ticks<135);
+            mc.options.keyShift.setDown(stage==5 && ticks>=23 && ticks<34);
         });
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
     }
@@ -159,7 +160,7 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                         command(p, "scoreboard objectives add " + objective + " dummy");
                     command(p, "scoreboard objectives add carrotrightclick minecraft.used:minecraft.carrot_on_a_stick");
                     command(p, "scoreboard players set mode gamesetting 2");
-                    command(p, "scoreboard players set map gamesetting 0");
+                    command(p, "scoreboard players set map gamesetting 10");
                     command(p, "scoreboard players set HowRole ggdadv 1");
                     for(String argument:inventoryMacroArguments) command(p,"data modify storage game:id " + argument
                             + " set value " + (argument.endsWith("Stack") ? 1 : 0));
@@ -183,6 +184,12 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                     require(DreamAvatarServer.active(p), "dream entry failed");
                     GooseTools.LOGGER.info("Dream test scenario={} meeting={} avatar={} scope={}", scenario, p.level().dimension(), DreamAvatarServer.actor(p).level().dimension(), DreamSpatialContext.enabled());
                     assertDreamToolbar(p);
+                    var wake = p.getInventory().getItem(0);
+                    var remote = p.getInventory().getItem(1);
+                    var skill = p.getInventory().getItem(8);
+                    for(int refresh=0;refresh<15;refresh++) command(p,"advancement grant @s only mainsys:test/ifinvchange");
+                    require(p.getInventory().getItem(0)==wake && p.getInventory().getItem(1)==remote && p.getInventory().getItem(8)==skill,
+                            "unchanged dream buttons were replaced during repeated real inventory rewards");
                     assertSeated(p);
                 });
                 stage = 1; ticks = 0;
@@ -198,6 +205,25 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                 require(mc.level.hasChunkAt(body.blockPosition()), "dream destination not loaded");
                 if (!mc.level.getBlockState(new BlockPos(512,100,0)).is(Blocks.STONE)) return;
                 mc.options.setCameraType(CameraType.FIRST_PERSON);
+                var interpolationCheck = new DreamRemotePlayer(mc.level,mc.player.getGameProfile(),mc.player::getSkin);
+                interpolationCheck.setPos(0,101,0);
+                interpolationCheck.moveOrInterpolateTo(new Vec3(3,101,0),0,0);
+                interpolationCheck.getInterpolation().interpolate();
+                require(Math.abs(interpolationCheck.getX()-1)<1E-6,"dense dream sample snapped instead of interpolating");
+                interpolationCheck.getInterpolation().interpolate();
+                require(Math.abs(interpolationCheck.getX()-2)<1E-6,"dream interpolation did not continue between samples");
+                interpolationCheck.getInterpolation().interpolate();
+                require(Math.abs(interpolationCheck.getX()-3)<1E-6,"dream interpolation did not finish at authoritative target");
+                interpolationCheck.moveOrInterpolateTo(new Vec3(10,101,0),0,0);
+                interpolationCheck.getInterpolation().interpolate();
+                require(Math.abs(interpolationCheck.getX()-10)<1E-6,"skill displacement lost its immediate handoff");
+                for(int sample=1;sample<=12;sample++) {
+                    double previous=interpolationCheck.getX();
+                    interpolationCheck.moveOrInterpolateTo(new Vec3(10+2*sample,101,0),0,0);
+                    interpolationCheck.getInterpolation().interpolate();
+                    require(interpolationCheck.getX()>previous && interpolationCheck.getX()-previous<=2.001,
+                            "continuous fast flight was mistaken for a teleport and snapped");
+                }
                 pending = server(mc, p -> {
                     assertDreamToolbar(p);
                     p.inventoryMenu.sendAllDataToRemote();
@@ -247,13 +273,40 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                     });
 
                 }
-                if(ticks==25) net.minecraft.client.KeyMapping.click(mc.options.keyUse.getDefaultKey());
-                if(ticks==30) {
+                if(ticks==24) {
+                    DreamAvatarClient.turn(40/0.15,-10/0.15);
+                    var controlled=DreamStandInClient.liveAvatar(mc.player.getUUID());
+                    controlled.moveOrInterpolateTo(controlled.position(),-80,20);
+                    controlled.getInterpolation().interpolate();
+                }
+                if(ticks>=24 && ticks<=36) {
+                    require(Math.abs(mc.getCameraEntity().getYRot()-40)<.001 && Math.abs(mc.getCameraEntity().getXRot()+10)<.001,
+                            "delayed authoritative look overwrote the local dream camera");
+                    require(Math.abs(mc.getCameraEntity().yRotO-40)<.001,"mouse look retained a stale render angle");
+                }
+                if(ticks==31) pending=server(mc,p -> {
+                    Entity actor=DreamAvatarServer.actor(p);
+                    require(Math.abs(actor.getYRot()-40)<.001,"native dream turn input did not reach authority");
+                    float yaw=p.getYRot(),pitch=p.getXRot();
+                    p.connection.handleMovePlayer(new net.minecraft.network.protocol.game.ServerboundMovePlayerPacket.Rot(-99,25,true,false));
+                    require(p.getYRot()==yaw && p.getXRot()==pitch,"seated vanilla movement overwrote remote-control rotation");
+                    try {
+                        var poseUpdate=net.minecraft.world.entity.player.Player.class.getDeclaredMethod("updatePlayerPose");
+                        poseUpdate.setAccessible(true);poseUpdate.invoke(p);
+                    } catch(ReflectiveOperationException error) {throw new AssertionError(error);}
+                    require(p.getPose()==actor.getPose(),"native empty player input overwrote mirrored meeting pose");
+                    if(scenario==0) require(p.getPose()==net.minecraft.world.entity.Pose.CROUCHING,"actual dream crouch did not reach meeting body");
+                    assertSeated(p);
+                });
+                if(ticks==38) net.minecraft.client.KeyMapping.click(mc.options.keyUse.getDefaultKey());
+                if(ticks==43) {
                     pending=server(mc,p -> {
                         command(p,"function ggd:rccheck");
                         require(!p.entityTags().contains("dreamRemote"),"second native right-click did not disable remote skill");
                         assertDreamToolbar(p);
+                        require(p.getPose()==net.minecraft.world.entity.Pose.STANDING,"remote off did not restore seated pose");
                     });
+                    DreamAvatarClient.turn(-40/0.15,10/0.15);
                     movementStart=DreamStandInClient.liveAvatar(mc.player.getUUID()).position();
                     mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);stage=2;ticks=0;
                 }
@@ -370,7 +423,7 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                 stage = 4;
             } else if (stage == 4 && scenario == 0) { scenario++; stage = 0; ticks = 0; }
             else if (stage == 4) finish(mc, "PASS overworld Lucid and cross-dimension End Raven: separated body/camera, far-away chunks, visible skin/equipment, "
-                    + "walking, original Raven flight speed, nine number-key slots, actual dream inventory rewards and native remote skill right-click at an interactive chest, first-person hands, map coordinates, boat/camel steering, native input isolation, task coordinates/NBT/teleport/nested scopes, swing isolation, actual wake and meeting redraw, force-end cleanup and real lobby inventory reward; "
+                    + "walking, original Raven flight speed, dense sample interpolation and immediate skill displacement, local mouse look unaffected by stale samples, nine number-key slots, actual dream inventory rewards with stable button instances across 15 refreshes, native remote skill right-click at an interactive chest, remote-control rotation/pose protected from native meeting input, first-person hands, map coordinates, boat/camel steering, native input isolation, task coordinates/NBT/teleport/nested scopes, swing isolation, actual wake and meeting redraw, force-end cleanup and real lobby inventory reward; "
                     + "meeting UUID/entity ID/position/passenger unchanged throughout");
         } catch (Throwable error) {
             GooseTools.LOGGER.error("Dream avatar regression failed", error);
@@ -411,7 +464,7 @@ public final class DreamAvatarRegression implements ClientModInitializer {
         if (!condition) throw new AssertionError(message);
     }
     private void finish(Minecraft mc, String result) {
-        finished = true; mc.options.keyUp.setDown(false);mc.options.keyJump.setDown(false);
+        finished = true; mc.options.keyUp.setDown(false);mc.options.keyJump.setDown(false);mc.options.keyShift.setDown(false);
         try { Files.writeString(mc.gameDirectory.toPath().resolve("dream-result.txt"), result); }
         catch (Exception error) { GooseTools.LOGGER.error("Dream regression result", error); }
         mc.stop();

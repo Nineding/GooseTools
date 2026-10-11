@@ -476,10 +476,12 @@ public final class DreamStandInClient {
                 model.yRotO = yRot;
                 model.xRotO = xRot;
             }
-            model.setYBodyRot(bodyRot);
-            model.yBodyRotO = bodyRot;
-            model.setYHeadRot(headRot);
-            model.yHeadRotO = headRot;
+            if (!DreamAvatarClient.controls(model)) {
+                model.setYBodyRot(bodyRot);
+                model.yBodyRotO = bodyRot;
+                model.setYHeadRot(headRot);
+                model.yHeadRotO = headRot;
+            }
             model.setPose(pose);
             model.dreamRiding=state.riding();
             model.setDeltaMovement(Vec3.ZERO);

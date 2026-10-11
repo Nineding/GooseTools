@@ -31,6 +31,11 @@ public final class DreamAvatarClient {
     }
 
     public static boolean active() { return view != null; }
+    static boolean controls(Entity entity) {
+        Minecraft client = Minecraft.getInstance();
+        return active() && client.player != null
+                && entity == DreamStandInClient.liveAvatar(client.player.getUUID());
+    }
     public static net.minecraft.world.phys.Vec3 mapPosition(Minecraft client) {
         return active() && client.getCameraEntity() instanceof DreamRemotePlayer body ? body.position() : null;
     }
@@ -52,6 +57,8 @@ public final class DreamAvatarClient {
         if (camera instanceof DreamRemotePlayer) {
             camera.setYRot(yaw);
             camera.setXRot(pitch);
+            camera.yRotO = yaw;
+            camera.xRotO = pitch;
         }
     }
 
