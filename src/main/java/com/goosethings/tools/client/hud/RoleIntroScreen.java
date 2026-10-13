@@ -50,7 +50,7 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
         Minecraft mc = Minecraft.getInstance();
         if (!payload.active()) {
             if (mc.gui.screen() instanceof RoleIntroScreen) mc.gui.setScreen(null);
-            PresentationBlackoutScreen.apply(false);
+            if(!PostgameSummaryScreen.waiting()) PresentationBlackoutScreen.apply(false);
             return;
         }
         if (mc.level != null && mc.player != null) mc.gui.setScreen(new RoleIntroScreen(payload));

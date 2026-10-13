@@ -1,0 +1,108 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "goosetools-summary-atlas.png"
+    }
+  },
+  "2": {
+    "class_type": "PerfectPixel",
+    "inputs": {
+      "image": [
+        "1",
+        0
+      ],
+      "sampling": "Majority Cluster",
+      "export_scale": 1,
+      "backend": "OpenCV Backend"
+    }
+  },
+  "3": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "2",
+        0
+      ],
+      "filename_prefix": "GooseToolsSummary/raw-grid"
+    }
+  },
+  "4": {
+    "class_type": "ImageScale",
+    "inputs": {
+      "image": [
+        "2",
+        0
+      ],
+      "upscale_method": "nearest-exact",
+      "width": 256,
+      "height": 256,
+      "crop": "disabled"
+    }
+  },
+  "5": {
+    "class_type": "MaskToImage",
+    "inputs": {
+      "mask": [
+        "1",
+        1
+      ]
+    }
+  },
+  "6": {
+    "class_type": "ImageScale",
+    "inputs": {
+      "image": [
+        "5",
+        0
+      ],
+      "upscale_method": "nearest-exact",
+      "width": 256,
+      "height": 256,
+      "crop": "disabled"
+    }
+  },
+  "7": {
+    "class_type": "ImageToMask",
+    "inputs": {
+      "image": [
+        "6",
+        0
+      ],
+      "channel": "red"
+    }
+  },
+  "8": {
+    "class_type": "ThresholdMask",
+    "inputs": {
+      "mask": [
+        "7",
+        0
+      ],
+      "value": 0.5
+    }
+  },
+  "9": {
+    "class_type": "JoinImageWithAlpha",
+    "inputs": {
+      "image": [
+        "4",
+        0
+      ],
+      "alpha": [
+        "8",
+        0
+      ]
+    }
+  },
+  "10": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "9",
+        0
+      ],
+      "filename_prefix": "GooseToolsSummary/summary-atlas"
+    }
+  }
+}

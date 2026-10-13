@@ -13,6 +13,11 @@ public final class GooseToolsClientCommands {
 
     public static void register(ClientWebManager manager, AiReportClient aiReport) {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
+                dispatcher.register(ClientCommands.literal("goosetools-actions").executes(context -> {
+                    var client=Minecraft.getInstance();
+                    client.gui.setScreen(new com.goosethings.tools.client.hud.CelebrationSettingsScreen(null));
+                    return 1;
+                }));
                 dispatcher.register(ClientCommands.literal("goosetools-update")
                         .executes(context -> {
                             Minecraft client = Minecraft.getInstance();

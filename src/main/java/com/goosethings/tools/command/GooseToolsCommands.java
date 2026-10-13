@@ -31,6 +31,7 @@ public final class GooseToolsCommands {
     }
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
+        dispatcher.register(com.goosethings.tools.result.SummaryServer.celebrationCommand());
         dispatcher.register(Commands.literal("goosetools-client-settings")
                 .requires(source -> source.getEntity() instanceof ServerPlayer)
                 .executes(context -> openClientSettings(context.getSource())));
@@ -46,6 +47,7 @@ public final class GooseToolsCommands {
                 .then(com.goosethings.tools.meeting.MeetingAlertServer.command())
                 .then(com.goosethings.tools.intro.RoleIntroServer.command())
                 .then(com.goosethings.tools.result.MatchResultServer.command())
+                .then(com.goosethings.tools.result.SummaryServer.command())
                 .then(com.goosethings.tools.dream.DreamStandInServer.command())
                 .then(com.goosethings.tools.projection.ProjectionBodyServer.command())
                 .then(com.goosethings.tools.mime.MimeControlSync.command())

@@ -1,0 +1,131 @@
+--- a/data/ggd/function/gameendevents/summary/start.mcfunction
++++ b/data/ggd/function/gameendevents/summary/start.mcfunction
+@@ -2,6 +2,8 @@
+ function ggd:skill/gravy/settle_bounty
+ function ggd:skill/bounty_pair/settle_bounty
+ function ggd:index/calculate_all
++# Freeze awards and paid rewards before cleanup.
++execute if score FullBloodDLC ggdadv matches 1 run goosetools summary capture
+ execute if score FullBloodDLC ggdadv matches 1 if score AIAnalysis ggdadv matches 1 run gt ai finish
+ 
+ # 顶部信息
+--- a/data/ggd/function/index/calculate_all.mcfunction
++++ b/data/ggd/function/index/calculate_all.mcfunction
+@@ -8,6 +8,7 @@
+ execute as @a[tag=players] run function lobby:level/settle_match_goose_coin
+ 
+ # 当局经验：指数折算 + 死亡/MVP 修正 + 授予等级经验
++execute if score FullBloodDLC ggdadv matches 1 run goosetools summary before @a[tag=players]
+ execute as @a[tag=players] run function lobby:level/calc_match_xp
+ 
+ # 生涯统计写入（依赖当局 XP / 指数 / 胜负 tag）
+--- /dev/null
++++ b/data/lobby/function/level/summary_consume_xp.mcfunction
+@@ -0,0 +1,19 @@
++# Presentation only: the authoritative match reward has already been paid.
++# Consume the old XP animation only after the server accepts this summary recipient.
++function lobby:achievement/show_match_chat
++function lobby:level/tellraw_detail
++execute if score @s matchGooseCoin matches 1.. run tellraw @s [{"translate":"match.goose_coin.gain","fallback":"Goose coins %s: +%s","color":"#FFD76B","italic":false,"with":[{"text":"\uE082","color":"white","italic":false},{"score":{"name":"@s","objective":"matchGooseCoin"},"color":"#7CFF9A","italic":false}]}]
++tag @s remove xp_anim
++tag @s remove pending_xp_show
++tag @s remove pending_xp_after_trust
++tag @s remove match_xp_death
++tag @s remove match_xp_mvp
++tag @s remove match_xp_mvp15
++tag @s remove match_xp_smvp
++scoreboard players reset @s xpAnimLeft
++scoreboard players reset @s xpAnimStep
++scoreboard players reset @s xpAnimChunk
++scoreboard players operation @s levelDisp = @s playerLevel
++function lobby:level/refresh_bar_exp
++scoreboard players operation @s expDisp = @s playerExp
++function lobby:level/sync_xp_bar
+--- a/data/lobby/function/trust/break_title_dispatch.mcfunction
++++ b/data/lobby/function/trust/break_title_dispatch.mcfunction
+@@ -1,8 +1,8 @@
+-execute as @a[tag=pending_level_up_newbie] at @s run function lobby:trust/show_break_title
+-execute as @a[tag=pending_level_up_member] at @s run function lobby:trust/show_break_title
+-execute as @a[tag=pending_level_up_professional] at @s run function lobby:trust/show_break_title
++execute as @a[tag=!ggdSummaryActive,tag=pending_level_up_newbie] at @s run function lobby:trust/show_break_title
++execute as @a[tag=!ggdSummaryActive,tag=pending_level_up_member] at @s run function lobby:trust/show_break_title
++execute as @a[tag=!ggdSummaryActive,tag=pending_level_up_professional] at @s run function lobby:trust/show_break_title
+ schedule function lobby:trust/promote_newbie_dispatch 1s replace
+ schedule function lobby:trust/promote_member_dispatch 1s replace
+ schedule function lobby:trust/promote_professional_dispatch 1s replace
+-execute as @a[tag=lobby,tag=pending_level_up_seniority,tag=!trust_level_anim,tag=!xp_anim] at @s run function lobby:trust/show_break_title
++execute as @a[tag=!ggdSummaryActive,tag=lobby,tag=pending_level_up_seniority,tag=!trust_level_anim,tag=!xp_anim] at @s run function lobby:trust/show_break_title
+ schedule function lobby:trust/promote_seniority_dispatch 1s replace
+--- a/data/lobby/function/trust/promote_member_dispatch.mcfunction
++++ b/data/lobby/function/trust/promote_member_dispatch.mcfunction
+@@ -1 +1 @@
+-execute as @a[tag=pending_level_up_member] at @s run function lobby:trust/promote_to_member
++execute as @a[tag=!ggdSummaryActive,tag=pending_level_up_member] at @s run function lobby:trust/promote_to_member
+--- a/data/lobby/function/trust/promote_newbie_dispatch.mcfunction
++++ b/data/lobby/function/trust/promote_newbie_dispatch.mcfunction
+@@ -1 +1 @@
+-execute as @a[tag=pending_level_up_newbie] at @s run function lobby:trust/promote_to_newbie
++execute as @a[tag=!ggdSummaryActive,tag=pending_level_up_newbie] at @s run function lobby:trust/promote_to_newbie
+--- a/data/lobby/function/trust/promote_professional_dispatch.mcfunction
++++ b/data/lobby/function/trust/promote_professional_dispatch.mcfunction
+@@ -1 +1 @@
+-execute as @a[tag=pending_level_up_professional] at @s run function lobby:trust/promote_to_professional
++execute as @a[tag=!ggdSummaryActive,tag=pending_level_up_professional] at @s run function lobby:trust/promote_to_professional
+--- a/data/lobby/function/trust/promote_seniority_dispatch.mcfunction
++++ b/data/lobby/function/trust/promote_seniority_dispatch.mcfunction
+@@ -1,2 +1,2 @@
+-execute as @a[tag=lobby,tag=pending_level_up_seniority,tag=!trust_level_anim,tag=!xp_anim] at @s run function lobby:trust/promote_to_seniority
+-tag @a[tag=pending_level_up_seniority] remove seniority_break_scheduled
++execute as @a[tag=!ggdSummaryActive,tag=lobby,tag=pending_level_up_seniority,tag=!trust_level_anim,tag=!xp_anim] at @s run function lobby:trust/promote_to_seniority
++tag @a[tag=!ggdSummaryActive,tag=pending_level_up_seniority] remove seniority_break_scheduled
+--- a/data/lobby/function/trust/try_schedule_pending_break.mcfunction
++++ b/data/lobby/function/trust/try_schedule_pending_break.mcfunction
+@@ -1,8 +1,8 @@
+ # 大厅内存在待晋升时启动突破展示链（与局末 schedule_postgame_display 共用）
+-execute unless entity @a[tag=pending_level_up_newbie] unless entity @a[tag=pending_level_up_member] unless entity @a[tag=pending_level_up_professional] unless entity @a[tag=pending_level_up_seniority] run return 0
+-execute as @a[tag=pending_xp_show,tag=pending_level_up_newbie] run tag @s add pending_xp_after_trust
+-execute as @a[tag=pending_xp_show,tag=pending_level_up_member] run tag @s add pending_xp_after_trust
+-execute as @a[tag=pending_xp_show,tag=pending_level_up_professional] run tag @s add pending_xp_after_trust
+-execute as @a[tag=pending_xp_show,tag=pending_level_up_seniority] run tag @s add pending_xp_after_trust
+-tag @a[tag=pending_level_up_seniority] add seniority_break_scheduled
++execute unless entity @a[tag=!ggdSummaryActive,tag=pending_level_up_newbie] unless entity @a[tag=!ggdSummaryActive,tag=pending_level_up_member] unless entity @a[tag=!ggdSummaryActive,tag=pending_level_up_professional] unless entity @a[tag=!ggdSummaryActive,tag=pending_level_up_seniority] run return 0
++execute as @a[tag=!ggdSummaryActive,tag=pending_xp_show,tag=pending_level_up_newbie] run tag @s add pending_xp_after_trust
++execute as @a[tag=!ggdSummaryActive,tag=pending_xp_show,tag=pending_level_up_member] run tag @s add pending_xp_after_trust
++execute as @a[tag=!ggdSummaryActive,tag=pending_xp_show,tag=pending_level_up_professional] run tag @s add pending_xp_after_trust
++execute as @a[tag=!ggdSummaryActive,tag=pending_xp_show,tag=pending_level_up_seniority] run tag @s add pending_xp_after_trust
++tag @a[tag=!ggdSummaryActive,tag=pending_level_up_seniority] add seniority_break_scheduled
+ schedule function lobby:trust/break_title_dispatch 1s replace
+--- a/data/mainsys/function/gamestartprogress/ggd/tptoprepareload.mcfunction
++++ b/data/mainsys/function/gamestartprogress/ggd/tptoprepareload.mcfunction
+@@ -90,6 +90,7 @@
+ #开始生成金钱
+ scoreboard players set @a[tag=!inTutorial,scores={ready=1..2}] gold 0
+ scoreboard players set @a[tag=!inTutorial,scores={ready=1..2}] matchGoldCollected 0
++goosetools summary clear
+ scoreboard players set @a[tag=!inTutorial,scores={ready=1..2}] matchGooseCoin 0
+ execute if score map gamesetting matches 6..7 run function murdergame:goldspawn/poolcore/reset
+ execute if score map gamesetting matches 6..7 run schedule function murdergame:goldspawn/poolcore/loop 30s
+--- a/data/mainsys/function/stopgame.mcfunction
++++ b/data/mainsys/function/stopgame.mcfunction
+@@ -1,4 +1,5 @@
+ # 可重入的立即停止入口：先让玩家安全回厅，再分帧完成模式清理。
++goosetools summary stop
+ gt ai abortifrecording
+ scoreboard players operation #Mode ggdStop = mode gamesetting
+ # Close dream cameras before any stop callbacks or lobby teleport.
+--- a/data/mainsys/function/stopgame/finalize.mcfunction
++++ b/data/mainsys/function/stopgame/finalize.mcfunction
+@@ -5,5 +5,6 @@
+ # modechangecheck 会生成日志占位实体，因此必须在它之后渲染本局最终日志
+ execute if score #Mode ggdStop matches 2 run function ggd:logs/render_page
+ execute as @a[tag=!inTutorial] run function mainsys:invchanged2
++goosetools summary open
+ function lobby:level/schedule_postgame_display
+ scoreboard players set #Running ggdStop 0
+--- a/data/murdergame/function/backlobbyevent/backlobby.mcfunction
++++ b/data/murdergame/function/backlobbyevent/backlobby.mcfunction
+@@ -1,2 +1,4 @@
+ execute as @a at @s run playsound minecraft:block.amethyst_block.break record @a ~ ~ ~ 1 2
++# Only the normal result-to-lobby handoff may open the saved summary.
++execute if score mode gamesetting matches 2 if score FullBloodDLC ggdadv matches 1 run goosetools summary ready
+ function mainsys:stopgame

@@ -4,6 +4,8 @@
   "package": "com.goosethings.tools.client.animation.mixin",
   "compatibilityLevel": "JAVA_25",
   "client": [
+    "CelebrationRenderStateMixin",
+    "CelebrationModelMixin",
     "EntityRenderDispatcherMixin",
     "KeyboardInputMeetingAlertMixin",
     "LocalPlayerMeetingAlertMixin",

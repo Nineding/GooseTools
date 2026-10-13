@@ -26,6 +26,9 @@ public final class GooseToolsPayloads {
     }
 
     public static void registerTypes() {
+        PayloadTypeRegistry.clientboundPlay().register(com.goosethings.tools.result.SummaryPayload.TYPE, com.goosethings.tools.result.SummaryPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(com.goosethings.tools.result.SummaryControlPayload.TYPE, com.goosethings.tools.result.SummaryControlPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(com.goosethings.tools.result.SummaryControlPayload.TYPE, com.goosethings.tools.result.SummaryControlPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(HelloS2C.TYPE, HelloS2C.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(HelloC2S.TYPE, HelloC2S.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(WebBundleStartS2C.TYPE, WebBundleStartS2C.CODEC);

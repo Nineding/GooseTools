@@ -148,6 +148,7 @@ loom {
             runDir 'build/role-intro-regression-test'
             vmArg '-Dgoosetools.roleIntroRegressionTest=true'
             vmArg '-Dgoosetools.presentationRegression=' + providers.gradleProperty('presentationRegression').isPresent()
+            vmArg '-Dgoosetools.summaryRegression=' + providers.gradleProperty('summaryRegression').isPresent()
             programArg '--width'
             programArg '1280'
             programArg '--height'

@@ -1,0 +1,183 @@
+{
+  "prompt": [
+    0,
+    "0988200f-f15a-4c78-8f5f-efc8ea6e7a7e",
+    {
+      "1": {
+        "class_type": "LoadImage",
+        "inputs": {
+          "image": "goosetools-summary-atlas.png"
+        }
+      },
+      "2": {
+        "class_type": "PerfectPixel",
+        "inputs": {
+          "image": [
+            "1",
+            0
+          ],
+          "sampling": "Majority Cluster",
+          "export_scale": 1,
+          "backend": "OpenCV Backend"
+        }
+      },
+      "3": {
+        "class_type": "SaveImage",
+        "inputs": {
+          "images": [
+            "2",
+            0
+          ],
+          "filename_prefix": "GooseToolsSummary/raw-grid"
+        }
+      },
+      "4": {
+        "class_type": "ImageScale",
+        "inputs": {
+          "image": [
+            "2",
+            0
+          ],
+          "upscale_method": "nearest-exact",
+          "width": 256,
+          "height": 256,
+          "crop": "disabled"
+        }
+      },
+      "5": {
+        "class_type": "MaskToImage",
+        "inputs": {
+          "mask": [
+            "1",
+            1
+          ]
+        }
+      },
+      "6": {
+        "class_type": "ImageScale",
+        "inputs": {
+          "image": [
+            "5",
+            0
+          ],
+          "upscale_method": "nearest-exact",
+          "width": 256,
+          "height": 256,
+          "crop": "disabled"
+        }
+      },
+      "7": {
+        "class_type": "ImageToMask",
+        "inputs": {
+          "image": [
+            "6",
+            0
+          ],
+          "channel": "red"
+        }
+      },
+      "8": {
+        "class_type": "ThresholdMask",
+        "inputs": {
+          "mask": [
+            "7",
+            0
+          ],
+          "value": 0.5
+        }
+      },
+      "9": {
+        "class_type": "JoinImageWithAlpha",
+        "inputs": {
+          "image": [
+            "4",
+            0
+          ],
+          "alpha": [
+            "8",
+            0
+          ]
+        }
+      },
+      "10": {
+        "class_type": "SaveImage",
+        "inputs": {
+          "images": [
+            "9",
+            0
+          ],
+          "filename_prefix": "GooseToolsSummary/summary-atlas"
+        }
+      }
+    },
+    {
+      "create_time": 1791865633407
+    },
+    [
+      "3",
+      "10"
+    ]
+  ],
+  "outputs": {
+    "3": {
+      "images": [
+        {
+          "filename": "raw-grid_00001_.png",
+          "subfolder": "GooseToolsSummary",
+          "type": "output"
+        }
+      ]
+    },
+    "10": {
+      "images": [
+        {
+          "filename": "summary-atlas_00001_.png",
+          "subfolder": "GooseToolsSummary",
+          "type": "output"
+        }
+      ]
+    }
+  },
+  "status": {
+    "status_str": "success",
+    "completed": true,
+    "messages": [
+      [
+        "execution_start",
+        {
+          "prompt_id": "0988200f-f15a-4c78-8f5f-efc8ea6e7a7e",
+          "timestamp": 1791865633408
+        }
+      ],
+      [
+        "execution_cached",
+        {
+          "nodes": [],
+          "prompt_id": "0988200f-f15a-4c78-8f5f-efc8ea6e7a7e",
+          "timestamp": 1791865633420
+        }
+      ],
+      [
+        "execution_success",
+        {
+          "prompt_id": "0988200f-f15a-4c78-8f5f-efc8ea6e7a7e",
+          "timestamp": 1791865634010
+        }
+      ]
+    ]
+  },
+  "meta": {
+    "3": {
+      "node_id": "3",
+      "display_node": "3",
+      "parent_node": null,
+      "real_node_id": "3"
+    },
+    "10": {
+      "node_id": "10",
+      "display_node": "10",
+      "parent_node": null,
+      "real_node_id": "10"
+    }
+  }
+}

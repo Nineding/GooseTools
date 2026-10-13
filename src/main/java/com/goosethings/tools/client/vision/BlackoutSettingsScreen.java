@@ -22,7 +22,7 @@ public final class BlackoutSettingsScreen extends Screen {
     @Override
     protected void init() {
         int left = width / 2 - 130;
-        int top = height / 2 - 48;
+        int top = height / 2 - 66;
         addRenderableWidget(Button.builder(wallLabel(), button -> {
             GgdClientPreferences.setBlackoutWallGuide(!GgdClientPreferences.blackoutWallGuide());
             button.setMessage(wallLabel());
@@ -41,20 +41,24 @@ public final class BlackoutSettingsScreen extends Screen {
                         new com.goosethings.tools.client.update.UpdateSettingsScreen(this)))
                 .bounds(left, top + 72, 260, 20).build());
         addRenderableWidget(Button.builder(Component.translatableWithFallback(
+                "summary.goosetools.settings", "Victory celebration"), button ->
+                Minecraft.getInstance().gui.setScreen(new com.goosethings.tools.client.hud.CelebrationSettingsScreen(this)))
+                .bounds(left, top + 96, 260, 20).build());
+        addRenderableWidget(Button.builder(Component.translatableWithFallback(
                 "gui.done", "Done"), button -> onClose())
-                .bounds(left, top + 106, 260, 20).build());
+                .bounds(left, top + 126, 260, 20).build());
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, width, height, 0xE610151B);
         graphics.text(font, title, width / 2 - font.width(title) / 2,
-                height / 2 - 90, 0xFFF0F8FF, false);
+                height / 2 - 108, 0xFFF0F8FF, false);
         Component recommendation = Component.translatableWithFallback(
                 "screen.goosetools.blackout.description",
                 "Shaders are recommended for better brightness and visuals. Wall highlighting is extra collision help but can look abrupt.");
         graphics.text(font, recommendation, width / 2 - font.width(recommendation) / 2,
-                height / 2 - 70, 0xFFB9CDD8, false);
+                height / 2 - 88, 0xFFB9CDD8, false);
         Component status = IrisCompat.isShaderPackActive()
                 ? Component.translatableWithFallback("screen.goosetools.blackout.shader_active", "Shader: active")
                 : Component.translatableWithFallback("screen.goosetools.blackout.shader_inactive", "Shader: inactive");

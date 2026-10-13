@@ -25,6 +25,7 @@ import java.util.UUID;
 public final class MatchResultServer {
     private static MatchResultPayload pending;
     private MatchResultServer() {}
+    public static MatchResultPayload snapshot() { return pending; }
     public static void register() { ServerLifecycleEvents.SERVER_STOPPED.register(server -> pending = null); }
     public static LiteralArgumentBuilder<CommandSourceStack> command() {
         return Commands.literal("match-result")
@@ -40,6 +41,7 @@ public final class MatchResultServer {
         return score != null && score.value() == 1;
     }
     private static int capture(MinecraftServer server) {
+        SummaryServer.reset(server);
         pending = null;
         if (!dlc(server) || server.getPlayerList().getPlayers().stream().noneMatch(p -> p.entityTags().contains("endGame"))) return 0;
         String outcome = server.getCommandStorage().get(Identifier.fromNamespaceAndPath("ggd", "temp")).getStringOr("end_reveal", "");

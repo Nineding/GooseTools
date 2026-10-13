@@ -40,6 +40,7 @@ public final class GooseTools implements ModInitializer {
         GooseToolsPayloads.registerTypes();
         com.goosethings.tools.intro.RoleIntroServer.register();
         com.goosethings.tools.result.MatchResultServer.register();
+        com.goosethings.tools.result.SummaryServer.register();
         com.goosethings.tools.dream.DreamAvatarServer.register();
         com.goosethings.tools.task.TaskServer.register();
         com.goosethings.tools.game.GameServer.register();

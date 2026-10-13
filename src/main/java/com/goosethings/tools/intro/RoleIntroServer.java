@@ -45,6 +45,7 @@ public final class RoleIntroServer {
     }
 
     private static int open(MinecraftServer server, Collection<ServerPlayer> viewers) {
+        com.goosethings.tools.result.SummaryServer.reset(server);
         boolean dlc = score(server, "ggdadv", ScoreHolder.forNameOnly("FullBloodDLC")) == 1;
         // Recheck DLC server-side as well as at the datapack entry, including direct commands.
         if (!dlc) return close(viewers);

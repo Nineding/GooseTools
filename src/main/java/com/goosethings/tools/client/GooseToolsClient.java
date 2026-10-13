@@ -46,6 +46,7 @@ public final class GooseToolsClient implements ClientModInitializer {
         ForcedFlightClient.register();
         MeetingAlertHud.register();
         com.goosethings.tools.client.hud.RoleIntroScreen.register();
+        com.goosethings.tools.client.hud.PostgameSummaryScreen.register();
         DreamStandInClient.register();
         com.goosethings.tools.client.dream.DreamAvatarClient.register();
         ProjectionBodyClient.register();
