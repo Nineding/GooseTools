@@ -77,7 +77,7 @@ public final class SummaryServer {
         }
         if(dance) player.addTag("ggdVictoryDance"); else player.removeTag("ggdVictoryDance");
         player.sendSystemMessage(Component.translatableWithFallback("summary.goosetools.saved","Victory celebration saved: %s",
-                Component.translatableWithFallback(dance?"summary.goosetools.dance":"summary.goosetools.wave",dance?"Dance":"Wave")));
+                Component.translatableWithFallback(dance?"summary.goosetools.dance":"summary.goosetools.wave",dance?"Cute dance":"Wave")));
         return 1;
     }
     public static void reset(MinecraftServer server) {

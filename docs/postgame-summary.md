@@ -1,4 +1,4 @@
-# Postgame summary (Alpha0.64)
+# Postgame summary (Alpha0.65)
 
 FullBloodDLC=1 opens a two-page summary as soon as the faction result's one-second fade reaches black. Lobby cleanup proceeds behind the screen. A SMVP takes precedence over all MVPs; otherwise the highest-index MVP is selected, breaking ties by room seat. With no award, the highest-index participant is selected using the same tie-break. The entire room sees the same spotlight. Observers receive no personal rewards.
 
@@ -14,7 +14,13 @@ XP growth plays a quiet vanilla experience-orb sound every 0.18 seconds with gra
 
 ## Animation isolation and clipping
 
-Only the summary's fresh AvatarRenderState carries a celebration marker. Normal world, inventory and meeting renders are unmodified. Skin sleeves are limb children; armor consumes the same pose. The wave opens the right arm with positive Z rotation. The dance keeps both arms outside the chest with small alternating steps. The torso stays aligned with its shoulder pivots, eliminating the previous detached shoulder tilt and inward arm sweep. Both actions ease in over 0.45 seconds and use elapsed time independently of frame rate.
+Only the summary's fresh AvatarRenderState carries a celebration marker. Normal world, inventory and meeting renders are unmodified. The wave keeps its outward shoulder sweep. The cute dance uses 399 authored quaternion poses across 20 seconds, with a 0.45-second entry fade and a short blended loop seam. Playback is based on elapsed time with quaternion SLERP, independent of frame rate.
+
+The dance retargets a locally supplied reference excerpt (approximately 97–117 seconds) to Minecraft proportions. Head/torso, upper/lower arms and thighs/calves have independent rotations; shoulders follow the torso around the hip pivot. Hand targets leave space around the large block head and chest. Both foot boxes are evaluated after interpolation to keep the lowest supporting foot on the stage even during entry/loop blends.
+
+`DancePartMixin` activates only on marked celebration limbs. Existing cube faces are cached in one-pixel strips, retaining their UVs; a smooth two-pixel skinning band joins each elbow/knee. Sleeves, trousers and humanoid armor receive the same bend. During the dance, articulated limb overlays use vanilla skin geometry instead of SkinLayers3D's unsliced voxel mesh; head/torso voxel layers remain available. Each ordinary humanoid setup clears the bend flags before checking its marker. The preview viewport has fixed padded bounds; root displacement uses the actual bounds' center so top padding cannot raise the feet.
+
+`animations/cute_dance.json` stores ten global quaternions (body, head, right upper/lower arm, left upper/lower arm, right upper/lower leg, left upper/lower leg), root X and authored root Y per frame. Runtime recomputes root Y from the interpolated geometry. The offline retarget helper is `scripts/retarget_cute_dance.py`; neither pose inference, its model, reference video nor soundtrack is shipped or loaded by Minecraft.
 
 Capes remain visible. The preview follows the camera without ticking cloak physics, so the extracted `capeFlap`, `capeLean` and `capeLean2` are explicitly zeroed for this screen. Otherwise stale cloak coordinates mimic a large teleport and lift the cape.
 
@@ -38,9 +44,11 @@ Then apply `datapack/postgame-summary-alpha63.patch`: DLC returns after the one-
 
 The new `lobby:level/summary_consume_xp` function consumes only the legacy presentation flags and synchronizes the vanilla XP bar. It preserves achievement/reward chat and performs no reward grants. Only a server display packet may replace the blackout; an early packet waits until the fade is fully black, then starts the summary immediately. Forced stop and non-DLC cancel the queue. Server sessions expire after 120 seconds; client round IDs reject duplicate displays.
 
-The extended summary uses `summary_s2c_v2`, with the existing `summary_close_v1` acknowledgement. Protocol is 34; both sides require Alpha0.64. The full immutable roster includes all saved participants (including offline players), true faction, score, role, name and award, plus the recipient’s task count. Capture precedes lobby cleanup. The roster is bounded to 21 unique UUIDs and scores remain signed. GooseThings and the Alpha0.63 datapack hooks are unchanged.
+The extended summary uses `summary_s2c_v2`, with the existing `summary_close_v1` acknowledgement. Protocol is 34; both sides require the same mod version (currently Alpha0.65). The full immutable roster includes all saved participants (including offline players), true faction, score, role, name and award, plus the recipient’s task count. Capture precedes lobby cleanup. The roster is bounded to 21 unique UUIDs and scores remain signed. GooseThings and the Alpha0.63 datapack hooks are unchanged.
 
 ## Verification
+
+Alpha0.65 adds four focused tests for unit rotations, long-running playback, cyclic continuity, independent samples, limb skinning continuity, and actual bent foot corners throughout entry/loop blends. The isolated dance client captured 88 GPU screenshots across a complete loop with armor/cape, then bare slim skin, and exercised Next/Previous/Close. The full Gradle suite passed 4,458 tests with zero failures/errors. The dedicated server reached Done with Alpha0.65/protocol 34 and shut down normally. The existing Alpha0.64 checks below remain the baseline for unchanged result/XP behavior. A final root-height interpolation correction is verified by the foot-corner test rather than starting another client.
 
 - Alpha0.64 full Gradle unit suite: 4,454 tests, zero failures/errors, covering award priority/ties, multi-level and capped XP, pose isolation, roster immutability, duplicate identities, signed scores and room limits.
 - Isolated Minecraft client/server regression: actual v2 packets, early black-screen handoff, clothing/cape preservation, wave/dance, observer/zero XP, normal/forced-stop/non-DLC cleanup and duplicate acknowledgement. 60 GPU screenshots; GUI scales 2/3 and resize; SkinLayers3D 1.11.3 loaded.

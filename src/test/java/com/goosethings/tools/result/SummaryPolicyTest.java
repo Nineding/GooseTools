@@ -35,12 +35,9 @@ class SummaryPolicyTest {
         }
         assertEquals(400,SummaryProgress.at(20,49,20,50,400,List.of(50),1).received());
     }
-    @Test void animationsStartAtRestAndLoopWithoutDiscontinuity() {
-        assertEquals(0,CelebrationPose.at(0,0).rightArmZ(),.0001);
-        var a=CelebrationPose.at(1,2);var b=CelebrationPose.at(1,4);
-        assertEquals(a.rightArmX(),b.rightArmX(),.0001);assertEquals(a.leftLegX(),b.leftLegX(),.0001);
-        assertTrue(CelebrationPose.at(0,1).rightArmZ()>1.8);
-        assertTrue(Float.isFinite(CelebrationPose.at(1,100000).lift()));
+    @Test void waveStartsAtRest() {
+        assertEquals(0,CelebrationPose.wave(0).rightArmZ(),.0001);
+        assertTrue(CelebrationPose.wave(1).rightArmZ()>1.8);
     }
     @Test void bankedXpWrapsTheBarWithoutInventingALevel() {
         var beforeWrap=SummaryProgress.at(20,40,20,10,70,70,List.of(50),.1);
@@ -52,9 +49,9 @@ class SummaryPolicyTest {
         var approaching=SummaryProgress.at(18,40,20,20,130,70,List.of(50,50,50),.5);
         assertEquals(20,approaching.level());assertEquals(5,approaching.xp(),.0001);
     }
-    @Test void everyAnimationFrameKeepsSleevesOutsideTheTorso() {
-        for(int action=0;action<=1;action++)for(int frame=0;frame<=1200;frame++) {
-            var pose=CelebrationPose.at(action,frame/60.0);
+    @Test void waveKeepsSleevesOutsideTheTorso() {
+        for(int frame=0;frame<=1200;frame++) {
+            var pose=CelebrationPose.wave(frame/60.0);
             assertTrue(pose.rightArmZ()>=0,"right sleeve swung inward");
             assertTrue(pose.leftArmZ()<=0,"left sleeve swung inward");
             assertEquals(0,pose.bodyZ(),.0001,"torso rotated away from shoulder pivots");

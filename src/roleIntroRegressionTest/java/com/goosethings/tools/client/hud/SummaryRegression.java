@@ -27,7 +27,9 @@ import java.util.concurrent.CompletableFuture;
 
 /** Isolated real network/render check, never included in the published mod. */
 final class SummaryRegression {
-    private boolean world,finished,requested,captured,secondShot,capeReady;
+    private final boolean danceOnly=Boolean.getBoolean("goosetools.danceRegression");
+    SummaryRegression() {if(danceOnly)scenario=1;}
+    private boolean switchedSkin,world,finished,requested,captured,secondShot,capeReady;
     private int warmup,scenario,phase,shots,poseFrame,xpSounds,levelSounds,pageSounds;
     private long since,shown,fadeStarted;
     private SummaryPayload last;
@@ -52,14 +54,14 @@ final class SummaryRegression {
             }
             if(mc.player==null||mc.level==null||mc.getSingleplayerServer()==null||!mc.player.connection.hasClientLoaded()||++warmup<50)return;
             if(pending!=null){if(!pending.isDone())return;pending.join();pending=null;}
-            if(scenario==6){require(shots>=6,"missing screenshots");finish(mc,"PASS real summary packets and round cleanup; fixed SMVP/MVP; wave/dance GPU renders; full dead-award model; multi-level XP and cap; observer and zero XP; real MouseHandler next/back/close and keyboard; 4/21-player frozen rosters; negative/offline scores; actual XP sound events including no level-up and silent observer/zero XP; close/duplicate acknowledgements do not pay rewards; lobby action selection; GUI scales 2/3; no world frame in result handoff; non-DLC and forced-stop cancellation; "+shots+" GPU screenshots");return;}
+            if(scenario==6){if(danceOnly){require(poseFrame>=80,"dance sampling incomplete");finish(mc,"PASS 20-second dance loop, cape, armor, normal-state isolation, next/back/close; "+shots+" GPU screenshots");return;}require(shots>=6,"missing screenshots");finish(mc,"PASS real summary packets and round cleanup; fixed SMVP/MVP; wave/dance GPU renders; full dead-award model; multi-level XP and cap; observer and zero XP; real MouseHandler next/back/close and keyboard; 4/21-player frozen rosters; negative/offline scores; actual XP sound events including no level-up and silent observer/zero XP; close/duplicate acknowledgements do not pay rewards; lobby action selection; GUI scales 2/3; no world frame in result handoff; non-DLC and forced-stop cancellation; "+shots+" GPU screenshots");return;}
             if(!requested) {
                 requested=true;captured=false;secondShot=false;capeReady=false;phase=0;poseFrame=0;xpSounds=0;levelSounds=0;since=now();
                 if(scenario==1){mc.options.guiScale().set(3);mc.resizeGui();}
                 if(scenario==2){mc.options.guiScale().set(2);mc.resizeGui();}
                 pending=fixture(mc,scenario);return;
             }
-            require(now()-since<20000,"summary scenario timeout "+scenario+" phase "+phase);
+            require(now()-since<(danceOnly?40000:20000),"summary scenario timeout "+scenario+" phase "+phase);
             if(scenario==4) {
                 if(phase==0&&now()-since>800) {
                     require(PostgameSummaryScreen.waiting(),"queued snapshot absent");
@@ -113,7 +115,15 @@ final class SummaryRegression {
                         field.set(screen,preview);capeReady=true;
                     }
                 }
-                if(scenario<2&&poseFrame<20&&now()-shown>250+poseFrame*250) {
+                if(danceOnly&&poseFrame>=42&&!switchedSkin) {
+                    var field=PostgameSummaryScreen.class.getDeclaredField("model");field.setAccessible(true);
+                    var old=(MeetingAlertRemotePlayer)field.get(screen);
+                    var skin=net.minecraft.client.resources.DefaultPlayerSkin.get(new UUID(0,1));
+                    var caped=new net.minecraft.world.entity.player.PlayerSkin(skin.body(),skin.body(),null,net.minecraft.world.entity.player.PlayerModelType.SLIM,false);
+                    var bare=new MeetingAlertRemotePlayer(mc.level,old.getGameProfile(),()->caped);
+                    bare.setId(old.getId());bare.showAllSkinLayers();field.set(screen,bare);switchedSkin=true;
+                }
+                if(scenario<2&&poseFrame<(danceOnly?84:20)&&now()-shown>250+poseFrame*250) {
                     capture(mc,"summary-"+scenario+"-pose-"+String.format("%02d",poseFrame++)+".png");
                 }
                 if(now()-shown>1800&&!captured) {
@@ -126,7 +136,7 @@ final class SummaryRegression {
                     require(fixed.capeFlap==0&&fixed.capeLean==0&&fixed.capeLean2==0,"preview cape inherited false movement");
                     capture(mc,"summary-"+scenario+"-animated.png");captured=true;
                 }
-                if(now()-shown>(scenario==3||scenario==5?2400:6100)&&!secondShot) {
+                if(now()-shown>(danceOnly?21800:scenario==3||scenario==5?2400:6100)&&!secondShot) {
                     require((xpSounds>0)==(scenario!=2&&scenario!=3),"XP audio missing or played for zero XP/observer");
                     if(scenario==5)require(levelSounds==0,"small XP gain invented upgrade sound");
                     capture(mc,"summary-"+scenario+"-complete.png");secondShot=true;
@@ -262,7 +272,7 @@ final class SummaryRegression {
     private static void command(Minecraft mc,String command){var server=mc.getSingleplayerServer();server.getCommands().performPrefixedCommand(server.createCommandSourceStack(),command);}
     private static void commandAs(Minecraft mc,String command){var server=mc.getSingleplayerServer();server.getCommands().performPrefixedCommand(server.getPlayerList().getPlayer(mc.player.getUUID()).createCommandSourceStack(),command);}
     private static CompletableFuture<Void> commands(Minecraft mc,String...commands){var done=new CompletableFuture<Void>();mc.getSingleplayerServer().execute(()->{try{for(String c:commands)command(mc,c);done.complete(null);}catch(Throwable e){done.completeExceptionally(e);}});return done;}
-    private void next(){scenario++;requested=false;}
+    private void next(){scenario=danceOnly?6:scenario+1;requested=false;}
     private void capture(Minecraft mc,String name){Screenshot.takeScreenshot(mc.gameRenderer.mainRenderTarget(),image->{try(image){image.writeToFile(mc.gameDirectory.toPath().resolve(name));shots++;}catch(Exception error){mc.execute(()->finish(mc,"FAIL screenshot "+error));}});}
     private static void require(boolean value,String message){if(!value)throw new IllegalStateException(message);}
     private void finish(Minecraft mc,String message){if(finished)return;finished=true;try{Files.writeString(mc.gameDirectory.toPath().resolve("result.txt"),message);}catch(Exception ignored){}com.goosethings.tools.GooseTools.LOGGER.info(message);mc.stop();}

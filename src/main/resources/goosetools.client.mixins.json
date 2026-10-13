@@ -6,6 +6,7 @@
   "client": [
     "CelebrationRenderStateMixin",
     "CelebrationModelMixin",
+    "DancePartMixin",
     "EntityRenderDispatcherMixin",
     "KeyboardInputMeetingAlertMixin",
     "LocalPlayerMeetingAlertMixin",

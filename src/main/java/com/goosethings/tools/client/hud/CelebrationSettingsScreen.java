@@ -14,7 +14,7 @@ public final class CelebrationSettingsScreen extends Screen {
     @Override protected void init() {
         int x=width/2-115,y=height/2-24;
         addRenderableWidget(Button.builder(Component.translatableWithFallback("summary.goosetools.wave","Wave"),b->select("wave")).bounds(x,y,110,24).build());
-        addRenderableWidget(Button.builder(Component.translatableWithFallback("summary.goosetools.dance","Dance"),b->select("dance")).bounds(x+120,y,110,24).build());
+        addRenderableWidget(Button.builder(Component.translatableWithFallback("summary.goosetools.dance","Cute dance"),b->select("dance")).bounds(x+120,y,110,24).build());
         addRenderableWidget(Button.builder(Component.translatableWithFallback("gui.done","Done"),b->onClose()).bounds(x,y+66,230,20).build());
     }
     private void select(String id) {if(minecraft.getConnection()!=null) minecraft.getConnection().sendCommand("goosetools-celebration "+id);onClose();}

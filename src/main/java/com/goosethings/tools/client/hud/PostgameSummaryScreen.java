@@ -1,6 +1,6 @@
 package com.goosethings.tools.client.hud;
 
-import com.goosethings.tools.client.animation.CelebrationPose;
+import com.goosethings.tools.client.animation.CuteDanceAnimation;
 import com.goosethings.tools.client.animation.CelebrationState;
 import com.goosethings.tools.client.input.ProtectedInputScreen;
 import com.goosethings.tools.intro.RoleIntroCatalog;
@@ -310,10 +310,13 @@ public final class PostgameSummaryScreen extends Screen implements ProtectedInpu
         MeetingAlertTrueSkinCache.capture(minecraft);
         var camera=minecraft.getCameraEntity();if(camera!=null) model.setPos(camera.position());
         var state=previewState(seconds);
-        var pose=CelebrationPose.at(payload.action(),seconds);
-        float pixels=55*s,top=y+153*s,floor=y+(271-pose.lift()*55)*s;
-        g.entity(state,pixels,new Vector3f(0,(floor-top)*.5F/pixels,0),new Quaternionf().rotateZ((float)Math.PI),new Quaternionf(),
-                Math.round(x+80*s),Math.round(top-16*s),Math.round(x+262*s),Math.round(floor));
+        var dance=payload.action()==1?CuteDanceAnimation.at(seconds):null;
+        float offsetX=dance==null?0:dance.x()*55/16F,offsetY=dance==null?0:dance.y()*55/16F;
+        float pixels=55*s,top=y+125*s,bottom=y+278*s,floor=y+(271+offsetY)*s;
+        // Keep the viewport fixed while the planted foot determines the model's root height.
+        // Using the old padded top in only the bounds raised the feet eight GUI pixels.
+        g.entity(state,pixels,new Vector3f(0,(floor-(top+bottom)*.5F)/pixels,0),new Quaternionf().rotateZ((float)Math.PI),new Quaternionf(),
+                Math.round(x+(80+offsetX)*s),Math.round(top),Math.round(x+(262+offsetX)*s),Math.round(bottom));
     }
     net.minecraft.client.renderer.entity.state.EntityRenderState previewState(double seconds) {
         var state=minecraft.getEntityRenderDispatcher().getRenderer(model).createRenderState(model,1);
