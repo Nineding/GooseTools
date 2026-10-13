@@ -79,6 +79,19 @@ final class MeetingNameTagHud {
                 cached == null ? 0 : cached.attachmentFlags());
     }
 
+    static void drawFrozen(GuiGraphicsExtractor g, Minecraft mc, String name, int rgb, int serial,
+                           boolean lover, float center, float top, float scale, int maxWidth) {
+        Component badge = SerialBadgeStyle.glyphComponent(serial, rgb);
+        String shortened = mc.font.plainSubstrByWidth(name, Math.max(0, maxWidth-mc.font.width(badge)));
+        MutableComponent text = Component.empty();
+        if (serial > 0) text.append(badge);
+        text.append(Component.literal(shortened).withStyle(style -> style.withColor(lover ? 0xFF55FF : rgb).withItalic(false)));
+        int width = mc.font.width(text);
+        g.pose().pushMatrix(); g.pose().translate(center, top); g.pose().scale(scale, scale);
+        g.fill(-width/2-2, -2, width/2+2, 12, 0x57000000);
+        g.text(mc.font, text, -width/2, 1, 0xFFFFFFFF, false); g.pose().popMatrix();
+    }
+
     private static MutableComponent label(MeetingAlertIdentityPolicy.Label labelData, String name) {
         int baseRgb = labelData.rgb();
         int nameRgb = labelData.lover() ? 0xff55ff : baseRgb;

@@ -465,6 +465,15 @@ public final class NameTagSync {
         return LAST_COLOUR.getOrDefault(player.getUUID(), 0xffffff);
     }
 
+    public static int appearanceColour(MinecraftServer server, ServerPlayer player) {
+        return colourOf(server, player, true);
+    }
+
+    public static int savedAppearanceColour(UUID id, ItemStack chest) {
+        Integer color = resolveColour(chest);
+        return color == null ? LAST_COLOUR.getOrDefault(id, 0xffffff) : color;
+    }
+
     static Integer resolveColour(ItemStack chest) {
         DyedItemColor dyed = chest.get(DataComponents.DYED_COLOR);
         if (dyed != null) {

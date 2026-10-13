@@ -4,6 +4,8 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -14,7 +16,7 @@ import java.util.UUID;
 public record RoleIntroPayload(boolean active, String role, int theme, int mode, List<Appearance> roster)
         implements CustomPacketPayload {
     public static final Type<RoleIntroPayload> TYPE = new Type<>(
-            Identifier.fromNamespaceAndPath("goosetools", "role_intro_s2c_v1"));
+            Identifier.fromNamespaceAndPath("goosetools", "role_intro_s2c_v2"));
     public static final StreamCodec<RegistryFriendlyByteBuf, RoleIntroPayload> CODEC =
             StreamCodec.of(RoleIntroPayload::write, RoleIntroPayload::read);
     public static final RoleIntroPayload CLOSE = new RoleIntroPayload(false, "", 0, 0, List.of());
@@ -46,6 +48,7 @@ public record RoleIntroPayload(boolean active, String role, int theme, int mode,
             buffer.writeUUID(player.id());
             buffer.writeUtf(player.name(), 64);
             buffer.writeBoolean(player.small());
+            for (ItemStack item : player.equipment()) ItemStack.OPTIONAL_STREAM_CODEC.encode(buffer, item);
         }
     }
 
@@ -59,18 +62,31 @@ public record RoleIntroPayload(boolean active, String role, int theme, int mode,
         }
         List<Appearance> roster = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
-            roster.add(new Appearance(buffer.readUUID(), buffer.readUtf(64), buffer.readBoolean()));
+            UUID id = buffer.readUUID();
+            String name = buffer.readUtf(64);
+            boolean small = buffer.readBoolean();
+            List<ItemStack> equipment = new ArrayList<>();
+            for (EquipmentSlot slot : EquipmentSlot.values()) equipment.add(ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer));
+            roster.add(new Appearance(id, name, small, equipment));
         }
         return new RoleIntroPayload(active, role, theme, mode, roster);
     }
 
     @Override public Type<RoleIntroPayload> type() { return TYPE; }
 
-    public record Appearance(UUID id, String name, boolean small) {
+    public record Appearance(UUID id, String name, boolean small, List<ItemStack> equipment) {
+        public Appearance(UUID id, String name, boolean small) {
+            this(id, name, small, PresentationAppearance.emptyEquipment());
+        }
         public Appearance {
             if (id == null || name == null || name.isBlank() || name.length() > 64) {
                 throw new IllegalArgumentException("Invalid intro appearance");
             }
+            if (equipment == null || equipment.size() != EquipmentSlot.values().length
+                    || equipment.stream().anyMatch(java.util.Objects::isNull)) {
+                throw new IllegalArgumentException("Invalid intro equipment");
+            }
+            equipment = equipment.stream().map(ItemStack::copy).toList();
         }
     }
 }

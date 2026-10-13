@@ -34,6 +34,10 @@ public final class RoleIntroRegression implements ClientModInitializer {
     private long since;
     private CompletableFuture<Void> pending;
     @Override public void onInitializeClient() {
+        if (Boolean.getBoolean("goosetools.presentationRegression")) {
+            ClientTickEvents.END_CLIENT_TICK.register(new PresentationRegression()::tick);
+            return;
+        }
         if (Boolean.getBoolean("goosetools.roleIntroRegressionTest")) ClientTickEvents.END_CLIENT_TICK.register(this::tick);
     }
     private static long now() { return System.nanoTime() / 1_000_000; }

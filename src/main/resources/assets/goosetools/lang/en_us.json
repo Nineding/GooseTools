@@ -831,5 +831,7 @@
   "intro.goosetools.teammates": "Duck teammates",
   "role.lover.goose_suffix": " [Lover Goose]",
   "role.lover.duck_suffix": " [Lover Duck]",
-  "intro.goosetools.duck_description": "Eliminate the Geese"
+  "intro.goosetools.duck_description": "Eliminate the Geese",
+  "intro.goosetools.loading": "Entering the map",
+  "result.goosetools.title": "Match results"
 }

@@ -147,6 +147,7 @@ loom {
             source sourceSets.roleIntroRegressionTest
             runDir 'build/role-intro-regression-test'
             vmArg '-Dgoosetools.roleIntroRegressionTest=true'
+            vmArg '-Dgoosetools.presentationRegression=' + providers.gradleProperty('presentationRegression').isPresent()
             programArg '--width'
             programArg '1280'
             programArg '--height'

@@ -37,7 +37,9 @@ public final class RoleIntroServer {
                         .executes(context -> open(context.getSource().getServer(),
                                 EntityArgument.getPlayers(context, "players")))))
                 .then(Commands.literal("close").then(Commands.argument("players", EntityArgument.players())
-                        .executes(context -> close(EntityArgument.getPlayers(context, "players")))));
+                        .executes(context -> close(EntityArgument.getPlayers(context, "players")))))
+                .then(Commands.literal("transition").then(Commands.argument("players", EntityArgument.players())
+                        .executes(context -> transition(context.getSource().getServer(), EntityArgument.getPlayers(context, "players")))));
     }
 
     private static int open(MinecraftServer server, Collection<ServerPlayer> viewers) {
@@ -58,7 +60,8 @@ public final class RoleIntroServer {
                     .map(member -> {
                         ServerPlayer player = participants.stream().filter(p -> p.getUUID().equals(member.id()))
                                 .findFirst().orElseThrow();
-                        return new RoleIntroPayload.Appearance(member.id(), player.getGameProfile().name(), member.small());
+                        return new RoleIntroPayload.Appearance(member.id(), player.getGameProfile().name(), member.small(),
+                                PresentationAppearance.equipment(server, player, "p" + RoleIntroPolicy.seat(player.entityTags())));
                     }).toList();
             ServerPlayNetworking.send(viewer, new RoleIntroPayload(true,
                     RoleIntroCatalog.resolve(viewer.entityTags()).tag(), RoleIntroPolicy.theme(viewer.entityTags()),
@@ -85,7 +88,10 @@ public final class RoleIntroServer {
             if (!dlc || !openingLocked(server, viewer)
                     || !viewer.entityTags().contains("players") || viewer.entityTags().contains("endGame")
                     || viewer.entityTags().contains("spectator") || server.getTickCount() >= entry.getValue().expires()) {
-                sendClose(viewer);
+                if (dlc && openingLocked(server, viewer) && server.getTickCount() >= entry.getValue().expires()
+                        && !viewer.entityTags().contains("endGame") && !viewer.entityTags().contains("spectator")) {
+                    sendBlackout(viewer);
+                } else sendClose(viewer);
                 iterator.remove();
             }
         }
@@ -113,6 +119,15 @@ public final class RoleIntroServer {
     private static int close(Collection<ServerPlayer> viewers) {
         for (ServerPlayer viewer : viewers) { ACTIVE.remove(viewer.getUUID()); sendClose(viewer); }
         return viewers.size();
+    }
+    private static int transition(MinecraftServer server, Collection<ServerPlayer> viewers) {
+        if (score(server, "ggdadv", ScoreHolder.forNameOnly("FullBloodDLC")) != 1) return close(viewers);
+        for (ServerPlayer viewer : viewers) { ACTIVE.remove(viewer.getUUID()); sendBlackout(viewer); }
+        return viewers.size();
+    }
+    private static void sendBlackout(ServerPlayer player) {
+        if (MandatoryHandshake.isVerified(player) && ServerPlayNetworking.canSend(player, PresentationBlackoutPayload.TYPE))
+            ServerPlayNetworking.send(player, new PresentationBlackoutPayload(true));
     }
     private static void sendClose(ServerPlayer viewer) {
         if (ServerPlayNetworking.canSend(viewer, RoleIntroPayload.TYPE)) {

@@ -831,5 +831,7 @@
   "intro.goosetools.teammates": "鸭阵营队友",
   "role.lover.goose_suffix": " [恋人鹅]",
   "role.lover.duck_suffix": " [恋人鸭]",
-  "intro.goosetools.duck_description": "消灭鹅阵营玩家"
+  "intro.goosetools.duck_description": "消灭鹅阵营玩家",
+  "intro.goosetools.loading": "正在进入地图",
+  "result.goosetools.title": "对局结算"
 }

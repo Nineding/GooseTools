@@ -50,6 +50,7 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
         Minecraft mc = Minecraft.getInstance();
         if (!payload.active()) {
             if (mc.gui.screen() instanceof RoleIntroScreen) mc.gui.setScreen(null);
+            PresentationBlackoutScreen.apply(false);
             return;
         }
         if (mc.level != null && mc.player != null) mc.gui.setScreen(new RoleIntroScreen(payload));
@@ -59,9 +60,10 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
     @Override public boolean shouldCloseOnEsc() { return false; }
     @Override public void onClose() {} // Opening owns input until the authoritative transition completes.
     @Override public void tick() {
-        if (minecraft.level == null || minecraft.player == null
-                || System.nanoTime() - started >= RoleIntroScene.DURATION_NANOS) {
+        if (minecraft.level == null || minecraft.player == null) {
             if (minecraft.gui.screen() == this) minecraft.gui.setScreen(null);
+        } else if (System.nanoTime() - started >= RoleIntroScene.DURATION_NANOS && minecraft.gui.screen() == this) {
+            PresentationBlackoutScreen.apply(true);
         }
     }
     @Override public void removed() {
@@ -178,6 +180,8 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
         MeetingAlertRemotePlayer model = new MeetingAlertRemotePlayer(minecraft.level,
                 new GameProfile(isolated, appearance.name()), () -> skin(appearance.id()));
         model.showAllSkinLayers();
+        for (var slot : net.minecraft.world.entity.EquipmentSlot.values())
+            model.setItemSlot(slot, appearance.equipment().get(slot.ordinal()).copy());
         model.setId(0x6A120000 + index);
         model.refreshDimensions();
         return model;
