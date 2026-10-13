@@ -129,3 +129,4 @@
 +# Only the normal result-to-lobby handoff may open the saved summary.
 +execute if score mode gamesetting matches 2 if score FullBloodDLC ggdadv matches 1 run goosetools summary ready
  function mainsys:stopgame
+\ No newline at end of file
