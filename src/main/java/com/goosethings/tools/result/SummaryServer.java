@@ -105,21 +105,20 @@ public final class SummaryServer {
             candidates.add(new SummaryPolicy.Candidate(appearance.id(),award,score(player,"ggdIndexScore"),appearance.serial()));
         }
         var chosen=SummaryPolicy.spotlight(candidates);
+        if(chosen==null) return 0;
+        var spotlight=result.roster().stream().filter(p->p.id().equals(chosen.id())).findFirst().orElseThrow();
+        var subject=server.getPlayerList().getPlayer(spotlight.id());
         for(var viewer:server.getPlayerList().getPlayers()) {
             if(viewer.entityTags().contains("inTutorial")||!viewer.entityTags().contains("endGame")) continue;
             var self=result.roster().stream().filter(p->p.id().equals(viewer.getUUID())).findFirst().orElse(null);
-            var spotlight=chosen==null?self:result.roster().stream().filter(p->p.id().equals(chosen.id())).findFirst().orElseThrow();
-            // With no award an observer has no personal stage; use the first public participant.
-            if(spotlight==null) spotlight=result.roster().getFirst();
-            var subject=server.getPlayerList().getPlayer(spotlight.id());
             var start=BEFORE.get(viewer.getUUID()); boolean participating=start!=null && self!=null;
             int from=participating?start.level:Math.max(0,score(viewer,"playerLevel"));
             int to=Math.max(from,score(viewer,"playerLevel"));
             if(from>10000||to>10000) continue;
             var thresholds=new ArrayList<Integer>(); for(int i=from;i<=to;i++) thresholds.add(SummaryPolicy.needed(i));
             int bonus=viewer.entityTags().contains("match_xp_smvp")?30:viewer.entityTags().contains("match_xp_mvp15")?15:viewer.entityTags().contains("match_xp_mvp")?20:0;
-            var data=new SummaryPayload(false,round,new MatchResultPayload(true,result.outcome(),List.of(spotlight)),chosen==null?0:chosen.award(),
-                    subject!=null&&subject.entityTags().contains("ggdVictoryDance")?1:0,chosen==null?(subject==null?0:score(subject,"ggdIndexScore")):chosen.index(),participating,
+            var data=new SummaryPayload(false,round,new MatchResultPayload(true,result.outcome(),List.of(spotlight)),chosen.award(),
+                    subject!=null&&subject.entityTags().contains("ggdVictoryDance")?1:0,chosen.index(),participating,
                     participating?Math.max(0,score(viewer,"matchBaseXP")):0,participating?bonus:0,
                     participating&&viewer.entityTags().contains("match_xp_death")?25:0,participating?Math.max(0,score(viewer,"matchFinalXP")):0,
                     participating?Math.max(0,score(viewer,"matchGooseCoin")):0,from,participating?start.xp:Math.max(0,score(viewer,"playerExp")),
@@ -134,14 +133,18 @@ public final class SummaryServer {
         for(var player:server.getPlayerList().getPlayers()) finish(player,false);
         handoff=armed && dlc(server); armed=false;
         if(!handoff) { cancelQueued(server); BEFORE.clear(); PENDING.clear(); }
-        return handoff?1:0;
+        // The frozen stage can appear while the datapack restores the lobby behind it.
+        // Waiting for final cleanup also waited for entity death animations and chunk loading.
+        boolean normal=handoff;
+        if(normal) open(server);
+        return normal?1:0;
     }
     private static int open(MinecraftServer server) {
         if(!handoff) return 0;
         handoff=false; int sent=0;
         if(dlc(server)) for(var player:server.getPlayerList().getPlayers()) {
             var payload=PENDING.get(player.getUUID());
-            if(payload==null||!player.entityTags().contains("lobby")||player.entityTags().contains("inTutorial")
+            if(payload==null||(!player.entityTags().contains("lobby")&&!player.entityTags().contains("endGame"))||player.entityTags().contains("inTutorial")
                     ||!MandatoryHandshake.isVerified(player)||!ServerPlayNetworking.canSend(player,SummaryPayload.TYPE)) continue;
             player.addTag("ggdSummaryActive"); ACTIVE.put(player.getUUID(),new Session(payload.round(),server.getTickCount()+2400));
             if(payload.participant()) function(player,"lobby:level/summary_consume_xp");

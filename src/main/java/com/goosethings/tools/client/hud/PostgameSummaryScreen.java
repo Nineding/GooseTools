@@ -18,6 +18,7 @@ import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FontDescription;
 import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -30,8 +31,10 @@ import java.util.LinkedHashSet;
 /** One frozen award, one recipient's growth; the screen never changes the world player. */
 public final class PostgameSummaryScreen extends Screen implements ProtectedInputScreen {
     private static final Identifier ATLAS=Identifier.fromNamespaceAndPath("goosetools","textures/gui/summary/atlas.png");
+    private static final FontDescription SYMBOLS=new FontDescription.Resource(Identifier.fromNamespaceAndPath("goosetools","summary_symbols"));
     private static final LinkedHashSet<UUID> SEEN=new LinkedHashSet<>();
     private static UUID waiting;
+    private static SummaryPayload readyToDisplay;
     public static boolean waiting() {return waiting!=null;}
     private final SummaryPayload payload;
     private final long started=System.nanoTime();
@@ -46,17 +49,28 @@ public final class PostgameSummaryScreen extends Screen implements ProtectedInpu
     public static void register() {
         ClientPlayNetworking.registerGlobalReceiver(SummaryPayload.TYPE,(p,c)->c.client().execute(()->apply(p)));
         ClientPlayNetworking.registerGlobalReceiver(SummaryControlPayload.TYPE,(p,c)->c.client().execute(()->{
-            if(p.round().equals(waiting)) {waiting=null;PresentationBlackoutScreen.apply(false);}
+            if(p.round().equals(waiting)) {waiting=null;readyToDisplay=null;PresentationBlackoutScreen.apply(false);}
             if(c.client().gui.screen() instanceof PostgameSummaryScreen s && s.payload.round().equals(p.round())) {
                 s.acknowledged=true;c.client().gui.setScreen(null);
             }
         }));
-        ClientPlayConnectionEvents.DISCONNECT.register((h,mc)->{SEEN.clear();waiting=null;});
+        ClientPlayConnectionEvents.DISCONNECT.register((h,mc)->{SEEN.clear();waiting=null;readyToDisplay=null;});
     }
     public static void apply(SummaryPayload p) {
         var mc=Minecraft.getInstance(); if(mc.level==null||mc.player==null||SEEN.contains(p.round())) return;
         if(!p.open()) {waiting=p.round();return;}
-        waiting=null;SEEN.add(p.round());
+        if(mc.gui.screen() instanceof PresentationBlackoutScreen cover&&cover.ending()&&!cover.fadeComplete()) {
+            waiting=p.round();readyToDisplay=p;return;
+        }
+        show(p);
+    }
+    static boolean revealReady() {
+        if(readyToDisplay==null) return false;
+        show(readyToDisplay);return true;
+    }
+    private static void show(SummaryPayload p) {
+        var mc=Minecraft.getInstance();
+        waiting=null;readyToDisplay=null;SEEN.add(p.round());
         if(SEEN.size()>32) SEEN.remove(SEEN.getFirst());
         mc.gui.setScreen(new PostgameSummaryScreen(p));
     }
@@ -107,7 +121,6 @@ public final class PostgameSummaryScreen extends Screen implements ProtectedInpu
         g.fill(318,70,610,314,0x78101A2B);g.outline(318,70,292,244,0x304C6477);
         g.fill(318,70,610,72,0xFFDFC180);
         label(g,title,40,27,1.65F,0xFFF7E8BD);
-        label(g,tr("subtitle","A moment for the best. Rewards for your journey."),42,51,.85F,0xFF8FA6BE);
         g.horizontalLine(42,597,65,0x405C718B);
         for(int i=0;i<16;i++) {
             double phase=time*.12+i*.618;
@@ -115,8 +128,8 @@ public final class PostgameSummaryScreen extends Screen implements ProtectedInpu
             int alpha=(int)(80*(.5+.5*Math.sin(time*2+i)));
             g.fill(px,py,px+1,py+2,alpha<<24|0xEDD995);
         }
-        icon(g,0,137,76,68);
-        centered(g,payload.award()==2?Component.literal("SMVP"):payload.award()==1?Component.literal("MVP"):tr("review","Round review"),171,144,1.35F,0xFFFFD47C);
+        if(payload.award()>0) centered(g,symbol(payload.award()==2?'\uE063':'\uE064'),171,106,3F,0xFFFFFFFF);
+        else centered(g,tr("highest_index","Highest index this round"),171,118,1.1F,0xFFFFD47C);
         // Floor under the animated feet.
         for(int i=0;i<7;i++) g.fill(105+i*4,269+i,238-i*4,271+i,0x0ADCE8A9);
         g.pose().popMatrix();
@@ -126,7 +139,11 @@ public final class PostgameSummaryScreen extends Screen implements ProtectedInpu
         MeetingNameTagHud.drawFrozen(g,minecraft,hero.name(),hero.rgb(),hero.serial(),hero.lover(),171,283,1.05F,242);
         var role=RoleIntroCatalog.byTag(hero.role());
         centered(g,Component.translatableWithFallback(role.key(),role.fallback()),171,299,.85F,0xFF000000|role.color());
-        centered(g,tr("index","Index %s  ·  %s",payload.spotlightIndex(),SummaryPolicy.grade(payload.spotlightIndex())),171,316,.82F,0xFF91A7BD);
+        char grade=switch(SummaryPolicy.grade(payload.spotlightIndex())) {
+            case "F" -> '\uE06A'; case "D" -> '\uE06B'; case "C" -> '\uE06C'; case "N" -> '\uE06D';
+            case "A" -> '\uE06E'; case "S" -> '\uE06F'; case "S+" -> '\uE061'; default -> '\uE062';
+        };
+        centered(g,tr("index","Index %s  ·  %s",payload.spotlightIndex(),symbol(grade)),171,316,.95F,0xFF91A7BD);
         drawGrowth(g);
         boolean hover=mouseX>=x0+382*s&&mouseX<=x0+596*s&&mouseY>=y0+325*s&&mouseY<=y0+347*s;
         g.fill(382,325,596,347,hover?0xFF36546C:0xFF233B50);g.outline(382,325,214,22,0xFF587488);
@@ -161,7 +178,7 @@ public final class PostgameSummaryScreen extends Screen implements ProtectedInpu
         row(g,t,.8,234,tr("bonus","Award bonus"),Component.literal("+"+payload.bonusPercent()+"%"),0xFFEACD86);
         row(g,t,1,251,tr("death","Death adjustment"),Component.literal("−"+payload.deathPercent()+"%"),payload.deathPercent()>0?0xFFDB999F:0xFF71869B);
         row(g,t,1.2,272,tr("total","XP earned"),Component.literal("+"+payload.gainedXp()+" XP"),0xFF8FF3D5);
-        icon(g,1,334,288,21);
+        label(g,symbol('\uE082'),337,291,1.8F,0xFFFFFFFF);
         row(g,t,1.4,295,tr("coins","Goose coins"),Component.literal("+"+payload.coins()),0xFFFFD37C,359);
         if(levelFlash>0) icon(g,3,553,104,27+levelFlash*13);
     }
@@ -186,17 +203,27 @@ public final class PostgameSummaryScreen extends Screen implements ProtectedInpu
         }
         MeetingAlertTrueSkinCache.capture(minecraft);
         var camera=minecraft.getCameraEntity();if(camera!=null) model.setPos(camera.position());
+        var state=previewState(seconds);
+        var pose=CelebrationPose.at(payload.action(),seconds);
+        float pixels=55*s,top=y+153*s,floor=y+(271-pose.lift()*55)*s;
+        g.entity(state,pixels,new Vector3f(0,(floor-top)*.5F/pixels,0),new Quaternionf().rotateZ((float)Math.PI),new Quaternionf(),
+                Math.round(x+80*s),Math.round(top-16*s),Math.round(x+262*s),Math.round(floor));
+    }
+    net.minecraft.client.renderer.entity.state.EntityRenderState previewState(double seconds) {
         var state=minecraft.getEntityRenderDispatcher().getRenderer(model).createRenderState(model,1);
         state.nameTag=null;state.outlineColor=0;state.shadowPieces.clear();state.isInvisible=false;
         state.lightCoords=0x00F000F0;
         if(state instanceof AvatarRenderState living) {
             living.bodyRot=180;living.yRot=0;living.xRot=0;living.walkAnimationSpeed=0;living.isInvisibleToPlayer=false;living.isSpectator=false;
+            // The preview follows the camera without world ticks. Its stale cloak coordinates
+            // otherwise look like a huge teleport and force the cape into its flying pose.
+            living.capeFlap=0;living.capeLean=0;living.capeLean2=0;
             ((CelebrationState)living).goosetools$celebration(payload.action(),(float)seconds);
         }
-        var pose=CelebrationPose.at(payload.action(),seconds);
-        float pixels=55*s,top=y+153*s,floor=y+(271-pose.lift()*55)*s;
-        g.entity(state,pixels,new Vector3f(0,(floor-top)*.5F/pixels,0),new Quaternionf().rotateZ((float)Math.PI),new Quaternionf(),
-                Math.round(x+80*s),Math.round(top-16*s),Math.round(x+262*s),Math.round(floor));
+        return state;
+    }
+    private static Component symbol(char glyph) {
+        return Component.literal(Character.toString(glyph)).withStyle(s->s.withFont(SYMBOLS).withColor(0xffffff).withItalic(false).withoutShadow());
     }
     private void icon(GuiGraphicsExtractor g,int cell,float x,float y,float size) {
         float u=(cell%2)*.5F,v=(cell/2)*.5F;

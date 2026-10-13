@@ -858,5 +858,6 @@
   "summary.goosetools.dance": "庆祝舞",
   "summary.goosetools.lobby_only": "请在大厅中选择胜利动作。",
   "summary.goosetools.saved": "已保存胜利动作：%s",
-  "summary.goosetools.choose_hint": "在大厅选择，上台获奖时将自动播放。"
+  "summary.goosetools.choose_hint": "在大厅选择，上台获奖时将自动播放。",
+  "summary.goosetools.highest_index": "全场最高指数"
 }

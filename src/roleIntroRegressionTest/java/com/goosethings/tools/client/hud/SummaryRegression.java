@@ -26,9 +26,9 @@ import java.util.concurrent.CompletableFuture;
 
 /** Isolated real network/render check, never included in the published mod. */
 final class SummaryRegression {
-    private boolean world,finished,requested,captured,secondShot;
+    private boolean world,finished,requested,captured,secondShot,capeReady;
     private int warmup,scenario,phase,shots,poseFrame;
-    private long since,shown;
+    private long since,shown,fadeStarted;
     private SummaryPayload last;
     private CompletableFuture<Void> pending;
     private static long now(){return System.nanoTime()/1_000_000;}
@@ -48,7 +48,7 @@ final class SummaryRegression {
             if(pending!=null){if(!pending.isDone())return;pending.join();pending=null;}
             if(scenario==5){require(shots>=6,"missing screenshots");finish(mc,"PASS real summary packets and round cleanup; fixed SMVP/MVP; wave/dance GPU renders; full dead-award model; multi-level XP and cap; observer and zero XP; skip/close/duplicate acknowledgements do not pay rewards; lobby action selection; GUI scales 2/3; no world frame in result handoff; non-DLC and forced-stop cancellation; "+shots+" GPU screenshots");return;}
             if(!requested) {
-                requested=true;captured=false;secondShot=false;phase=0;poseFrame=0;since=now();
+                requested=true;captured=false;secondShot=false;capeReady=false;phase=0;poseFrame=0;since=now();
                 if(scenario==1){mc.options.guiScale().set(3);mc.resizeGui();}
                 if(scenario==2){mc.options.guiScale().set(2);mc.resizeGui();}
                 pending=fixture(mc,scenario);return;
@@ -68,13 +68,19 @@ final class SummaryRegression {
             if(phase==0&&now()-since>700) {
                 require(mc.gui.screen() instanceof MatchResultScreen,"winner screen missing");
                 require(PostgameSummaryScreen.waiting(),"reward snapshot did not queue");
-                pending=commands(mc,"goosetools role-intro fade @a");phase=1;return;
+                pending=commands(mc,"goosetools role-intro fade @a");phase=1;fadeStarted=now();return;
             }
-            if(phase==1&&now()-since>1900) {
+            // Deliver the summary before fade completion to exercise client timing under jitter.
+            if(phase==1&&now()-fadeStarted>400) {
                 pending=commands(mc,"goosetools summary ready","goosetools summary stop","goosetools role-intro close @a","goosetools match-result close @a","tag @a remove gamingGGD","tag @a remove endGame","tag @a add lobby");phase=2;return;
             }
             if(phase==2) {
-                require(mc.gui.screen() instanceof PresentationBlackoutScreen,"cleanup exposed world before summary");
+                if(mc.gui.screen() instanceof PresentationBlackoutScreen) {
+                    require(now()-fadeStarted<1500,"summary waited after fade reached black");return;
+                }
+                require(mc.gui.screen() instanceof PostgameSummaryScreen,"cleanup exposed world before summary");
+                require(now()-fadeStarted>=950,"summary cut off the fade to black");
+                // The old late-finalize open must not restart the already-running screen.
                 pending=commands(mc,"goosetools summary open");phase=3;shown=now();return;
             }
             if(phase==3) {
@@ -84,6 +90,20 @@ final class SummaryRegression {
                 require(last.action()==(scenario==1?1:0),"saved action missing");
                 require(last.participant()==(scenario!=2),"observer rewards leaked");
                 require(GuiMovementGuard.blocks(screen)&&!screen.isPauseScreen(),"input guard missing");
+                if(!capeReady) {
+                    var field=PostgameSummaryScreen.class.getDeclaredField("model");field.setAccessible(true);
+                    var original=(MeetingAlertRemotePlayer)field.get(screen);
+                    if(original!=null) {
+                        var skin=original.getSkin();
+                        // Use the skin texture as a fixture cape; test the actual cape layer and physics.
+                        var caped=new net.minecraft.world.entity.player.PlayerSkin(skin.body(),skin.body(),null,skin.model(),false);
+                        var preview=new MeetingAlertRemotePlayer(mc.level,original.getGameProfile(),()->caped);
+                        preview.setId(original.getId());
+                        preview.showAllSkinLayers();
+                        for(var slot:EquipmentSlot.values())preview.setItemSlot(slot,original.getItemBySlot(slot).copy());
+                        field.set(screen,preview);capeReady=true;
+                    }
+                }
                 if(scenario<2&&poseFrame<20&&now()-shown>250+poseFrame*250) {
                     capture(mc,"summary-"+scenario+"-pose-"+String.format("%02d",poseFrame++)+".png");
                 }
@@ -92,6 +112,9 @@ final class SummaryRegression {
                     var model=(MeetingAlertRemotePlayer)field.get(screen);require(model!=null&&!model.isInvisible(),"full celebration body absent");
                     var state=mc.getEntityRenderDispatcher().getRenderer(model).createRenderState(model,1);
                     require(((CelebrationState)state).goosetools$action()==-1,"celebration leaked into normal renderer state");
+                    var fixed=(net.minecraft.client.renderer.entity.state.AvatarRenderState)screen.previewState(1.8);
+                    require(capeReady&&fixed.skin.cape()!=null&&fixed.showCape,"preview hid the cape instead of fixing it");
+                    require(fixed.capeFlap==0&&fixed.capeLean==0&&fixed.capeLean2==0,"preview cape inherited false movement");
                     capture(mc,"summary-"+scenario+"-animated.png");captured=true;
                 }
                 if(now()-shown>(scenario==3?2400:6100)&&!secondShot) {

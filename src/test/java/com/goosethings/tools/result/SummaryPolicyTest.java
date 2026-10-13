@@ -14,7 +14,10 @@ class SummaryPolicyTest {
         assertEquals(smvp,SummaryPolicy.spotlight(List.of(c(1,1,6000),smvp,c(2,1,7000))));
         var first=c(2,1,6500);
         assertEquals(first,SummaryPolicy.spotlight(List.of(c(1,1,4200),c(3,1,6500),first)));
-        assertNull(SummaryPolicy.spotlight(List.of(c(1,0,7000),c(2,0,7000))));
+        assertEquals(c(1,0,7000),SummaryPolicy.spotlight(List.of(c(2,0,7000),c(1,0,7000))));
+        assertEquals(c(2,0,-20),SummaryPolicy.spotlight(List.of(c(1,0,-672),c(2,0,-20))));
+        assertEquals(c(1,1,200),SummaryPolicy.spotlight(List.of(c(1,1,200),c(2,0,7000))));
+        assertNull(SummaryPolicy.spotlight(List.of()));
     }
     @Test void growthCrossesMultipleLevelsAndLandsOnAuthoritativeRemainder() {
         var thresholds=List.of(20,20,30,30);

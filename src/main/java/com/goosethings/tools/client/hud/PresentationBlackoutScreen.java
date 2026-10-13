@@ -38,7 +38,9 @@ public final class PresentationBlackoutScreen extends Screen implements Protecte
     @Override public boolean shouldCloseOnEsc() { return false; }
     @Override public void onClose() {}
     public boolean ending() { return ending; }
+    public boolean fadeComplete() { return !ending||System.nanoTime()-started>=1_000_000_000L; }
     @Override public void tick() {
+        if(ending&&fadeComplete()&&PostgameSummaryScreen.revealReady()) return;
         if ((minecraft.level == null || minecraft.player == null || System.nanoTime() - started > 30_000_000_000L)
                 && minecraft.gui.screen() == this) minecraft.gui.setScreen(null);
     }

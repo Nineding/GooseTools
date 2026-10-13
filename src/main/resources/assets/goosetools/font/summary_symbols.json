@@ -1,0 +1,103 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "minecraft:font/f_grade.png",
+      "ascent": 8,
+      "height": 9,
+      "chars": [
+        "\ue06a"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "minecraft:font/d_grade.png",
+      "ascent": 8,
+      "height": 9,
+      "chars": [
+        "\ue06b"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "minecraft:font/c_grade.png",
+      "ascent": 8,
+      "height": 9,
+      "chars": [
+        "\ue06c"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "minecraft:font/n_grade.png",
+      "ascent": 8,
+      "height": 9,
+      "chars": [
+        "\ue06d"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "minecraft:font/a_grade.png",
+      "ascent": 8,
+      "height": 9,
+      "chars": [
+        "\ue06e"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "minecraft:font/s_grade.png",
+      "ascent": 9,
+      "height": 11,
+      "chars": [
+        "\ue06f"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "minecraft:font/splus_grade.png",
+      "ascent": 9,
+      "height": 11,
+      "chars": [
+        "\ue061"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "minecraft:font/rplus_grade.png",
+      "ascent": 9,
+      "height": 11,
+      "chars": [
+        "\ue062"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "minecraft:font/smvp.png",
+      "ascent": 12,
+      "height": 16,
+      "chars": [
+        "\ue063"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "minecraft:font/mvp.png",
+      "ascent": 11,
+      "height": 16,
+      "chars": [
+        "\ue064"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "minecraft:item/goose_coin.png",
+      "ascent": 9,
+      "height": 10,
+      "chars": [
+        "\ue082"
+      ]
+    }
+  ]
+}

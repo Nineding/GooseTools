@@ -9,7 +9,7 @@ public final class SummaryPolicy {
     private SummaryPolicy() {}
     public record Candidate(UUID id, int award, int index, int seat) {}
     public static Candidate spotlight(List<Candidate> candidates) {
-        return candidates.stream().filter(c -> c.award() == 1 || c.award() == 2)
+        return candidates.stream()
                 .sorted(Comparator.comparingInt(Candidate::award).reversed()
                         .thenComparing(Comparator.comparingInt(Candidate::index).reversed())
                         .thenComparingInt(Candidate::seat).thenComparing(c -> c.id().toString()))
