@@ -1,6 +1,7 @@
 package com.goosethings.tools.client.hud;
 
 import com.goosethings.tools.client.animation.CelebrationState;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.goosethings.tools.client.input.GuiMovementGuard;
 import com.goosethings.tools.result.SummaryControlPayload;
 import com.goosethings.tools.result.SummaryPayload;
@@ -27,7 +28,7 @@ import java.util.concurrent.CompletableFuture;
 /** Isolated real network/render check, never included in the published mod. */
 final class SummaryRegression {
     private boolean world,finished,requested,captured,secondShot,capeReady;
-    private int warmup,scenario,phase,shots,poseFrame;
+    private int warmup,scenario,phase,shots,poseFrame,xpSounds,levelSounds,pageSounds;
     private long since,shown,fadeStarted;
     private SummaryPayload last;
     private CompletableFuture<Void> pending;
@@ -38,6 +39,11 @@ final class SummaryRegression {
             if(!world) {
                 world=true;mc.options.pauseOnLostFocus=false;mc.options.renderDistance().set(3);
                 mc.options.guiScale().set(2);mc.resizeGui();
+                mc.getSoundManager().addListener((sound,event,range)->{
+                    if(!(mc.gui.screen() instanceof PostgameSummaryScreen)) return;
+                    if(sound.getIdentifier().toString().equals("minecraft:entity.experience_orb.pickup")) xpSounds++;
+                    if(sound.getIdentifier().toString().equals("minecraft:entity.player.levelup")) levelSounds++;
+                });
                 mc.createWorldOpenFlows().createFreshLevel("summary-"+System.currentTimeMillis(),
                         new LevelSettings("Summary verification",GameType.CREATIVE,
                                 new LevelSettings.DifficultySettings(Difficulty.PEACEFUL,false,false),true,WorldDataConfiguration.DEFAULT),
@@ -46,9 +52,9 @@ final class SummaryRegression {
             }
             if(mc.player==null||mc.level==null||mc.getSingleplayerServer()==null||!mc.player.connection.hasClientLoaded()||++warmup<50)return;
             if(pending!=null){if(!pending.isDone())return;pending.join();pending=null;}
-            if(scenario==5){require(shots>=6,"missing screenshots");finish(mc,"PASS real summary packets and round cleanup; fixed SMVP/MVP; wave/dance GPU renders; full dead-award model; multi-level XP and cap; observer and zero XP; skip/close/duplicate acknowledgements do not pay rewards; lobby action selection; GUI scales 2/3; no world frame in result handoff; non-DLC and forced-stop cancellation; "+shots+" GPU screenshots");return;}
+            if(scenario==6){require(shots>=6,"missing screenshots");finish(mc,"PASS real summary packets and round cleanup; fixed SMVP/MVP; wave/dance GPU renders; full dead-award model; multi-level XP and cap; observer and zero XP; real MouseHandler next/back/close and keyboard; 4/21-player frozen rosters; negative/offline scores; actual XP sound events including no level-up and silent observer/zero XP; close/duplicate acknowledgements do not pay rewards; lobby action selection; GUI scales 2/3; no world frame in result handoff; non-DLC and forced-stop cancellation; "+shots+" GPU screenshots");return;}
             if(!requested) {
-                requested=true;captured=false;secondShot=false;capeReady=false;phase=0;poseFrame=0;since=now();
+                requested=true;captured=false;secondShot=false;capeReady=false;phase=0;poseFrame=0;xpSounds=0;levelSounds=0;since=now();
                 if(scenario==1){mc.options.guiScale().set(3);mc.resizeGui();}
                 if(scenario==2){mc.options.guiScale().set(2);mc.resizeGui();}
                 pending=fixture(mc,scenario);return;
@@ -89,6 +95,9 @@ final class SummaryRegression {
                 require(last.award()==(scenario==0?2:scenario==1?1:0),"award priority incorrect");
                 require(last.action()==(scenario==1?1:0),"saved action missing");
                 require(last.participant()==(scenario!=2),"observer rewards leaked");
+                require(last.scoreboard().players().size()==(scenario==1?21:4),"full roster missing");
+                require(last.scoreboard().tasksDone()==7,"task snapshot missing");
+                require(last.scoreboard().players().stream().filter(p->p.serial()==4).findFirst().orElseThrow().index()==-672,"offline negative index lost");
                 require(GuiMovementGuard.blocks(screen)&&!screen.isPauseScreen(),"input guard missing");
                 if(!capeReady) {
                     var field=PostgameSummaryScreen.class.getDeclaredField("model");field.setAccessible(true);
@@ -117,11 +126,43 @@ final class SummaryRegression {
                     require(fixed.capeFlap==0&&fixed.capeLean==0&&fixed.capeLean2==0,"preview cape inherited false movement");
                     capture(mc,"summary-"+scenario+"-animated.png");captured=true;
                 }
-                if(now()-shown>(scenario==3?2400:6100)&&!secondShot) {
-                    if(scenario==3) {screen.onClose();require(mc.gui.screen()==screen,"skip closed before showing final data");}
+                if(now()-shown>(scenario==3||scenario==5?2400:6100)&&!secondShot) {
+                    require((xpSounds>0)==(scenario!=2&&scenario!=3),"XP audio missing or played for zero XP/observer");
+                    if(scenario==5)require(levelSounds==0,"small XP gain invented upgrade sound");
                     capture(mc,"summary-"+scenario+"-complete.png");secondShot=true;
-                    screen.onClose();phase=4;shown=now();return;
+                    click(mc,489,336);
+                    require(mc.gui.screen()==screen&&rosterPage(screen),"mouse Next failed to open second page");
+                    pageSounds=xpSounds+levelSounds;phase=6;shown=now();
+                    pending=verifyStillOpen(mc);return;
                 }
+            }
+            if(phase==6&&now()-shown>350) {
+                var screen=(PostgameSummaryScreen)mc.gui.screen();
+                require(rosterPage(screen)&&pageSounds==xpSounds+levelSounds,"page switch restarted audio");
+                capture(mc,"summary-"+scenario+"-roster-top.png");
+                mc.mouseHandler.onScroll(mc.getWindow().handle(),0,-100);
+                var field=PostgameSummaryScreen.class.getDeclaredField("rosterScroll");field.setAccessible(true);
+                require((field.getDouble(screen)>0)==(scenario==1),"roster scroll bounds wrong");
+                phase=7;shown=now();return;
+            }
+            if(phase==7&&now()-shown>350) {
+                var screen=(PostgameSummaryScreen)mc.gui.screen();
+                capture(mc,"summary-"+scenario+"-roster-bottom.png");
+                click(mc,97,336);require(!rosterPage(screen),"previous page mouse click failed");
+                require(mc.gui.screen()==screen,"previous page acknowledged session");
+                if(scenario==1) {mc.options.guiScale().set(2);mc.resizeGui();}
+                if(scenario==3) screen.keyPressed(new net.minecraft.client.input.KeyEvent(InputConstants.KEY_RETURN,0,0));
+                else click(mc,489,336);
+                require(rosterPage(screen),"next after back/resize failed");
+                phase=8;shown=now();return;
+            }
+            if(phase==8&&now()-shown>350) {
+                require(pageSounds==xpSounds+levelSounds,"sound continued after leaving growth page");
+                var screen=(PostgameSummaryScreen)mc.gui.screen();
+                if(scenario==3) screen.keyPressed(new net.minecraft.client.input.KeyEvent(InputConstants.KEY_RETURN,0,0));
+                else click(mc,489,336);
+                require(mc.gui.screen()!=screen,"mouse Close failed");
+                phase=4;shown=now();return;
             }
             if(phase==4) {
                 if(now()-shown<250)return;
@@ -139,7 +180,7 @@ final class SummaryRegression {
             try {
                 var server=mc.getSingleplayerServer();var player=server.getPlayerList().getPlayer(mc.player.getUUID());
                 for(String tag:List.copyOf(player.entityTags()))player.removeTag(tag);
-                for(String objective:List.of("ggdadv","ready","ggdIndexScore","playerLevel","playerExp","playerExpBank","matchBaseXP","matchFinalXP","matchGooseCoin","xpAnimCap","levelDisp","expDisp","xpAnimLeft","xpAnimStep","xpAnimChunk","summaryResume","summaryConsumes"))
+                for(String objective:List.of("ggdadv","ready","ggdIndexScore","playerLevel","playerExp","playerExpBank","matchBaseXP","matchFinalXP","matchGooseCoin","xpAnimCap","levelDisp","expDisp","xpAnimLeft","xpAnimStep","xpAnimChunk","summaryResume","summaryConsumes","ggdTasksDone"))
                     command(mc,"scoreboard objectives add "+objective+" dummy");
                 command(mc,"scoreboard players set FullBloodDLC ggdadv 1");
                 command(mc,"scoreboard players set @a summaryResume 0");command(mc,"scoreboard players set @a summaryConsumes 0");
@@ -152,6 +193,15 @@ final class SummaryRegression {
                 var roster=new ListTag();var entry=new CompoundTag();UUID id=player.getUUID();
                 entry.putString("set","p1");entry.putString("real_name",player.getGameProfile().name());entry.putString("faction","good");entry.putString("role","goose");
                 entry.put("UUID",new IntArrayTag(new int[]{(int)(id.getMostSignificantBits()>>32),(int)id.getMostSignificantBits(),(int)(id.getLeastSignificantBits()>>32),(int)id.getLeastSignificantBits()}));roster.add(entry);
+                for(int seat=2;seat<=(scenario==1?21:4);seat++) {
+                    var other=new CompoundTag();UUID otherId=new UUID(1234,seat);
+                    other.putString("set","p"+seat);other.putString("real_name","Player_"+seat);
+                    int faction=seat<3?0:seat==3?1:seat==4?2:seat%3;
+                    other.putString("faction",faction==0?"good":faction==1?"evil":"neutral");
+                    other.putString("role",faction==0?"goose":faction==1?"duck":"dodo");
+                    other.put("UUID",new IntArrayTag(new int[]{(int)(otherId.getMostSignificantBits()>>32),(int)otherId.getMostSignificantBits(),(int)(otherId.getLeastSignificantBits()>>32),(int)otherId.getLeastSignificantBits()}));roster.add(other);
+                    command(mc,"scoreboard players set Player_"+seat+" ggdIndexScore "+(seat==4?-672:seat==3?2934:3419));
+                }
                 var stored=new CompoundTag();stored.put("data",roster);server.getCommandStorage().set(Identifier.fromNamespaceAndPath("ggd","role"),stored);
                 var temp=new CompoundTag();temp.putString("end_reveal","good_objective");server.getCommandStorage().set(Identifier.fromNamespaceAndPath("ggd","temp"),temp);
                 command(mc,"kill @e[tag=summaryFixture]");
@@ -163,11 +213,14 @@ final class SummaryRegression {
                 command(mc,"goosetools summary before @a");
                 if(scenario==0){player.addTag("ggd_SMVP");player.addTag("match_xp_smvp");}
                 if(scenario==1){player.addTag("ggd_MVP");player.addTag("match_xp_mvp");}
-                set(mc,"matchBaseXP",100);set(mc,"matchFinalXP",scenario==3?0:130);set(mc,"matchGooseCoin",420);
-                set(mc,"playerLevel",scenario==0?20:scenario==3?10:13);set(mc,"playerExp",scenario==0?20:scenario==3?35:15);
+                set(mc,"ggdTasksDone",7);set(mc,"matchBaseXP",100);set(mc,"matchFinalXP",scenario==3?0:scenario==5?5:130);set(mc,"matchGooseCoin",420);
+                set(mc,"playerLevel",scenario==0?20:scenario==3||scenario==5?10:13);set(mc,"playerExp",scenario==0?20:scenario==3?35:scenario==5?40:15);
                 set(mc,"playerExpBank",scenario==0?70:0);set(mc,"xpAnimCap",scenario==0?20:100);
                 player.addTag("pending_xp_show");
-                command(mc,"goosetools summary capture");command(mc,"goosetools match-result open @a");done.complete(null);
+                command(mc,"goosetools summary capture");command(mc,"goosetools match-result open @a");
+                // Mutate live data after capture: both summary pages must retain the final snapshot.
+                command(mc,"scoreboard players set Player_4 ggdIndexScore 9999");
+                command(mc,"data remove storage ggd:role data");done.complete(null);
             }catch(Throwable error){done.completeExceptionally(error);}
         });return done;
     }
@@ -179,10 +232,30 @@ final class SummaryRegression {
                 require(score(mc,"summaryResume")==1,"close resumed promotion more than once");
                 require(score(mc,"summaryConsumes")== (scenario==2?0:1),"old XP presentation not consumed exactly once");
                 require(score(mc,"matchGooseCoin")==420,"summary mutated coins");
-                require(score(mc,"matchFinalXP")== (scenario==3?0:130),"summary mutated XP");
+                require(score(mc,"matchFinalXP")== (scenario==3?0:scenario==5?5:130),"summary mutated XP");
                 ServerPlayNetworking.send(player,p);done.complete(null);
             }catch(Throwable error){done.completeExceptionally(error);}
         });return done;
+    }
+    private static boolean rosterPage(PostgameSummaryScreen screen) throws Exception {
+        var f=PostgameSummaryScreen.class.getDeclaredField("rosterPage");f.setAccessible(true);return f.getBoolean(screen);
+    }
+    private static void click(Minecraft mc,double logicalX,double logicalY) {
+        var screen=mc.gui.screen();var window=mc.getWindow();
+        double scale=Math.min(screen.width/640.0,screen.height/360.0);
+        double x=((screen.width-640*scale)/2+logicalX*scale)*window.getScreenWidth()/window.getGuiScaledWidth();
+        double y=((screen.height-360*scale)/2+logicalY*scale)*window.getScreenHeight()/window.getGuiScaledHeight();
+        // The first movement can be suppressed after Screen.init; the second must reach the real handler.
+        mc.mouseHandler.onMove(window.handle(),x,y,0,0);mc.mouseHandler.onMove(window.handle(),x,y,0,0);
+        var button=new net.minecraft.client.input.MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT,0);
+        mc.mouseHandler.onButton(window.handle(),button,1);mc.mouseHandler.onButton(window.handle(),button,0);
+    }
+    private static CompletableFuture<Void> verifyStillOpen(Minecraft mc) {
+        var done=new CompletableFuture<Void>();mc.getSingleplayerServer().execute(()->{try {
+            var p=mc.getSingleplayerServer().getPlayerList().getPlayer(mc.player.getUUID());
+            require(p.entityTags().contains("ggdSummaryActive"),"next page prematurely released server session");
+            require(score(mc,"summaryResume")==0,"next page resumed promotion");done.complete(null);
+        } catch(Throwable e){done.completeExceptionally(e);}});return done;
     }
     private static int score(Minecraft mc,String objective){var server=mc.getSingleplayerServer();var player=server.getPlayerList().getPlayer(mc.player.getUUID());return server.getScoreboard().getPlayerScoreInfo(player,server.getScoreboard().getObjective(objective)).value();}
     private static void set(Minecraft mc,String objective,int value){command(mc,"scoreboard players set @a "+objective+" "+value);}

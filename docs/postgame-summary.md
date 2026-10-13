@@ -1,10 +1,16 @@
-# Postgame summary (Alpha0.63)
+# Postgame summary (Alpha0.64)
 
-FullBloodDLC=1 opens a single summary as soon as the faction result's one-second fade reaches black. Lobby cleanup proceeds behind the screen. A SMVP takes precedence over all MVPs; otherwise the highest-index MVP is selected, breaking ties by room seat. With no award, the highest-index participant is selected using the same tie-break. The entire room sees the same spotlight. Observers receive no personal rewards.
+FullBloodDLC=1 opens a two-page summary as soon as the faction result's one-second fade reaches black. Lobby cleanup proceeds behind the screen. A SMVP takes precedence over all MVPs; otherwise the highest-index MVP is selected, breaking ties by room seat. With no award, the highest-index participant is selected using the same tie-break. The entire room sees the same spotlight. Observers receive no personal rewards.
 
 The left stage uses the frozen result roster's true skin, skin overlays and clothing, including dead award winners. The right side uses only the recipient's already-paid reward snapshot. Level animation supports several levels, capped XP bank rollover and exact final values. The server remains the sole reward authority: opening, skipping, closing, reconnecting or duplicating packets never grants XP or currency.
 
-Choose a persistent wave or dance from the client settings' Victory celebration button or `/goosetools-actions` while in the lobby. The server saves the self-only choice with `ggdVictoryDance`. The summary first skips on Escape/Enter/Space or the button, then closes on the next action. Closing resumes deferred trust promotion. A disconnected active session clears its presentation guard and resumes promotion on rejoin.
+Choose a persistent wave or dance from the client settings' Victory celebration button or `/goosetools-actions` while in the lobby. The server saves the self-only choice with `ggdVictoryDance`. The first page has a native Next page button; it completes the personal animation and opens the roster in the same screen/session. The second page has Previous page and Close buttons. Escape closes immediately, and Tab/Enter/Space use native button navigation. Closing resumes deferred trust promotion; page changes do not acknowledge or release the session. A disconnected active session clears its presentation guard and resumes promotion on rejoin.
+
+## Roster and sound
+
+The second page groups players by their saved true faction and room seat, with skin heads, roles, signed indices and the existing resource-pack grade and award glyphs. A clipped scroll region supports 21 players while keeping navigation and the personal task count visible. Long names and role labels fit within fixed table columns. Minecraft 26.3 uses SDL mouse/button constants: the old left-button `0` and Enter `257` checks never matched normal input. Footer buttons now use registered widgets whose actual screen-space bounds also drive rendering, so GUI scaling and resize preserve hit testing and native keyboard navigation.
+
+XP growth plays a quiet vanilla experience-orb sound every 0.18 seconds with gradually rising pitch. Level-up uses the existing vanilla upgrade sound. Observers and zero-XP results are silent; opening the roster, closing or receiving cancellation stops this screen’s sound instances. Returning to the first page shows final values without replaying XP or sound.
 
 ## Animation isolation and clipping
 
@@ -32,14 +38,15 @@ Then apply `datapack/postgame-summary-alpha63.patch`: DLC returns after the one-
 
 The new `lobby:level/summary_consume_xp` function consumes only the legacy presentation flags and synchronizes the vanilla XP bar. It preserves achievement/reward chat and performs no reward grants. Only a server display packet may replace the blackout; an early packet waits until the fade is fully black, then starts the summary immediately. Forced stop and non-DLC cancel the queue. Server sessions expire after 120 seconds; client round IDs reject duplicate displays.
 
-New additive channels: `summary_s2c_v1` and `summary_close_v1`. Protocol remains 33; existing exact-version handshake requires Alpha0.63 on both sides. GooseThings is unchanged.
+The extended summary uses `summary_s2c_v2`, with the existing `summary_close_v1` acknowledgement. Protocol is 34; both sides require Alpha0.64. The full immutable roster includes all saved participants (including offline players), true faction, score, role, name and award, plus the recipient’s task count. Capture precedes lobby cleanup. The roster is bounded to 21 unique UUIDs and scores remain signed. GooseThings and the Alpha0.63 datapack hooks are unchanged.
 
 ## Verification
 
-- Full Gradle build: 4,452 tests, zero failures/errors; unit coverage includes award priority/ties, multi-level XP, capped bank rollover and outward arm trajectories.
-- Isolated real Minecraft client/server test: actual packets, snapshot capture, black-screen handoff, preserved clothing for dead SMVP, wave/dance, observers, zero XP, skip/close, duplicate messages, forced cancellation and non-DLC. GUI scales 2/3; SkinLayers3D 1.11.3 loaded. 48 GPU screenshots, including 20 sequential frames per action, reviewed for skin/chestplate alignment.
-- Alpha0.63's isolated client test additionally sends the display packet early: the result fades all the way to black and the summary appears within the following tick, without a world frame. The late cleanup open cannot restart it. A visible cape fixture retains its texture with all three motion values zeroed.
-- Dedicated server reached `Done` and shut down normally with Alpha0.63/protocol 33. No client-class loading error. Existing Windows performance-counter diagnostics remain unrelated.
-- Changed datapack macro lines and JSON/translations validated. Full gameplay in the user's live map has not been replayed; verification used an isolated world.
+- Alpha0.64 full Gradle unit suite: 4,454 tests, zero failures/errors, covering award priority/ties, multi-level and capped XP, pose isolation, roster immutability, duplicate identities, signed scores and room limits.
+- Isolated Minecraft client/server regression: actual v2 packets, early black-screen handoff, clothing/cape preservation, wave/dance, observer/zero XP, normal/forced-stop/non-DLC cleanup and duplicate acknowledgement. 60 GPU screenshots; GUI scales 2/3 and resize; SkinLayers3D 1.11.3 loaded.
+- Clicks pass through the real Minecraft MouseHandler using current SDL constants, covering Next, Previous, Close and keyboard confirmation. Returning from Previous restores focus to the visible Next button. Neither page changes nor duplicate packets grant rewards or prematurely release deferred promotion.
+- Four-player and full 21-player rosters include every faction and offline participants; changing scores and clearing identity storage after capture does not change the received results. Top/bottom screenshots confirm clipping, scroll bounds and fixed footer controls.
+- SoundManager listeners observe actual vanilla XP sound events, including a small gain without leveling. Observers and zero-XP summaries remain silent; early page changes stop growth sounds and returning does not replay them.
+- Dedicated server reached `Done` with Alpha0.64/protocol 34 and shut down normally. No client-class loading error. Verification uses an isolated world, not a replay of the user's live match.
 
 Original artwork and the successful local ComfyUI PerfectPixel workflow are under `art/summary/`. The runtime atlas retains transparency and a discrete pixel grid.

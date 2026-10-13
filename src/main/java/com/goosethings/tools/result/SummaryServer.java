@@ -1,6 +1,9 @@
 package com.goosethings.tools.result;
 
 import com.goosethings.tools.network.MandatoryHandshake;
+import com.goosethings.tools.intro.RoleIntroCatalog;
+import com.goosethings.tools.intro.PresentationAppearance;
+import net.minecraft.resources.Identifier;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -99,10 +102,29 @@ public final class SummaryServer {
         MatchResultPayload result=MatchResultServer.snapshot();
         if(!dlc(server)||round==null||result==null||!PENDING.isEmpty()) return 0;
         List<SummaryPolicy.Candidate> candidates=new ArrayList<>();
+        var rows=new ArrayList<SummaryRoster.Entry>();
+        var saved=server.getCommandStorage().get(Identifier.fromNamespaceAndPath("ggd","role")).getListOrEmpty("data");
         for(var appearance:result.roster()) {
-            var player=server.getPlayerList().getPlayer(appearance.id()); if(player==null) continue;
-            int award=player.entityTags().contains("ggd_SMVP")?2:player.entityTags().contains("ggd_MVP")?1:0;
-            candidates.add(new SummaryPolicy.Candidate(appearance.id(),award,score(player,"ggdIndexScore"),appearance.serial()));
+            var player=server.getPlayerList().getPlayer(appearance.id());
+            String seat="p"+appearance.serial();
+            int faction=Math.clamp(RoleIntroCatalog.byTag(appearance.role()).faction(),0,2);
+            for(int i=0;i<saved.size();i++) {
+                var entry=saved.getCompoundOrEmpty(i);
+                var parts=entry.getIntArray("UUID").orElse(new int[0]);
+                if(parts.length!=4) continue;
+                var id=new UUID((long)parts[0]<<32|parts[1]&0xffffffffL,(long)parts[2]<<32|parts[3]&0xffffffffL);
+                if(!id.equals(appearance.id())) continue;
+                seat=entry.getStringOr("set",seat);
+                faction=switch(entry.getStringOr("faction","")) {case "good"->0;case "evil"->1;case "neutral"->2;default->faction;};
+                break;
+            }
+            var clone=PresentationAppearance.source(server,player,seat);
+            var tags=player!=null?player.entityTags():clone!=null?clone.entityTags():Set.<String>of();
+            int award=tags.contains("ggd_SMVP")?2:tags.contains("ggd_MVP")?1:0;
+            int index=score(server,"ggdIndexScore",player!=null?player:ScoreHolder.forNameOnly(appearance.name()));
+            candidates.add(new SummaryPolicy.Candidate(appearance.id(),award,index,appearance.serial()));
+            rows.add(new SummaryRoster.Entry(appearance.id(),appearance.name(),appearance.role(),faction,
+                    appearance.serial(),appearance.rgb(),appearance.lover(),index,award));
         }
         var chosen=SummaryPolicy.spotlight(candidates);
         if(chosen==null) return 0;
@@ -123,7 +145,7 @@ public final class SummaryServer {
                     participating&&viewer.entityTags().contains("match_xp_death")?25:0,participating?Math.max(0,score(viewer,"matchFinalXP")):0,
                     participating?Math.max(0,score(viewer,"matchGooseCoin")):0,from,participating?start.xp:Math.max(0,score(viewer,"playerExp")),
                     to,Math.max(0,score(viewer,"playerExp")),Math.clamp(score(viewer,"xpAnimCap"),0,10000),
-                    participating?Math.max(0,score(viewer,"playerExpBank")-start.bank):0,thresholds);
+                    participating?Math.max(0,score(viewer,"playerExpBank")-start.bank):0,thresholds,new SummaryRoster(rows,Math.max(0,score(viewer,"ggdTasksDone"))));
             PENDING.put(viewer.getUUID(),data);
             if(MandatoryHandshake.isVerified(viewer)&&ServerPlayNetworking.canSend(viewer,SummaryPayload.TYPE)) ServerPlayNetworking.send(viewer,data);
         }

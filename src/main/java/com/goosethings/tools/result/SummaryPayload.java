@@ -12,12 +12,12 @@ import java.util.UUID;
 public record SummaryPayload(boolean open, UUID round, MatchResultPayload appearance, int award, int action,
         int spotlightIndex, boolean participant, int baseXp, int bonusPercent, int deathPercent,
         int gainedXp, int coins, int startLevel, int startXp, int endLevel, int endXp,
-        int cap, int bankGain, List<Integer> thresholds) implements CustomPacketPayload {
-    public static final Type<SummaryPayload> TYPE = new Type<>(Identifier.fromNamespaceAndPath("goosetools", "summary_s2c_v1"));
+        int cap, int bankGain, List<Integer> thresholds, SummaryRoster scoreboard) implements CustomPacketPayload {
+    public static final Type<SummaryPayload> TYPE = new Type<>(Identifier.fromNamespaceAndPath("goosetools", "summary_s2c_v2"));
     public static final StreamCodec<RegistryFriendlyByteBuf, SummaryPayload> CODEC = StreamCodec.of(SummaryPayload::write, SummaryPayload::read);
     public SummaryPayload {
         thresholds = List.copyOf(thresholds);
-        if (round == null || appearance == null || !appearance.active() || appearance.roster().size()!=1
+        if (scoreboard == null || round == null || appearance == null || !appearance.active() || appearance.roster().size()!=1
                 || award<0 || award>2 || action<0 || action>1 || baseXp<0 || gainedXp<0 || coins<0
                 || bonusPercent<0 || bonusPercent>30 || deathPercent<0 || deathPercent>25
                 || startLevel<0 || endLevel<startLevel || endLevel>10000 || startXp<0 || endXp<0
@@ -31,6 +31,12 @@ public record SummaryPayload(boolean open, UUID round, MatchResultPayload appear
         for (int n : new int[]{p.baseXp,p.bonusPercent,p.deathPercent,p.gainedXp,p.coins,p.startLevel,p.startXp,
                 p.endLevel,p.endXp,p.cap,p.bankGain}) b.writeVarInt(n);
         b.writeVarInt(p.thresholds.size()); for (int n:p.thresholds) b.writeVarInt(n);
+        b.writeVarInt(p.scoreboard.tasksDone()); b.writeVarInt(p.scoreboard.players().size());
+        for (var row:p.scoreboard.players()) {
+            b.writeUUID(row.id()); b.writeUtf(row.name(),64); b.writeUtf(row.role(),64);
+            b.writeVarInt(row.faction()); b.writeVarInt(row.serial()); b.writeInt(row.rgb());
+            b.writeBoolean(row.lover()); b.writeInt(row.index()); b.writeVarInt(row.award());
+        }
     }
     private static SummaryPayload read(RegistryFriendlyByteBuf b) {
         boolean open=b.readBoolean();
@@ -39,11 +45,16 @@ public record SummaryPayload(boolean open, UUID round, MatchResultPayload appear
         int[] n=new int[11]; for(int i=0;i<n.length;i++) n[i]=b.readVarInt();
         int count=b.readVarInt(); if(count<1||count>10001) throw new IllegalArgumentException("Too many summary levels");
         List<Integer> thresholds=new ArrayList<>(); for(int i=0;i<count;i++) thresholds.add(b.readVarInt());
-        return new SummaryPayload(open,round,appearance,award,action,index,participant,n[0],n[1],n[2],n[3],n[4],n[5],n[6],n[7],n[8],n[9],n[10],thresholds);
+        int tasks=b.readVarInt(), players=b.readVarInt();
+        if(players<1||players>21) throw new IllegalArgumentException("Too many summary players");
+        var rows=new ArrayList<SummaryRoster.Entry>();
+        for(int i=0;i<players;i++) rows.add(new SummaryRoster.Entry(b.readUUID(),b.readUtf(64),b.readUtf(64),
+                b.readVarInt(),b.readVarInt(),b.readInt(),b.readBoolean(),b.readInt(),b.readVarInt()));
+        return new SummaryPayload(open,round,appearance,award,action,index,participant,n[0],n[1],n[2],n[3],n[4],n[5],n[6],n[7],n[8],n[9],n[10],thresholds,new SummaryRoster(rows,tasks));
     }
     public SummaryPayload forDisplay() {
         return new SummaryPayload(true,round,appearance,award,action,spotlightIndex,participant,baseXp,bonusPercent,deathPercent,
-                gainedXp,coins,startLevel,startXp,endLevel,endXp,cap,bankGain,thresholds);
+                gainedXp,coins,startLevel,startXp,endLevel,endXp,cap,bankGain,thresholds,scoreboard);
     }
     @Override public Type<SummaryPayload> type() { return TYPE; }
 }

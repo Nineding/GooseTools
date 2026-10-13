@@ -12,8 +12,9 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.PlayerFaceExtractor;
 import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.client.resources.DefaultPlayerSkin;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
@@ -42,6 +43,10 @@ public final class PostgameSummaryScreen extends Screen implements ProtectedInpu
     private boolean skipped,acknowledged;
     private int soundedLevel;
     private float levelFlash;
+    private boolean rosterPage;
+    private double rosterScroll, nextXpSound;
+    private SimpleSoundInstance xpSound, levelSound;
+    private Button advanceButton, backButton;
     public PostgameSummaryScreen(SummaryPayload payload) {
         super(tr("title","Match summary")); this.payload=payload; soundedLevel=payload.startLevel();
     }
@@ -81,38 +86,79 @@ public final class PostgameSummaryScreen extends Screen implements ProtectedInpu
     private float oy() {return (height-360*scale())*.5F;}
     private static Component tr(String key,String fallback,Object...args) {return Component.translatableWithFallback("summary.goosetools."+key,fallback,args);}
     @Override public boolean isPauseScreen() {return false;}
+    @Override protected void init() {
+        // Real widgets own their visible bounds, focus, narration and click handling.
+        advanceButton=addRenderableWidget(new FooterButton(382,214,tr("next","Next page"),b->{
+            if(rosterPage) onClose(); else setRosterPage(true);
+        }));
+        backButton=addRenderableWidget(new FooterButton(42,110,tr("previous","Previous page"),b->setRosterPage(false)));
+        updateButtons();
+        setInitialFocus(advanceButton);
+    }
+    private void setRosterPage(boolean value) {
+        skipped=true; rosterPage=value; stopGrowthSounds();
+        soundedLevel=payload.endLevel(); updateButtons(); setFocused(advanceButton);
+    }
+    private void updateButtons() {
+        advanceButton.setMessage(rosterPage?tr("close","Close"):tr("next","Next page"));
+        backButton.visible=rosterPage;
+    }
     @Override public void tick() {
         if(minecraft.player==null||minecraft.level==null) {minecraft.gui.setScreen(null);return;}
-        var state=SummaryProgress.at(payload,progress());
-        if(state.level()>soundedLevel) {
-            soundedLevel=state.level();levelFlash=1;
-            minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.PLAYER_LEVELUP,1.2F,.45F));
+        double fraction=progress();
+        var state=SummaryProgress.at(payload,fraction);
+        if(!skipped&&!rosterPage&&payload.participant()&&payload.gainedXp()>0) {
+            if(state.level()>soundedLevel) {
+                soundedLevel=state.level();levelFlash=1;
+                if(levelSound!=null) minecraft.getSoundManager().stop(levelSound);
+                levelSound=SimpleSoundInstance.forUI(SoundEvents.PLAYER_LEVELUP,1.2F,.4F);
+                minecraft.getSoundManager().play(levelSound);
+                nextXpSound=seconds()+.24;
+            } else if(fraction>0&&fraction<1&&seconds()>=nextXpSound) {
+                if(xpSound!=null) minecraft.getSoundManager().stop(xpSound);
+                xpSound=SimpleSoundInstance.forUI(SoundEvents.EXPERIENCE_ORB_PICKUP,.85F+(float)fraction*.55F,.16F);
+                minecraft.getSoundManager().play(xpSound);
+                nextXpSound=seconds()+.18;
+            }
         }
         levelFlash=Math.max(0,levelFlash-.065F);
     }
+    private void stopGrowthSounds() {
+        if(xpSound!=null) {minecraft.getSoundManager().stop(xpSound);xpSound=null;}
+        if(levelSound!=null) {minecraft.getSoundManager().stop(levelSound);levelSound=null;}
+    }
     @Override public void onClose() {
-        if(progress()<1) {skipped=true;return;}
-        acknowledge(); minecraft.gui.setScreen(null);
+        stopGrowthSounds(); acknowledge(); minecraft.gui.setScreen(null);
     }
     private void acknowledge() {
         if(!acknowledged&&minecraft.getConnection()!=null&&ClientPlayNetworking.canSend(SummaryControlPayload.TYPE))
             ClientPlayNetworking.send(new SummaryControlPayload(payload.round()));
         acknowledged=true;
     }
-    @Override public void removed() {acknowledge();model=null;}
-    @Override public boolean mouseClicked(MouseButtonEvent e,boolean twice) {
-        float s=scale();double x=(e.x()-ox())/s,y=(e.y()-oy())/s;
-        if(e.button()==0&&x>=382&&x<=596&&y>=325&&y<=347) {onClose();return true;}
-        return super.mouseClicked(e,twice);
+    @Override public void removed() {stopGrowthSounds();acknowledge();model=null;}
+    @Override public boolean mouseClicked(MouseButtonEvent event,boolean twice) {
+        boolean previous=rosterPage,handled=super.mouseClicked(event,twice);
+        // The container assigns focus after invoking the button callback. Do not leave it
+        // on the now-hidden Previous button after returning to personal growth.
+        if(previous!=rosterPage) setFocused(advanceButton);
+        return handled;
     }
-    @Override public boolean keyPressed(KeyEvent e) {
-        if(e.key()==257||e.key()==32) {onClose();return true;}
-        return super.keyPressed(e);
+    @Override public boolean mouseScrolled(double x,double y,double horizontal,double vertical) {
+        if(rosterPage) {rosterScroll=Math.clamp(rosterScroll-vertical*26,0,maxRosterScroll());return true;}
+        return super.mouseScrolled(x,y,horizontal,vertical);
+    }
+    private double maxRosterScroll() {
+        long groups=payload.scoreboard().players().stream().map(SummaryRoster.Entry::faction).distinct().count();
+        return Math.max(0,payload.scoreboard().players().size()*26+groups*20-188);
     }
     @Override public void extractRenderState(GuiGraphicsExtractor g,int mouseX,int mouseY,float partial) {
         double time=seconds(); float s=scale(),x0=ox(),y0=oy();
         g.fillGradient(0,0,width,height,0xFF111C30,0xFF050A14);
         g.pose().pushMatrix();g.pose().translate(x0,y0);g.pose().scale(s,s);
+        if(rosterPage) {
+            drawRoster(g); g.pose().popMatrix();
+            super.extractRenderState(g,mouseX,mouseY,partial); return;
+        }
         // Restrained stage beams and inset panels leave the model as the focal point.
         for(int i=0;i<24;i++) {
             int w=34+i*8,top=72+i*7;
@@ -139,18 +185,78 @@ public final class PostgameSummaryScreen extends Screen implements ProtectedInpu
         MeetingNameTagHud.drawFrozen(g,minecraft,hero.name(),hero.rgb(),hero.serial(),hero.lover(),171,283,1.05F,242);
         var role=RoleIntroCatalog.byTag(hero.role());
         centered(g,Component.translatableWithFallback(role.key(),role.fallback()),171,299,.85F,0xFF000000|role.color());
-        char grade=switch(SummaryPolicy.grade(payload.spotlightIndex())) {
-            case "F" -> '\uE06A'; case "D" -> '\uE06B'; case "C" -> '\uE06C'; case "N" -> '\uE06D';
-            case "A" -> '\uE06E'; case "S" -> '\uE06F'; case "S+" -> '\uE061'; default -> '\uE062';
-        };
-        centered(g,tr("index","Index %s  ·  %s",payload.spotlightIndex(),symbol(grade)),171,316,.95F,0xFF91A7BD);
+        centered(g,tr("index","Index %s  ·  %s",payload.spotlightIndex(),gradeSymbol(payload.spotlightIndex())),171,316,.95F,0xFF91A7BD);
         drawGrowth(g);
-        boolean hover=mouseX>=x0+382*s&&mouseX<=x0+596*s&&mouseY>=y0+325*s&&mouseY<=y0+347*s;
-        g.fill(382,325,596,347,hover?0xFF36546C:0xFF233B50);g.outline(382,325,214,22,0xFF587488);
-        centered(g,progress()<1?tr("skip","Skip animation"):tr("return","Return to lobby"),489,332,.9F,0xFFE8F0F8);
         g.pose().popMatrix();
+        super.extractRenderState(g,mouseX,mouseY,partial);
         float opacity=(float)Math.max(0,1-time/.5);
         if(opacity>0) {g.nextStratum();g.fill(0,0,width,height,Math.round(opacity*255)<<24);}
+    }
+    private void drawRoster(GuiGraphicsExtractor g) {
+        label(g,tr("roster","All players' index"),42,27,1.65F,0xFFF7E8BD);
+        label(g,tr("page","%s / %s",2,2),555,33,.9F,0xFF91A7BD);
+        g.horizontalLine(42,597,65,0x405C718B);
+        g.fill(42,75,598,294,0x78101A2B);
+        label(g,tr("player","Player"),78,82,.85F,0xFF91A7BD);
+        label(g,tr("role","Role"),299,82,.85F,0xFF91A7BD);
+        label(g,tr("index_header","Goose Duck index"),430,82,.85F,0xFF91A7BD);
+        label(g,tr("grade","Grade"),523,82,.85F,0xFF91A7BD);
+        g.enableScissor(44,102,589,290);
+        int y=102-(int)rosterScroll,previous=-1;
+        for(var player:payload.scoreboard().players()) {
+            if(player.faction()!=previous) {
+                previous=player.faction();
+                int color=switch(previous) {case 0->0xFF7BEAA6;case 1->0xFFFF848A;default->0xFFF3D878;};
+                String key=switch(previous) {case 0->"geese";case 1->"ducks";default->"birds";};
+                String fallback=switch(previous) {case 0->"Geese";case 1->"Ducks";default->"Birds";};
+                g.fill(47,y,587,y+18,0x55192B3F);g.fill(47,y,49,y+18,color);
+                label(g,tr(key,fallback),56,y+5,.9F,color);y+=20;
+            }
+            if(y+26>102&&y<290) {
+                var skin=MeetingAlertTrueSkinCache.get(player.id());
+                if(skin==null) {
+                    var info=minecraft.getConnection()==null?null:minecraft.getConnection().getPlayerInfo(player.id());
+                    skin=info==null?DefaultPlayerSkin.get(player.id()):info.getSkin();
+                }
+                PlayerFaceExtractor.extractRenderState(g,skin,56,y+4,16);
+                Component name=Component.literal(player.name());
+                label(g,name,80,y+8,Math.min(.95F,204F/Math.max(1,font.width(name))),0xFF000000|(player.lover()?0xFFB6D7:player.rgb()));
+                var role=RoleIntroCatalog.byTag(player.role());
+                Component roleName=Component.translatableWithFallback(role.key(),role.fallback());
+                label(g,roleName,299,y+8,Math.min(.85F,122F/Math.max(1,font.width(roleName))),0xFF000000|role.color());
+                label(g,Component.literal(Integer.toString(player.index())),442,y+8,.95F,0xFF79E4C1);
+                centered(g,gradeSymbol(player.index()),537,y+8,1.35F,0xFFFFFFFF);
+                if(player.award()>0) centered(g,symbol(player.award()==2?'\uE063':'\uE064'),575,y+9,.8F,0xFFFFFFFF);
+                g.horizontalLine(55,584,y+25,0x18394E65);
+            }
+            y+=26;
+        }
+        g.disableScissor();
+        double max=maxRosterScroll();
+        if(max>0) {
+            int thumb=Math.max(18,(int)(188*188/(max+188)));
+            int top=102+(int)(rosterScroll/max*(188-thumb));
+            g.fill(592,102,595,290,0xFF1C3043);g.fill(592,top,595,top+thumb,0xFF8FB7CA);
+        }
+        label(g,tr("tasks","Tasks completed this round: %s",payload.scoreboard().tasksDone()),43,304,.9F,0xFFB0C0CE);
+        if(max>0) label(g,tr("scroll","Scroll to view all players"),434,304,.8F,0xFF91A7BD);
+    }
+    private static Component gradeSymbol(int index) {
+        return symbol(switch(SummaryPolicy.grade(index)) {
+            case "F" -> '\uE06A'; case "D" -> '\uE06B'; case "C" -> '\uE06C'; case "N" -> '\uE06D';
+            case "A" -> '\uE06E'; case "S" -> '\uE06F'; case "S+" -> '\uE061'; default -> '\uE062';
+        });
+    }
+    private final class FooterButton extends Button {
+        FooterButton(int x,int w,Component message,OnPress press) {
+            super(Math.round(ox()+x*scale()),Math.round(oy()+325*scale()),Math.round(w*scale()),
+                    Math.round(22*scale()),message,press,DEFAULT_NARRATION);
+        }
+        @Override protected void extractContents(GuiGraphicsExtractor g,int mouseX,int mouseY,float partial) {
+            g.fill(getX(),getY(),getRight(),getBottom(),isHoveredOrFocused()?0xFF36546C:0xFF233B50);
+            g.outline(getX(),getY(),getWidth(),getHeight(),isHoveredOrFocused()?0xFFE9D9B0:0xFF587488);
+            centered(g,getMessage(),getX()+getWidth()/2F,getY()+7*scale(),.9F*scale(),0xFFE8F0F8);
+        }
     }
     private void drawGrowth(GuiGraphicsExtractor g) {
         label(g,tr("growth","Your growth"),336,82,.95F,0xFFD3E4EF);
@@ -176,7 +282,7 @@ public final class PostgameSummaryScreen extends Screen implements ProtectedInpu
         double t=skipped?99:seconds();
         row(g,t,.6,217,tr("base","Base XP"),Component.literal("+"+payload.baseXp()),0xFFB4C9DA);
         row(g,t,.8,234,tr("bonus","Award bonus"),Component.literal("+"+payload.bonusPercent()+"%"),0xFFEACD86);
-        row(g,t,1,251,tr("death","Death adjustment"),Component.literal("−"+payload.deathPercent()+"%"),payload.deathPercent()>0?0xFFDB999F:0xFF71869B);
+        row(g,t,1,251,tr("death","Death deduction"),Component.literal("−"+payload.deathPercent()+"%"),payload.deathPercent()>0?0xFFDB999F:0xFF71869B);
         row(g,t,1.2,272,tr("total","XP earned"),Component.literal("+"+payload.gainedXp()+" XP"),0xFF8FF3D5);
         label(g,symbol('\uE082'),337,291,1.8F,0xFFFFFFFF);
         row(g,t,1.4,295,tr("coins","Goose coins"),Component.literal("+"+payload.coins()),0xFFFFD37C,359);
