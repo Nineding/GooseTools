@@ -66,15 +66,31 @@ public final class MatchResultScreen extends Screen implements ProtectedInputScr
         String fallback = theme == 0 ? "Goose Victory" : theme == 1 ? "Duck Victory"
                 : theme == 3 ? "Lover Victory" : payload.outcome().substring(0, 1).toUpperCase()+payload.outcome().substring(1)+" Victory";
         Component title = Component.translatableWithFallback(MatchResultPolicy.victoryKey(payload.outcome()), fallback);
-        int color = theme == 0 ? 0xFFFFFFFF : theme == 1 ? 0xFFFF9898 : theme == 3 ? 0xFFFFB6D7 : 0xFFFFFF9B;
+        int color = theme == 0 ? 0xFF5EFF36 : theme == 1 ? 0xFFFF9898 : theme == 3 ? 0xFFFFB6D7 : 0xFFFFFF9B;
         centered(g, title, width*.5F, height*.305F, Math.min(4.8F*ui(), width*.9F/Math.max(1, font.width(title))), color);
         Component reason = Component.translatableWithFallback(MatchResultPolicy.reasonKey(payload.outcome()), "");
-        centered(g, reason, width*.5F, height*.425F, Math.min(ui(), width*.9F/Math.max(1, font.width(reason))), 0xFFE8E8E8);
+        drawReason(g, reason);
         drawGroup(g, winners, height*.53F, height*.96F, height*.175F, 10);
         float cover = com.goosethings.tools.intro.PresentationTransition.resultCoverOpacity(System.nanoTime()-started);
         if (cover > 0) {
             g.nextStratum();
             g.fill(0, 0, width, height, Math.round(cover*255) << 24);
+        }
+    }
+    private void drawReason(GuiGraphicsExtractor g, Component reason) {
+        float scale = 1.6F*ui();
+        var lines = font.split(reason, Math.max(1, (int)(width*.96F/scale)));
+        for (int attempt=0; lines.size() > 2 && attempt<12; attempt++) {
+            scale *= .9F;
+            lines = font.split(reason, Math.max(1, (int)(width*.96F/scale)));
+        }
+        for (int i=0; i<lines.size(); i++) {
+            var line = lines.get(i);
+            g.pose().pushMatrix();
+            g.pose().translate(width*.5F, height*.425F+i*11*scale);
+            g.pose().scale(scale, scale);
+            g.text(font, line, -font.width(line)/2, 0, 0xFFE8E8E8, true);
+            g.pose().popMatrix();
         }
     }
     private void drawGroup(GuiGraphicsExtractor g, List<MatchResultPayload.Player> group, float top, float bottom, float maxScale, int maxColumns) {
