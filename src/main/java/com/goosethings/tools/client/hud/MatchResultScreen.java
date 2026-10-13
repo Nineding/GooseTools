@@ -71,6 +71,11 @@ public final class MatchResultScreen extends Screen implements ProtectedInputScr
         Component reason = Component.translatableWithFallback(MatchResultPolicy.reasonKey(payload.outcome()), "");
         centered(g, reason, width*.5F, height*.425F, Math.min(ui(), width*.9F/Math.max(1, font.width(reason))), 0xFFE8E8E8);
         drawGroup(g, winners, height*.53F, height*.96F, height*.175F, 10);
+        float cover = com.goosethings.tools.intro.PresentationTransition.resultCoverOpacity(System.nanoTime()-started);
+        if (cover > 0) {
+            g.nextStratum();
+            g.fill(0, 0, width, height, Math.round(cover*255) << 24);
+        }
     }
     private void drawGroup(GuiGraphicsExtractor g, List<MatchResultPayload.Player> group, float top, float bottom, float maxScale, int maxColumns) {
         if (group.isEmpty() || minecraft.level == null) return;

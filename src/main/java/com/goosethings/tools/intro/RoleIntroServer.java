@@ -39,7 +39,9 @@ public final class RoleIntroServer {
                 .then(Commands.literal("close").then(Commands.argument("players", EntityArgument.players())
                         .executes(context -> close(EntityArgument.getPlayers(context, "players")))))
                 .then(Commands.literal("transition").then(Commands.argument("players", EntityArgument.players())
-                        .executes(context -> transition(context.getSource().getServer(), EntityArgument.getPlayers(context, "players")))));
+                        .executes(context -> transition(context.getSource().getServer(), EntityArgument.getPlayers(context, "players"), false))))
+                .then(Commands.literal("fade").then(Commands.argument("players", EntityArgument.players())
+                        .executes(context -> transition(context.getSource().getServer(), EntityArgument.getPlayers(context, "players"), true))));
     }
 
     private static int open(MinecraftServer server, Collection<ServerPlayer> viewers) {
@@ -120,9 +122,14 @@ public final class RoleIntroServer {
         for (ServerPlayer viewer : viewers) { ACTIVE.remove(viewer.getUUID()); sendClose(viewer); }
         return viewers.size();
     }
-    private static int transition(MinecraftServer server, Collection<ServerPlayer> viewers) {
+    private static int transition(MinecraftServer server, Collection<ServerPlayer> viewers, boolean ending) {
         if (score(server, "ggdadv", ScoreHolder.forNameOnly("FullBloodDLC")) != 1) return close(viewers);
-        for (ServerPlayer viewer : viewers) { ACTIVE.remove(viewer.getUUID()); sendBlackout(viewer); }
+        for (ServerPlayer viewer : viewers) {
+            ACTIVE.remove(viewer.getUUID());
+            if (ending && MandatoryHandshake.isVerified(viewer) && ServerPlayNetworking.canSend(viewer, PresentationFadePayload.TYPE))
+                ServerPlayNetworking.send(viewer, new PresentationFadePayload(true));
+            else if (!ending) sendBlackout(viewer);
+        }
         return viewers.size();
     }
     private static void sendBlackout(ServerPlayer player) {

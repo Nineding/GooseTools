@@ -49,6 +49,8 @@ public final class ClientHandshake {
                 context.client().execute(() -> com.goosethings.tools.client.hud.RoleIntroScreen.apply(payload)));
         ClientPlayNetworking.registerGlobalReceiver(com.goosethings.tools.intro.PresentationBlackoutPayload.TYPE, (payload, context) ->
                 context.client().execute(() -> com.goosethings.tools.client.hud.PresentationBlackoutScreen.apply(payload.active())));
+        ClientPlayNetworking.registerGlobalReceiver(com.goosethings.tools.intro.PresentationFadePayload.TYPE, (payload, context) ->
+                context.client().execute(() -> com.goosethings.tools.client.hud.PresentationBlackoutScreen.apply(payload.active(), true)));
         ClientPlayNetworking.registerGlobalReceiver(com.goosethings.tools.result.MatchResultPayload.TYPE, (payload, context) ->
                 context.client().execute(() -> com.goosethings.tools.client.hud.MatchResultScreen.apply(payload)));
         ClientPlayNetworking.registerGlobalReceiver(GooseToolsPayloads.VisionStateS2C.TYPE, (payload, context) ->

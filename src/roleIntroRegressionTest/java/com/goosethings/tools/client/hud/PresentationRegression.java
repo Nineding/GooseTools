@@ -32,8 +32,10 @@ import java.util.concurrent.CompletableFuture;
 /** One focused real client checks network snapshots, wardrobe, opaque handoff and result rendering. */
 final class PresentationRegression {
     private boolean world, requested, captured, finished, blackout;
+    private boolean infoShot, fadeSent, fadeBlackShot, fadeResult;
     private int warmup, scenario, shots;
     private long since;
+    private long fadeSince;
     private CompletableFuture<Void> pending;
     private static long now() { return System.nanoTime()/1_000_000; }
     void tick(Minecraft mc) {
@@ -50,12 +52,13 @@ final class PresentationRegression {
             }
             if(mc.player==null||mc.level==null||mc.getSingleplayerServer()==null||!mc.player.connection.hasClientLoaded()||++warmup<40)return;
             if(pending!=null) { if(!pending.isDone())return; pending.join();pending=null; }
-            if(scenario==7) { require(shots==7,"screenshots incomplete");finish(mc,"PASS real network wardrobe/head snapshots; seven-second intro -> opaque black -> server reveal; 21-player Duck/Goose and neutral/Lover results; dead winners head+coat only; frozen color/serial/outfit; non-DLC gate and cleanup; seven GPU screenshots");return; }
+            if(scenario==8) { require(shots==9,"screenshots incomplete");finish(mc,"PASS opening chat credits/counts above opaque cover; real network wardrobe/head snapshots; seven-second intro -> black -> server reveal; Duck/Goose/neutral/Lover results; dead winners head+coat; frozen labels/outfit; non-DLC gate; end fade retains results, becomes black, then reveals results; nine GPU screenshots");return; }
             if(!requested) {
                 requested=true;captured=false;since=now();
                 if(scenario==0) pending=fixture(mc,"evil",true);
                 else if(scenario<=4) pending=fixture(mc,switch(scenario){case 1->"evil";case 2->"good_objective";case 3->"dodo";default->"lover";},false);
                 else if(scenario==5) pending=commands(mc,"goosetools match-result close @a","scoreboard players set FullBloodDLC ggdadv 0","goosetools match-result capture","goosetools match-result open @a");
+                else if(scenario==7) pending=fixture(mc,"evil",false);
                 else {
                     var equipment=new ArrayList<ItemStack>(com.goosethings.tools.intro.PresentationAppearance.emptyEquipment());
                     equipment.set(EquipmentSlot.CHEST.ordinal(),new ItemStack(Items.DIAMOND_CHESTPLATE));
@@ -76,7 +79,17 @@ final class PresentationRegression {
                 if(now()-since>7800 && !blackout) {
                     require(mc.gui.screen() instanceof PresentationBlackoutScreen,"world leaked after intro");
                     require(GuiMovementGuard.blocks(mc.gui.screen()),"blackout input escaped");
-                    capture(mc,"presentation-blackout.png");blackout=true;return;
+                    mc.gui.hud.getChat().clearMessages(true);
+                    pending=commands(mc,
+                            "tellraw @a [{\"translate\":\"text.ggd.mode.enter.label\",\"fallback\":\"Mode\",\"color\":\"#8AA0B0\"},{\"text\":\"  \"},{\"translate\":\"text.ggd.howrole.random\",\"fallback\":\"Classic Mode\",\"color\":\"#bfffad\"}]",
+                            "tellraw @a [{\"translate\":\"text.ggd.map.enter.label\",\"fallback\":\"Map\"},{\"text\":\"  \"},{\"translate\":\"text.mapselect11\",\"fallback\":\"Eagleton Springs\",\"color\":\"#54ffee\"}]",
+                            "tellraw @a [{\"translate\":\"text.ggd.map.enter.players_label\",\"fallback\":\"Players\"},{\"text\":\"  21\",\"color\":\"#E6FAFF\"}]",
+                            "tellraw @a [{\"translate\":\"text.ggd.map.enter.evil_label\",\"fallback\":\"Ducks\"},{\"text\":\"  3\",\"color\":\"#FF8585\"}]",
+                            "tellraw @a [{\"translate\":\"text.ggd.map.enter.bird_label\",\"fallback\":\"Birds\"},{\"text\":\"  2\",\"color\":\"#FFED94\"}]");
+                    blackout=true;return;
+                }
+                if(blackout && !infoShot && now()-since>8300) {
+                    capture(mc,"presentation-blackout.png");infoShot=true;
                 }
                 if(blackout && now()-since>10000) {
                     require(mc.gui.screen() instanceof PresentationBlackoutScreen,"blackout released before server reveal");
@@ -108,7 +121,29 @@ final class PresentationRegression {
             if(scenario==6&&now()-since>1300) {
                 require(mc.gui.screen() instanceof RoleIntroScreen,"local stage missing");
                 capture(mc,"presentation-close.png");RoleIntroScreen.apply(RoleIntroPayload.CLOSE);
-                require(!(mc.gui.screen() instanceof RoleIntroScreen)&&!(mc.gui.screen() instanceof PresentationBlackoutScreen),"cleanup stuck");next();
+                require(!(mc.gui.screen() instanceof RoleIntroScreen)&&!(mc.gui.screen() instanceof PresentationBlackoutScreen),"cleanup stuck");next();return;
+            }
+            if(scenario==7) {
+                if(!fadeSent && now()-since>1300) {
+                    require(mc.gui.screen() instanceof MatchResultScreen,"result backdrop missing");
+                    pending=commands(mc,"goosetools role-intro fade @a");fadeSent=true;fadeSince=now();return;
+                }
+                if(!fadeSent)return;
+                long elapsed=now()-fadeSince;
+                if(!captured && elapsed>450) {
+                    require(mc.gui.screen() instanceof PresentationBlackoutScreen screen && screen.ending(),"end fade channel missing");
+                    capture(mc,"presentation-end-fade-half.png");captured=true;return;
+                }
+                if(!fadeBlackShot && elapsed>1300) {
+                    capture(mc,"presentation-end-fade-black.png");fadeBlackShot=true;return;
+                }
+                if(!fadeResult && elapsed>3000) {
+                    pending=commands(mc,"goosetools match-result open @a");fadeResult=true;return;
+                }
+                if(fadeResult && elapsed>3800) {
+                    require(mc.gui.screen() instanceof MatchResultScreen,"result reveal failed");
+                    pending=commands(mc,"goosetools match-result close @a");next();
+                }
             }
         } catch(Throwable error) {finish(mc,"FAIL "+error);}
     }

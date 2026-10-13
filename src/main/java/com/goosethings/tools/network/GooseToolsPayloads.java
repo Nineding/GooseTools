@@ -39,6 +39,8 @@ public final class GooseToolsPayloads {
                 com.goosethings.tools.intro.RoleIntroPayload.TYPE, com.goosethings.tools.intro.RoleIntroPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(com.goosethings.tools.intro.PresentationBlackoutPayload.TYPE,
                 com.goosethings.tools.intro.PresentationBlackoutPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(com.goosethings.tools.intro.PresentationFadePayload.TYPE,
+                com.goosethings.tools.intro.PresentationFadePayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(com.goosethings.tools.result.MatchResultPayload.TYPE,
                 com.goosethings.tools.result.MatchResultPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(VisionStateS2C.TYPE, VisionStateS2C.CODEC);
