@@ -62,23 +62,50 @@ public final class SummaryServer {
                 .then(Commands.literal("clear").executes(c->{reset(c.getSource().getServer());return 1;}))
                 .then(Commands.literal("open").executes(c->open(c.getSource().getServer())));
     }
-    /** Public self-only lobby command, also used by the client settings buttons. */
+    /** Public self-only command. Paid choices always pass through the account authority. */
     public static LiteralArgumentBuilder<CommandSourceStack> celebrationCommand() {
         return Commands.literal("goosetools-celebration")
-                .requires(s->s.getEntity() instanceof ServerPlayer)
-                .then(Commands.literal("wave").executes(c->select(c.getSource().getPlayerOrException(),false)))
-                .then(Commands.literal("dance").executes(c->select(c.getSource().getPlayerOrException(),true)));
+                .then(Commands.literal("wave").executes(c->select(c.getSource().getPlayerOrException(),0)))
+                .then(Commands.literal("dance").executes(c->select(c.getSource().getPlayerOrException(),1)))
+                .then(Commands.literal("taunt").executes(c->select(c.getSource().getPlayerOrException(),2)));
     }
-    private static int select(ServerPlayer player, boolean dance) {
+    private static int select(ServerPlayer player, int action) {
+        var server=player.level().getServer();
         if(!player.entityTags().contains("lobby") || player.entityTags().contains("gamingGGD")
                 || player.entityTags().contains("endGame") || player.entityTags().contains("inTutorial")) {
             player.sendSystemMessage(Component.translatableWithFallback("summary.goosetools.lobby_only","Choose your celebration in the lobby."));
             return 0;
         }
-        if(dance) player.addTag("ggdVictoryDance"); else player.removeTag("ggdVictoryDance");
-        player.sendSystemMessage(Component.translatableWithFallback("summary.goosetools.saved","Victory celebration saved: %s",
-                Component.translatableWithFallback(dance?"summary.goosetools.dance":"summary.goosetools.wave",dance?"Cute dance":"Wave")));
+        if(!dlc(server)) {
+            player.sendSystemMessage(Component.translatableWithFallback("summary.goosetools.dlc_required","Victory animations require Full Blood DLC."));
+            return 0;
+        }
+        if(score(server,"ggdadv",ScoreHolder.forNameOnly("GooseServerExtension"))!=1) {
+            if(action!=0) {
+                player.sendSystemMessage(Component.translatableWithFallback("summary.goosetools.server_only","Get paid victory animations from the official server web game shop."));
+                return 0;
+            }
+            var objective=server.getScoreboard().getObjective("ggdVictoryAction");
+            if(objective!=null) server.getScoreboard().getOrCreatePlayerScore(player,objective).set(0);
+            player.removeTag("ggdVictoryDance");
+            return 1;
+        }
+        if(action>0 && !player.entityTags().contains(action==1?"own_victory_dance":"own_victory_taunt")) {
+            accountCommand(player,"gooseaccount shop victory."+(action==1?"dance":"taunt"));
+            return 0;
+        }
+        accountCommand(player,"gooseaccount selection ggdVictoryAction "+action);
         return 1;
+    }
+    private static int victoryAction(ServerPlayer player) {
+        if(player==null) return 0;
+        var server=player.level().getServer();
+        return CelebrationPolicy.authorized(score(player,"ggdVictoryAction"),
+                score(server,"ggdadv",ScoreHolder.forNameOnly("GooseServerExtension"))==1,
+                player.entityTags().contains("own_victory_dance"),player.entityTags().contains("own_victory_taunt"));
+    }
+    private static void accountCommand(ServerPlayer player,String command) {
+        player.level().getServer().getCommands().performPrefixedCommand(player.createCommandSourceStack().withSuppressedOutput(),command);
     }
     public static void reset(MinecraftServer server) {
         cancelQueued(server);
@@ -140,7 +167,7 @@ public final class SummaryServer {
             var thresholds=new ArrayList<Integer>(); for(int i=from;i<=to;i++) thresholds.add(SummaryPolicy.needed(i));
             int bonus=viewer.entityTags().contains("match_xp_smvp")?30:viewer.entityTags().contains("match_xp_mvp15")?15:viewer.entityTags().contains("match_xp_mvp")?20:0;
             var data=new SummaryPayload(false,round,new MatchResultPayload(true,result.outcome(),List.of(spotlight)),chosen.award(),
-                    subject!=null&&subject.entityTags().contains("ggdVictoryDance")?1:0,chosen.index(),participating,
+                    victoryAction(subject),chosen.index(),participating,
                     participating?Math.max(0,score(viewer,"matchBaseXP")):0,participating?bonus:0,
                     participating&&viewer.entityTags().contains("match_xp_death")?25:0,participating?Math.max(0,score(viewer,"matchFinalXP")):0,
                     participating?Math.max(0,score(viewer,"matchGooseCoin")):0,from,participating?start.xp:Math.max(0,score(viewer,"playerExp")),

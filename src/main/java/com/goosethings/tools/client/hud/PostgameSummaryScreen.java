@@ -310,8 +310,8 @@ public final class PostgameSummaryScreen extends Screen implements ProtectedInpu
         MeetingAlertTrueSkinCache.capture(minecraft);
         var camera=minecraft.getCameraEntity();if(camera!=null) model.setPos(camera.position());
         var state=previewState(seconds);
-        var dance=payload.action()==1?CuteDanceAnimation.at(seconds):null;
-        float offsetX=dance==null?0:dance.x()*55/16F,offsetY=dance==null?0:dance.y()*55/16F;
+        var dance=payload.action()==2?CuteDanceAnimation.at(seconds):null;
+        float offsetX=dance==null?0:dance.x()*55/16F,offsetY=dance==null?-(float)com.goosethings.tools.client.animation.CelebrationPose.at(payload.action(),seconds).lift()*55:dance.y()*55/16F;
         float pixels=55*s,top=y+125*s,bottom=y+278*s,floor=y+(271+offsetY)*s;
         // Keep the viewport fixed while the planted foot determines the model's root height.
         // Using the old padded top in only the bounds raised the feet eight GUI pixels.

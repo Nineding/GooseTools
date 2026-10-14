@@ -852,11 +852,11 @@
   "summary.goosetools.observer": "本局观战",
   "summary.goosetools.no_rewards": "本局未参与，无个人奖励",
   "summary.goosetools.settings": "胜利动作",
-  "summary.goosetools.wave": "挥手",
-  "summary.goosetools.dance": "可爱舞",
+  "summary.goosetools.wave": "挥手（默认）",
+  "summary.goosetools.dance": "舞蹈",
   "summary.goosetools.lobby_only": "请在大厅中选择胜利动作。",
   "summary.goosetools.saved": "已保存胜利动作：%s",
-  "summary.goosetools.choose_hint": "在大厅选择，上台获奖时将自动播放。",
+  "summary.goosetools.choose_hint": "在大厅选择已拥有的动作，未解锁的动作会显示网页游戏商店链接。",
   "summary.goosetools.highest_index": "全场最高指数",
   "summary.goosetools.next": "下一页",
   "summary.goosetools.close": "关闭界面",
@@ -871,5 +871,10 @@
   "summary.goosetools.ducks": "鸭子阵营",
   "summary.goosetools.birds": "鸟阵营",
   "summary.goosetools.tasks": "本局完成的任务数量：%s",
-  "summary.goosetools.scroll": "滚动查看全部玩家"
+  "summary.goosetools.scroll": "滚动查看全部玩家",
+  "summary.goosetools.taunt": "顶级嘲讽",
+  "summary.goosetools.dance_price": "舞蹈 · 300 鹅鹅币",
+  "summary.goosetools.taunt_price": "顶级嘲讽 · 4000 鹅鹅币",
+  "summary.goosetools.dlc_required": "获胜动画需要启用满血 DLC。",
+  "summary.goosetools.server_only": "请在官网服务器的网页游戏商店获取付费获胜动画。"
 }
