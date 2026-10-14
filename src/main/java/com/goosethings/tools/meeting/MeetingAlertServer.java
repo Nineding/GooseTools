@@ -1,22 +1,29 @@
 package com.goosethings.tools.meeting;
 
 import com.goosethings.tools.network.GooseToolsPayloads;
+import com.goosethings.tools.intro.PresentationAppearance;
+import com.goosethings.tools.nametag.DisguiseIdentityPolicy;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.decoration.Mannequin;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.scores.ScoreHolder;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 /** Creates one immutable appearance snapshot when an authoritative meeting trigger succeeds. */
 public final class MeetingAlertServer {
@@ -42,7 +49,7 @@ public final class MeetingAlertServer {
         ServerPlayer caller = source.getPlayerOrException();
         return broadcast(source, new GooseToolsPayloads.MeetingAlertS2C(
                 GooseToolsPayloads.MeetingAlertS2C.BELL,
-                snapshot(caller, caller),
+                snapshotCaller(source.getServer(), caller),
                 null));
     }
 
@@ -64,7 +71,7 @@ public final class MeetingAlertServer {
         LivingEntity corpse = findReportedCorpse(source, victim);
         return broadcast(source, new GooseToolsPayloads.MeetingAlertS2C(
                 GooseToolsPayloads.MeetingAlertS2C.REPORT,
-                snapshot(reporter, reporter),
+                snapshotCaller(source.getServer(), reporter),
                 snapshot(victim, corpse == null ? victim : corpse)));
     }
 
@@ -90,6 +97,51 @@ public final class MeetingAlertServer {
                 identity.getUUID(),
                 identity.getGameProfile().name(),
                 equipment);
+    }
+
+    /** Resolve identity and saved wardrobe together, before meeting cleanup removes disguise tags. */
+    static GooseToolsPayloads.MeetingAppearance snapshotCaller(MinecraftServer server, ServerPlayer caller) {
+        var objective = server.getScoreboard().getObjective("ggdadv");
+        var setting = objective == null ? null : server.getScoreboard().getPlayerScoreInfo(
+                ScoreHolder.forNameOnly("MeetingDisguiseAppearance"), objective);
+        int seat = callerAppearanceSeat(caller.entityTags(), setting != null && setting.value() == 1);
+        int ownSeat = DisguiseIdentityPolicy.playerSeat(caller.entityTags());
+        if (seat != 0 && seat != ownSeat) {
+            ServerPlayer target = server.getPlayerList().getPlayers().stream()
+                    .filter(player -> player.entityTags().contains("p" + seat))
+                    .findFirst().orElse(null);
+            if (target != null) {
+                return new GooseToolsPayloads.MeetingAppearance(target.getUUID(), target.getGameProfile().name(),
+                        PresentationAppearance.equipment(server, target, "p" + seat));
+            }
+            // The victim may have disconnected. The round's authoritative identity and
+            // cloneArmorStand wardrobe remain available for the accepted reporter's disguise.
+            var saved = server.getCommandStorage().get(Identifier.fromNamespaceAndPath("ggd", "role"))
+                    .getCompoundOrEmpty("p" + seat);
+            int[] uuid = saved.getIntArray("UUID").orElse(new int[0]);
+            if (uuid.length == 4) {
+                UUID targetId = new UUID((long) uuid[0] << 32 | uuid[1] & 0xffffffffL,
+                        (long) uuid[2] << 32 | uuid[3] & 0xffffffffL);
+                return new GooseToolsPayloads.MeetingAppearance(targetId, saved.getStringOr("real_name", ""),
+                        PresentationAppearance.equipment(server, null, "p" + seat));
+            }
+        }
+        LivingEntity wardrobe = ownSeat == 0 ? caller
+                : PresentationAppearance.source(server, caller, "p" + ownSeat);
+        // A missing backup must not leak the stolen armor into a true-identity banner.
+        if (wardrobe == caller && DisguiseIdentityPolicy.isActiveDisguise(caller.entityTags())) {
+            return new GooseToolsPayloads.MeetingAppearance(caller.getUUID(), caller.getGameProfile().name(),
+                    PresentationAppearance.emptyEquipment());
+        }
+        return snapshot(caller, wardrobe);
+    }
+
+    static int callerAppearanceSeat(Set<String> tags, boolean displayDisguise) {
+        if (displayDisguise && DisguiseIdentityPolicy.isActiveDisguise(tags)) {
+            int stolen = DisguiseIdentityPolicy.stolenSeat(tags);
+            if (stolen != 0) return stolen;
+        }
+        return DisguiseIdentityPolicy.playerSeat(tags);
     }
 
     private static LivingEntity findReportedCorpse(CommandSourceStack source, ServerPlayer victim) {
