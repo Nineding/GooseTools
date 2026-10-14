@@ -852,11 +852,11 @@
   "summary.goosetools.observer": "Spectating this round",
   "summary.goosetools.no_rewards": "No personal rewards this round",
   "summary.goosetools.settings": "Victory celebration",
-  "summary.goosetools.wave": "Wave",
-  "summary.goosetools.dance": "Cute dance",
+  "summary.goosetools.wave": "Wave (default)",
+  "summary.goosetools.dance": "Dance",
   "summary.goosetools.lobby_only": "Choose your celebration in the lobby.",
   "summary.goosetools.saved": "Victory celebration saved: %s",
-  "summary.goosetools.choose_hint": "Choose in the lobby. Your award stage will play this action automatically.",
+  "summary.goosetools.choose_hint": "Choose owned actions in the lobby. Locked actions link to the web game shop.",
   "summary.goosetools.highest_index": "Highest index this round",
   "summary.goosetools.next": "Next page",
   "summary.goosetools.close": "Close",
@@ -871,5 +871,10 @@
   "summary.goosetools.ducks": "Ducks",
   "summary.goosetools.birds": "Birds",
   "summary.goosetools.tasks": "Tasks completed this round: %s",
-  "summary.goosetools.scroll": "Scroll to view all players"
+  "summary.goosetools.scroll": "Scroll to view all players",
+  "summary.goosetools.taunt": "Top taunt",
+  "summary.goosetools.dance_price": "Dance · 300 Goose coins",
+  "summary.goosetools.taunt_price": "Top taunt · 4000 Goose coins",
+  "summary.goosetools.dlc_required": "Victory animations require Full Blood DLC.",
+  "summary.goosetools.server_only": "Get paid victory animations from the official server web game shop."
 }

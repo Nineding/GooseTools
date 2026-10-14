@@ -29,7 +29,7 @@ public abstract class CelebrationModelMixin {
     private void goosetools$pose(HumanoidRenderState state,CallbackInfo ci) {
         for(var limb:new ModelPart[]{rightArm,leftArm,rightLeg,leftLeg}) ((DancePart)(Object)limb).goosetools$bend(null,0);
         if(!(state instanceof CelebrationState data)||data.goosetools$action()<0) return;
-        if(data.goosetools$action()==1) {
+        if(data.goosetools$action()==2) {
             var pose=CuteDanceAnimation.at(data.goosetools$seconds());
             var q=pose.joints();
             var origin=new Vector3f(0,-12,0).rotate(q[0]).add(0,12,0);
@@ -42,7 +42,7 @@ public abstract class CelebrationModelMixin {
             goosetools$limb(leftLeg,q[8],q[9],6,new Vector3f(1.9F,0,0).rotate(q[0]).add(0,12,0));
             return;
         }
-        var pose=CelebrationPose.wave(data.goosetools$seconds());
+        var pose=CelebrationPose.at(data.goosetools$action(),data.goosetools$seconds());
         rightArm.xRot=pose.rightArmX(); rightArm.zRot=pose.rightArmZ();
         leftArm.xRot=pose.leftArmX(); leftArm.zRot=pose.leftArmZ();
         rightLeg.xRot=pose.rightLegX(); leftLeg.xRot=pose.leftLegX();

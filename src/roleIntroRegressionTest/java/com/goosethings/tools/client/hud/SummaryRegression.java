@@ -95,7 +95,7 @@ final class SummaryRegression {
                 if(!(mc.gui.screen() instanceof PostgameSummaryScreen screen))return;
                 last=screen.payload();
                 require(last.award()==(scenario==0?2:scenario==1?1:0),"award priority incorrect");
-                require(last.action()==(scenario==1?1:0),"saved action missing");
+                require(last.action()==(scenario==1?2:scenario==4?1:0),"saved action missing");
                 require(last.participant()==(scenario!=2),"observer rewards leaked");
                 require(last.scoreboard().players().size()==(scenario==1?21:4),"full roster missing");
                 require(last.scoreboard().tasksDone()==7,"task snapshot missing");
@@ -190,16 +190,27 @@ final class SummaryRegression {
             try {
                 var server=mc.getSingleplayerServer();var player=server.getPlayerList().getPlayer(mc.player.getUUID());
                 for(String tag:List.copyOf(player.entityTags()))player.removeTag(tag);
-                for(String objective:List.of("ggdadv","ready","ggdIndexScore","playerLevel","playerExp","playerExpBank","matchBaseXP","matchFinalXP","matchGooseCoin","xpAnimCap","levelDisp","expDisp","xpAnimLeft","xpAnimStep","xpAnimChunk","summaryResume","summaryConsumes","ggdTasksDone"))
+                for(String objective:List.of("ggdadv","ready","ggdIndexScore","playerLevel","playerExp","playerExpBank","matchBaseXP","matchFinalXP","matchGooseCoin","xpAnimCap","levelDisp","expDisp","xpAnimLeft","xpAnimStep","xpAnimChunk","summaryResume","summaryConsumes","ggdTasksDone","ggdVictoryAction"))
                     command(mc,"scoreboard objectives add "+objective+" dummy");
                 command(mc,"scoreboard players set FullBloodDLC ggdadv 1");
                 command(mc,"scoreboard players set @a summaryResume 0");command(mc,"scoreboard players set @a summaryConsumes 0");
-                player.addTag("lobby");commandAs(mc,"goosetools-celebration "+(scenario==1?"dance":"wave"));
-                require(player.entityTags().contains("ggdVictoryDance")== (scenario==1),"lobby action selection failed");
+                player.addTag("lobby");
+                command(mc,"scoreboard players set GooseServerExtension ggdadv 0");
+                set(mc,"ggdVictoryAction",0);
+                player.addTag("ggdVictoryDance");
+                commandAs(mc,"goosetools-celebration dance");
+                require(score(mc,"ggdVictoryAction")==0,"paid action allowed without server extension");
+                commandAs(mc,"goosetools-celebration wave");
+                require(!player.entityTags().contains("ggdVictoryDance"),"legacy tag survived default selection");
+                // Fixture seeds authoritative selections. Transaction persistence is covered by CommerceStoreTest.
+                command(mc,"scoreboard players set GooseServerExtension ggdadv 1");
+                if(scenario==1)player.addTag("own_victory_taunt");
+                if(scenario==4)player.addTag("own_victory_dance");
+                set(mc,"ggdVictoryAction",scenario==1?2:scenario==4?1:0);
                 player.removeTag("lobby");player.addTag("players");player.addTag("p1");player.addTag("Goose");player.addTag("good");player.addTag("endGame");player.addTag("gamingGGD");
                 if(scenario==0)player.addTag("spectator");
-                commandAs(mc,"goosetools-celebration "+(scenario==1?"wave":"dance"));
-                require(player.entityTags().contains("ggdVictoryDance")== (scenario==1),"in-match action selection should be rejected");
+                commandAs(mc,"goosetools-celebration wave");
+                require(score(mc,"ggdVictoryAction")== (scenario==1?2:scenario==4?1:0),"in-match action selection should be rejected");
                 var roster=new ListTag();var entry=new CompoundTag();UUID id=player.getUUID();
                 entry.putString("set","p1");entry.putString("real_name",player.getGameProfile().name());entry.putString("faction","good");entry.putString("role","goose");
                 entry.put("UUID",new IntArrayTag(new int[]{(int)(id.getMostSignificantBits()>>32),(int)id.getMostSignificantBits(),(int)(id.getLeastSignificantBits()>>32),(int)id.getLeastSignificantBits()}));roster.add(entry);

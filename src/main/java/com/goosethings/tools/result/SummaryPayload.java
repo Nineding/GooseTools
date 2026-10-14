@@ -18,7 +18,7 @@ public record SummaryPayload(boolean open, UUID round, MatchResultPayload appear
     public SummaryPayload {
         thresholds = List.copyOf(thresholds);
         if (scoreboard == null || round == null || appearance == null || !appearance.active() || appearance.roster().size()!=1
-                || award<0 || award>2 || action<0 || action>1 || baseXp<0 || gainedXp<0 || coins<0
+                || award<0 || award>2 || action<0 || action>2 || baseXp<0 || gainedXp<0 || coins<0
                 || bonusPercent<0 || bonusPercent>30 || deathPercent<0 || deathPercent>25
                 || startLevel<0 || endLevel<startLevel || endLevel>10000 || startXp<0 || endXp<0
                 || cap<0 || cap>10000 || bankGain<0 || thresholds.size()!=endLevel-startLevel+1
