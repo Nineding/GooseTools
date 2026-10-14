@@ -297,6 +297,15 @@
     "faction": 0
   },
   {
+    "tag": "Chamberlain",
+    "key": "role.good.chamberlain",
+    "fallback": "Chamberlain",
+    "descriptionKey": "role.good.chamberlain.subtitle",
+    "descriptionFallback": "Guard your ward. The knife knows only the killer.",
+    "color": 7602054,
+    "faction": 0
+  },
+  {
     "tag": "Lobbyist",
     "key": "role.good.lobbyist",
     "fallback": "Lobbyist",

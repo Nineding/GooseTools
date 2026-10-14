@@ -5,6 +5,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /** Opening title definitions copied from the datapack's existing showrole translations. */
@@ -13,6 +14,11 @@ public final class RoleIntroCatalog {
     private RoleIntroCatalog() {}
 
     public static List<Role> roles() { return ROLES; }
+    /** Accept both entity tags and the role IDs saved by ggd:storeeverythingdata. */
+    public static Optional<Role> findByStoredId(String id) {
+        return ROLES.stream().filter(role -> role.tag().equalsIgnoreCase(id)
+                || role.key().substring(role.key().lastIndexOf('.') + 1).equalsIgnoreCase(id)).findFirst();
+    }
     public static Role byTag(String tag) {
         return ROLES.stream().filter(role -> role.tag().equals(tag)).findFirst().orElseGet(() ->
                 "Duck".equals(tag) ? new Role("Duck", "role.evil", "Duck",
