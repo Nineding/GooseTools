@@ -85,7 +85,7 @@ class RoleIntroPolicyTest {
     }
 
     @Test void catalogCoversExistingRolesAndKeepsEnglishFallbacks() {
-        assertEquals(65,RoleIntroCatalog.roles().size());
+        assertEquals(66,RoleIntroCatalog.roles().size());
         assertEquals("role.evil.snitch",RoleIntroCatalog.byTag("Snitch").key());
         assertEquals("role.neutral.seagull",RoleIntroCatalog.byTag("Seagull").key());
         assertEquals("role.good.mimic",RoleIntroCatalog.byTag("Mimic").key());

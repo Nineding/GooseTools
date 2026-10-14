@@ -62,7 +62,7 @@ public final class MatchResultServer {
             Set<String> tags = player != null ? player.entityTags() : clone != null ? clone.entityTags() : Set.of();
             String name = player != null ? player.getGameProfile().name() : entry.getStringOr("real_name", seat);
             String roleId = entry.getStringOr("role", "goose");
-            var role = RoleIntroCatalog.roles().stream().filter(r -> r.tag().equalsIgnoreCase(roleId)).findFirst()
+            var role = RoleIntroCatalog.findByStoredId(roleId)
                     .orElseGet(() -> RoleIntroCatalog.byTag("evil".equals(entry.getStringOr("faction", "")) ? "Duck" : "Goose"));
             boolean lover = entry.getBooleanOr("lover", false);
             var equipment = PresentationAppearance.equipment(server, player, seat);
