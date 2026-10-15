@@ -329,8 +329,20 @@ public final class NameTagSync {
             boolean spectatorStatusView,
             NameTagAttachmentConfig config) {
         List<GooseToolsPayloads.NameTagIcon> result = new ArrayList<>();
+        SparrowNameTagPolicy.Mark sparrow = SparrowNameTagPolicy.mark(
+                viewer.entityTags(), renderedPlayer.entityTags(),
+                viewer.getUUID().equals(renderedPlayer.getUUID()), fullBlood);
+        if (sparrow != SparrowNameTagPolicy.Mark.NONE) {
+            result.add(new GooseToolsPayloads.NameTagIcon(
+                    sparrow == SparrowNameTagPolicy.Mark.PERMANENT
+                            ? "minecraft:textures/item/obstruction.png"
+                            : "minecraft:textures/item/obstructioned.png",
+                    10.0F, 10.0F, 0xffffff));
+        }
         result.addAll(NameTagIconAssignments.iconsForIdentity(
-                renderedPlayer.getUUID(), identity.playerId()));
+                renderedPlayer.getUUID(), identity.playerId()).stream()
+                .limit(GooseToolsPayloads.NameTagSnapshotS2C.MAX_ATTACHMENTS_PER_ENTRY - result.size())
+                .toList());
         if (result.size() == GooseToolsPayloads.NameTagSnapshotS2C.MAX_ATTACHMENTS_PER_ENTRY) {
             return List.copyOf(result);
         }
