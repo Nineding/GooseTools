@@ -5,6 +5,7 @@ import com.goosethings.tools.client.vision.VisionFogState;
 import com.goosethings.tools.client.vision.WitchDoctorTargetClient;
 import com.goosethings.tools.client.vision.BirdwatcherClientState;
 import com.goosethings.tools.client.vision.BirdwatcherWallTransparency;
+import com.goosethings.tools.client.voice.GgdSpeakingIcon;
 import com.goosethings.tools.nametag.NameTagSync;
 import com.goosethings.tools.network.GooseToolsPayloads;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -221,6 +222,7 @@ public final class NameTagRenderer {
             icons.add(new Icon(SerialBadgeStyle.TEXTURE, BADGE_SIZE, BADGE_SIZE, entry.rgb()));
         }
 
+        Identifier speakingIcon = GgdSpeakingIcon.texture(sourceId);
         float nameWidth = font.width(entry.name());
         float totalWidth = nameWidth;
         for (Icon icon : icons) {
@@ -232,6 +234,9 @@ public final class NameTagRenderer {
                 + (markerTexture == null ? 0.0F : GAP + ICON_HEIGHT);
         if (marker != null) {
             totalWidth += GAP + markerWidth;
+        }
+        if (speakingIcon != null) {
+            totalWidth += GAP + ICON_HEIGHT;
         }
         float cursor = -totalWidth * 0.5F;
 
@@ -255,6 +260,12 @@ public final class NameTagRenderer {
                 Component.literal(entry.name()).getVisualOrderText(), false,
                 Font.DisplayMode.NORMAL, FULL_BRIGHT, nameColour, background, 0);
         cursor += nameWidth;
+        if (speakingIcon != null) {
+            cursor += GAP;
+            emitIcon(destination, poses, speakingIcon, cursor, -ICON_HEIGHT * 0.5F,
+                    ICON_HEIGHT, ICON_HEIGHT, alphaByte << 24 | 0xffffff);
+            cursor += ICON_HEIGHT;
+        }
         if (marker != null) {
             cursor += GAP;
             int markerAlpha = Math.clamp(Math.round(alpha * 190.0F), 0, 255);
