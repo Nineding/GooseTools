@@ -21,6 +21,6 @@ abstract class MouseHandlerParasiteSpectatorMixin {
                     value = "INVOKE",
                     target = "Lnet/minecraft/client/player/LocalPlayer;isSpectator()Z"))
     private boolean goosetools$scrollParasiteHotbar(LocalPlayer player) {
-        return player.isSpectator() && !ParasiteSpectatorClient.isActive(this.minecraft);
+        return player.isSpectator() && !ParasiteSpectatorClient.usesInventoryHotbar(this.minecraft);
     }
 }

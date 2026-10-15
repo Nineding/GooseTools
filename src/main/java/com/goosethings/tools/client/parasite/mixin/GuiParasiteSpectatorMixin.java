@@ -34,7 +34,7 @@ abstract class GuiParasiteSpectatorMixin {
                     value = "INVOKE",
                     target = "Lnet/minecraft/client/gui/Hud;getCameraPlayer()Lnet/minecraft/world/entity/player/Player;"))
     private Player goosetools$renderParasiteHotbar(Hud hud) {
-        if (ParasiteSpectatorClient.isActive(this.minecraft) || DreamAvatarClient.active()) {
+        if (ParasiteSpectatorClient.usesInventoryHotbar(this.minecraft) || DreamAvatarClient.active()) {
             return this.minecraft.player;
         }
         Entity camera = this.minecraft.getCameraEntity();

@@ -233,11 +233,43 @@ loom {
             if (providers.gradleProperty('dreamDatapack').isPresent())
                 vmArg '-Dgoosetools.dreamDatapack=' + providers.gradleProperty('dreamDatapack').get()
         }
+        ghostRegressionTest {
+            client()
+            source sourceSets.flightRegressionTest
+            runDir 'build/ghost-regression-test'
+            vmArg '-Dgoosetools.ghostRegressionTest=true'
+            if (providers.gradleProperty('ghostDatapack').isPresent())
+                vmArg '-Dgoosetools.ghostDatapack=' + providers.gradleProperty('ghostDatapack').get()
+        }
+        ghostServerSmokeTest {
+            server()
+            runDir 'build/ghost-server-smoke-test'
+        }
     }
 }
 
 if (providers.gradleProperty('dreamGooseThingsJar').isPresent()) {
     dependencies { flightRegressionTestRuntimeOnly files(providers.gradleProperty('dreamGooseThingsJar').get()) }
+}
+if (providers.gradleProperty('ghostFixture').isPresent()) {
+    dependencies {
+        flightRegressionTestRuntimeOnly fileTree(dir: providers.gradleProperty('ghostFixture').get(),
+                include: ['sound-physics-remastered-*.jar', 'cloth-config-*.jar'])
+    }
+}
+tasks.named('runGhostRegressionTest') {
+    timeout = java.time.Duration.ofMinutes(4)
+    doFirst {
+        def directory = file('build/ghost-regression-test'); directory.mkdirs()
+        file('build/ghost-regression-test/options.txt').text = 'pauseOnLostFocus:false\nrenderDistance:4\nlang:en_us\ntutorialStep:none\n'
+        file('build/ghost-regression-test/ghost-result.txt').delete()
+    }
+    doLast {
+        def result = file('build/ghost-regression-test/ghost-result.txt')
+        if (!result.isFile() || !result.text.startsWith('PASS '))
+            throw new GradleException('Ghost regression failed; inspect ghost-result.txt and logs/latest.log')
+        logger.lifecycle(result.text)
+    }
 }
 tasks.named('runDreamRegressionTest') {
     timeout = java.time.Duration.ofMinutes(5)
