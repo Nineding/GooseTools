@@ -105,9 +105,9 @@ final class SummaryRegression {
                     var field=PostgameSummaryScreen.class.getDeclaredField("model");field.setAccessible(true);
                     var original=(MeetingAlertRemotePlayer)field.get(screen);
                     if(original!=null) {
-                        var skin=original.getSkin();
+                        var skin=danceOnly?DanceSkinRegression.skin(mc,original.getSkin()):original.getSkin();
                         // Use the skin texture as a fixture cape; test the actual cape layer and physics.
-                        var caped=new net.minecraft.world.entity.player.PlayerSkin(skin.body(),skin.body(),null,skin.model(),false);
+                        var caped=new net.minecraft.world.entity.player.PlayerSkin(skin.body(),skin.cape()==null?skin.body():skin.cape(),null,skin.model(),false);
                         var preview=new MeetingAlertRemotePlayer(mc.level,original.getGameProfile(),()->caped);
                         preview.setId(original.getId());
                         preview.showAllSkinLayers();
@@ -118,8 +118,8 @@ final class SummaryRegression {
                 if(danceOnly&&poseFrame>=42&&!switchedSkin) {
                     var field=PostgameSummaryScreen.class.getDeclaredField("model");field.setAccessible(true);
                     var old=(MeetingAlertRemotePlayer)field.get(screen);
-                    var skin=net.minecraft.client.resources.DefaultPlayerSkin.get(new UUID(0,1));
-                    var caped=new net.minecraft.world.entity.player.PlayerSkin(skin.body(),skin.body(),null,net.minecraft.world.entity.player.PlayerModelType.SLIM,false);
+                    var skin=old.getSkin();
+                    var caped=new net.minecraft.world.entity.player.PlayerSkin(skin.body(),skin.cape(),null,skin.model(),false);
                     var bare=new MeetingAlertRemotePlayer(mc.level,old.getGameProfile(),()->caped);
                     bare.setId(old.getId());bare.showAllSkinLayers();field.set(screen,bare);switchedSkin=true;
                 }
@@ -134,6 +134,7 @@ final class SummaryRegression {
                     var fixed=(net.minecraft.client.renderer.entity.state.AvatarRenderState)screen.previewState(1.8);
                     require(capeReady&&fixed.skin.cape()!=null&&fixed.showCape,"preview hid the cape instead of fixing it");
                     require(fixed.capeFlap==0&&fixed.capeLean==0&&fixed.capeLean2==0,"preview cape inherited false movement");
+                    if(danceOnly)DanceSkinRegression.verify(mc,model,screen);
                     capture(mc,"summary-"+scenario+"-animated.png");captured=true;
                 }
                 if(now()-shown>(danceOnly?21800:scenario==3||scenario==5?2400:6100)&&!secondShot) {
@@ -227,7 +228,15 @@ final class SummaryRegression {
                 var temp=new CompoundTag();temp.putString("end_reveal","good_objective");server.getCommandStorage().set(Identifier.fromNamespaceAndPath("ggd","temp"),temp);
                 command(mc,"kill @e[tag=summaryFixture]");
                 var clone=new ArmorStand(server.overworld(),0,4,0);clone.addTag("cloneArmorStand");clone.addTag("p1");clone.addTag("summaryFixture");
-                clone.setItemSlot(EquipmentSlot.CHEST,new ItemStack(Items.LEATHER_CHESTPLATE));server.overworld().addFreshEntity(clone);
+                clone.setItemSlot(EquipmentSlot.CHEST,new ItemStack(Items.LEATHER_CHESTPLATE));
+                if(danceOnly) {
+                    clone.setItemSlot(EquipmentSlot.LEGS,new ItemStack(Items.LEATHER_LEGGINGS));
+                    clone.setItemSlot(EquipmentSlot.FEET,new ItemStack(Items.LEATHER_BOOTS));
+                    for(var slot:List.of(EquipmentSlot.CHEST,EquipmentSlot.LEGS,EquipmentSlot.FEET))
+                        clone.getItemBySlot(slot).set(net.minecraft.core.component.DataComponents.DYED_COLOR,
+                                new net.minecraft.world.item.component.DyedItemColor(0x689B56));
+                }
+                server.overworld().addFreshEntity(clone);
                 set(mc,"ggdIndexScore",10000);set(mc,"playerLevel",scenario==0?18:10);set(mc,"playerExp",scenario==0?40:35);set(mc,"playerExpBank",0);
                 command(mc,"goosetools match-result capture");
                 if(scenario==2)player.removeTag("players");
