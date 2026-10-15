@@ -43,6 +43,6 @@ abstract class MinecraftParasiteSpectatorMixin {
                     ordinal = 0))
     private boolean goosetools$selectParasiteHotbarSlot(LocalPlayer player) {
         return player.isSpectator()
-                && !ParasiteSpectatorClient.isActive((Minecraft) (Object) this);
+                && !ParasiteSpectatorClient.usesInventoryHotbar((Minecraft) (Object) this);
     }
 }

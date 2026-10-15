@@ -13,7 +13,8 @@ final class GuiTaskEligibility {
                 && ((!tags.contains("spectator") && !tags.contains("deadInMap")) || ghost)
                 && !tags.contains("inTalk") && !tags.contains("endGame") && !tags.contains("inPelican")
                 && !tags.contains("inDream") && !tags.contains("astralProjected")
-                && !tags.contains("sniperScoped") && !tags.contains("esperPossessing");
+                && !tags.contains("sniperScoped") && !tags.contains("esperPossessing")
+                && !tags.contains("ggdGhostFollowing");
     }
 
     static boolean kindAllowed(Set<String> tags, String kind) {
