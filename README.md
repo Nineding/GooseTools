@@ -6,6 +6,8 @@ GooseTools 是 Whoiskiller 鹅鸭杀玩法使用的 Fabric 客户端/服务端�
 
 GooseTools is the required Fabric client/server foundation for the Whoiskiller Goose Goose Duck experience. It provides exact-version handshaking, secure UI, HUD and nametag features, camera and vision effects, and Xaero map integration.
 
+官网商城可按需启用[本人皮肤动作预览](docs/website-skin-preview.md)，支持客户端实际加载的 CSL／皮肤站／本地皮肤；默认关闭，需配套网站与共享快照目录配置。
+
 ## 安装要求 / Requirements
 
 - Minecraft 26.3
