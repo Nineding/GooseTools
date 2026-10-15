@@ -19,7 +19,8 @@ class PlayerMarkerCatalogTest {
                 .map(PlayerMarkerCatalog.Definition::code)
                 .collect(Collectors.toSet());
 
-        assertEquals(76, definitions.size());
+        assertEquals(77, definitions.size());
+        assertEquals("role.neutral.sparrow", PlayerMarkerCatalog.byCode(312).translationKey());
         assertEquals(definitions.size(), codes.size());
         assertFalse(PlayerMarkerCatalog.byCode(1).roleSpecific());
         assertEquals("menu.ggd.marker.additional.goose",

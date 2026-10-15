@@ -110,6 +110,7 @@ public final class PlayerMarkerCatalog {
         addRole(definitions, 309, Faction.BIRD, "phoenix", "Phoenix", "phoenix");
         addRole(definitions, 310, Faction.BIRD, "magpie", "Magpie", "magpie");
         addRole(definitions, 311, Faction.BIRD, "seagull", "Seagull", "seagull");
+        addRole(definitions, 312, Faction.BIRD, "sparrow", "Sparrow", "sparrow");
         return Map.copyOf(definitions);
     }
 
