@@ -53,6 +53,7 @@ public final class GooseTools implements ModInitializer {
         com.goosethings.tools.camera.CameraPackets.register();
         com.goosethings.tools.camera.CameraService.register();
         MandatoryHandshake.registerServer();
+        com.goosethings.tools.appearance.preview.SkinPreviewServer.register();
         AimClaimService.register();
         TaskMarkerSync.register();
         BroadcastHudSync.register();
