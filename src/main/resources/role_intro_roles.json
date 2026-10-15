@@ -585,6 +585,15 @@
     "faction": 2
   },
   {
+    "tag": "Sparrow",
+    "key": "role.neutral.sparrow",
+    "fallback": "Sparrow",
+    "descriptionKey": "role.neutral.sparrow.subtitle",
+    "descriptionFallback": "Keep making sound and obstruct every other living player",
+    "color": 16774043,
+    "faction": 2
+  },
+  {
     "tag": "Seagull",
     "key": "role.neutral.seagull",
     "fallback": "Seagull",
