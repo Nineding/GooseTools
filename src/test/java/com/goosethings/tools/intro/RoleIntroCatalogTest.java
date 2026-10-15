@@ -5,6 +5,22 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 class RoleIntroCatalogTest {
+    @Test void sparrowOpeningAndSavedResultsKeepTheirAssignedIdentity() {
+        var role = RoleIntroCatalog.resolve(Set.of("players", "neutral", "Sparrow"));
+        assertEquals("Sparrow", role.tag());
+        assertEquals("role.neutral.sparrow", role.key());
+        assertEquals("role.neutral.sparrow.subtitle", role.descriptionKey());
+        assertEquals(RoleIntroPolicy.BIRD, role.faction());
+        assertEquals(RoleIntroCatalog.byTag("Seagull").color(), role.color());
+        assertEquals(role, RoleIntroCatalog.byTag("Sparrow"));
+        assertEquals(role, RoleIntroCatalog.findByStoredId("sparrow").orElseThrow());
+    }
+
+    @Test void borrowedSparrowDoesNotReplaceSeagullOpeningIdentity() {
+        var role = RoleIntroCatalog.resolve(Set.of("players", "neutral", "Seagull", "Sparrow"));
+        assertEquals("Seagull", role.tag());
+    }
+
     @Test void chamberlainOpeningKeepsItsAssignedIdentity() {
         var role = RoleIntroCatalog.resolve(Set.of("players", "good", "Chamberlain"));
         assertEquals("Chamberlain", role.tag());
