@@ -31,13 +31,17 @@ public final class ParasiteSpectatorClient {
 
     /** Only the ready carrot-on-a-stick may pass Spectator's use-item guard. */
     public static boolean canUseSelectedSkill(Minecraft client) {
-        return isActive(client)
+        return GhostSpectatorClient.canUseSelectedSkill(client) || (isActive(client)
                 && client.player.getMainHandItem().is(Items.CARROT_ON_A_STICK)
-                && hasFlag(client.player.getMainHandItem(), "ParasiteInternalKill");
+                && hasFlag(client.player.getMainHandItem(), "ParasiteInternalKill"));
+    }
+
+    public static boolean usesInventoryHotbar(Minecraft client) {
+        return isActive(client) || GhostSpectatorClient.active(client);
     }
 
     public static GameType hotbarMode(Minecraft client, GameType vanilla) {
-        return isActive(client) && vanilla == GameType.SPECTATOR
+        return usesInventoryHotbar(client) && vanilla == GameType.SPECTATOR
                 ? GameType.ADVENTURE
                 : vanilla;
     }

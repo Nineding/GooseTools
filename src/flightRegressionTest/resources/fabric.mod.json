@@ -9,7 +9,8 @@
     "client": [
       "com.goosethings.tools.client.noclip.FlightRegression",
       "com.goosethings.tools.client.projection.ProjectionBodyRegression",
-      "com.goosethings.tools.client.dream.DreamAvatarRegression"
+      "com.goosethings.tools.client.dream.DreamAvatarRegression",
+      "com.goosethings.tools.client.parasite.GhostSpectatorRegression"
     ]
   },
   "depends": {
