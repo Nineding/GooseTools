@@ -314,7 +314,10 @@ public final class MeetingAlertHud {
                 return info.getSkin();
             }
         }
-        return DefaultPlayerSkin.get(playerId);
+        // Disconnected corpse owners no longer have PlayerInfo, but their skin
+        // remains cached for this connection and can still dress the report model.
+        PlayerSkin cached = MeetingAlertTrueSkinCache.get(playerId);
+        return cached == null ? DefaultPlayerSkin.get(playerId) : cached;
     }
 
     private static int argb(int rgb, float alpha) {

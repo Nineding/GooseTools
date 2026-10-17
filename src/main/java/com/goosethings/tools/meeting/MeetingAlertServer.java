@@ -3,11 +3,13 @@ package com.goosethings.tools.meeting;
 import com.goosethings.tools.network.GooseToolsPayloads;
 import com.goosethings.tools.intro.PresentationAppearance;
 import com.goosethings.tools.nametag.DisguiseIdentityPolicy;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.resources.Identifier;
@@ -42,7 +44,12 @@ public final class MeetingAlertServer {
                         .then(Commands.argument("victim", EntityArgument.player())
                                 .executes(context -> sendReport(
                                         context.getSource(),
-                                        EntityArgument.getPlayer(context, "victim")))));
+                                        EntityArgument.getPlayer(context, "victim")))))
+                .then(Commands.literal("report-slot")
+                        .then(Commands.argument("slot", StringArgumentType.word())
+                                .executes(context -> sendReportBySeat(
+                                        context.getSource(),
+                                        StringArgumentType.getString(context, "slot")))));
     }
 
     private static int sendBell(CommandSourceStack source) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
@@ -86,16 +93,64 @@ public final class MeetingAlertServer {
         return sent;
     }
 
+    private static int sendReportBySeat(CommandSourceStack source, String playerTag)
+            throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        ServerPlayer reporter = source.getPlayerOrException();
+        GooseToolsPayloads.MeetingAppearance victim = snapshotReportedVictim(source, playerTag);
+        if (victim == null) {
+            return 0;
+        }
+        return broadcast(source, new GooseToolsPayloads.MeetingAlertS2C(
+                GooseToolsPayloads.MeetingAlertS2C.REPORT,
+                snapshotCaller(source.getServer(), reporter),
+                victim));
+    }
+
+    /** The round identity and corpse remain valid after the owner leaves the player list. */
+    static GooseToolsPayloads.MeetingAppearance snapshotReportedVictim(CommandSourceStack source, String playerTag) {
+        if (!isPlayerIndexTag(playerTag)) {
+            return null;
+        }
+        MinecraftServer server = source.getServer();
+        CompoundTag saved = server.getCommandStorage().get(Identifier.fromNamespaceAndPath("ggd", "role"))
+                .getCompoundOrEmpty(playerTag);
+        UUID playerId = savedPlayerId(saved);
+        ServerPlayer player = playerId == null
+                ? server.getPlayerList().getPlayers().stream()
+                        .filter(candidate -> candidate.entityTags().contains(playerTag)).findFirst().orElse(null)
+                : server.getPlayerList().getPlayer(playerId);
+        if (playerId == null && player == null) {
+            return null;
+        }
+        String playerName = saved.getStringOr("real_name", player == null ? playerTag : player.getGameProfile().name());
+        LivingEntity corpse = findReportedCorpse(source, playerTag);
+        LivingEntity equipmentSource = corpse == null ? PresentationAppearance.source(server, player, playerTag) : corpse;
+        return snapshot(playerId == null ? player.getUUID() : playerId, playerName, equipmentSource);
+    }
+
+    static UUID savedPlayerId(CompoundTag saved) {
+        int[] uuid = saved.getIntArray("UUID").orElse(new int[0]);
+        return uuid.length == 4
+                ? new UUID((long) uuid[0] << 32 | uuid[1] & 0xffffffffL,
+                        (long) uuid[2] << 32 | uuid[3] & 0xffffffffL)
+                : null;
+    }
+
     private static GooseToolsPayloads.MeetingAppearance snapshot(
             ServerPlayer identity,
             LivingEntity equipmentSource) {
+        return snapshot(identity.getUUID(), identity.getGameProfile().name(), equipmentSource);
+    }
+
+    private static GooseToolsPayloads.MeetingAppearance snapshot(
+            UUID playerId, String playerName, LivingEntity equipmentSource) {
         List<ItemStack> equipment = new ArrayList<>(EquipmentSlot.values().length);
         for (EquipmentSlot slot : EquipmentSlot.values()) {
-            equipment.add(equipmentSource.getItemBySlot(slot).copy());
+            equipment.add(equipmentSource == null ? ItemStack.EMPTY : equipmentSource.getItemBySlot(slot).copy());
         }
         return new GooseToolsPayloads.MeetingAppearance(
-                identity.getUUID(),
-                identity.getGameProfile().name(),
+                playerId,
+                playerName,
                 equipment);
     }
 
@@ -118,10 +173,8 @@ public final class MeetingAlertServer {
             // cloneArmorStand wardrobe remain available for the accepted reporter's disguise.
             var saved = server.getCommandStorage().get(Identifier.fromNamespaceAndPath("ggd", "role"))
                     .getCompoundOrEmpty("p" + seat);
-            int[] uuid = saved.getIntArray("UUID").orElse(new int[0]);
-            if (uuid.length == 4) {
-                UUID targetId = new UUID((long) uuid[0] << 32 | uuid[1] & 0xffffffffL,
-                        (long) uuid[2] << 32 | uuid[3] & 0xffffffffL);
+            UUID targetId = savedPlayerId(saved);
+            if (targetId != null) {
                 return new GooseToolsPayloads.MeetingAppearance(targetId, saved.getStringOr("real_name", ""),
                         PresentationAppearance.equipment(server, null, "p" + seat));
             }
@@ -149,6 +202,10 @@ public final class MeetingAlertServer {
                 .filter(MeetingAlertServer::isPlayerIndexTag)
                 .findFirst()
                 .orElse("");
+        return findReportedCorpse(source, playerTag);
+    }
+
+    private static LivingEntity findReportedCorpse(CommandSourceStack source, String playerTag) {
         if (playerTag.isEmpty()) {
             return null;
         }
