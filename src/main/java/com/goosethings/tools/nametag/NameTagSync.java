@@ -329,6 +329,12 @@ public final class NameTagSync {
             boolean spectatorStatusView,
             NameTagAttachmentConfig config) {
         List<GooseToolsPayloads.NameTagIcon> result = new ArrayList<>();
+        if (NameTagAttachmentPolicy.showChamberlainWard(
+                viewer.getUUID().equals(renderedPlayer.getUUID()),
+                viewer.entityTags(), renderedPlayer.entityTags(), fullBlood)) {
+            result.add(new GooseToolsPayloads.NameTagIcon(
+                    "minecraft:textures/item/wing_of_guard.png", 10.0F, 10.0F, 0xffffff));
+        }
         SparrowNameTagPolicy.Mark sparrow = SparrowNameTagPolicy.mark(
                 viewer.entityTags(), renderedPlayer.entityTags(),
                 viewer.getUUID().equals(renderedPlayer.getUUID()), fullBlood);

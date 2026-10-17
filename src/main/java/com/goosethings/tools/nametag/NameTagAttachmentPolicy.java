@@ -131,6 +131,31 @@ final class NameTagAttachmentPolicy {
         return showGuardShield(false, viewerTags, renderedTags);
     }
 
+    /** Ward marks follow the real body and are private to the Chamberlain and all spectators. */
+    static boolean showChamberlainWard(boolean samePlayer,
+                                       Set<String> viewerTags,
+                                       Set<String> renderedTags,
+                                       boolean fullBlood) {
+        if (!fullBlood || samePlayer || viewerTags.contains("inTutorial")
+                || viewerTags.contains("endGame")) {
+            return false;
+        }
+        boolean chamberlain = viewerTags.contains("Chamberlain")
+                && viewerTags.contains("players")
+                && !viewerTags.contains("Seagull")
+                && !viewerTags.contains("spectator")
+                && !viewerTags.contains("deadInMap")
+                && !viewerTags.contains("dlcGhostActive");
+        return (chamberlain || NameTagSpectatorStatusPolicy.isDeadSpectator(viewerTags))
+                && renderedTags.contains("players")
+                && renderedTags.contains("chamberlainWard")
+                && !renderedTags.contains("spectator")
+                && !renderedTags.contains("deadInMap")
+                && !renderedTags.contains("dlcGhostActive")
+                && !renderedTags.contains("inPelican")
+                && !renderedTags.contains("endGame");
+    }
+
     /** Spectator-only; the active target tag is tied to the rendered body, not a disguise. */
     static boolean showWitchDoctorCurse(boolean spectatorStatusView,
                                         Set<String> renderedTags) {
