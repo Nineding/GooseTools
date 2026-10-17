@@ -1,6 +1,7 @@
 package com.goosethings.tools.client.voice;
 
 import com.goosethings.tools.GooseTools;
+import com.goosethings.tools.client.dream.DreamAvatarClient;
 import com.goosethings.tools.client.presence.GamePresenceClient;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.resources.Identifier;
@@ -23,6 +24,10 @@ public final class GgdSpeakingIcon {
     }
 
     public static Identifier texture(UUID sourcePlayerId) {
+        // Meeting audio stays audible, but must not identify the frozen dream bodies.
+        if (DreamAvatarClient.active()) {
+            return null;
+        }
         String phase = GamePresenceClient.phaseId();
         if (sourcePlayerId == null || !("lobby".equals(phase) || "meeting".equals(phase))
                 || !FabricLoader.getInstance().isModLoaded("voicechat")) {
