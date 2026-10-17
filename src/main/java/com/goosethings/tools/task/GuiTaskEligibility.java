@@ -19,7 +19,11 @@ final class GuiTaskEligibility {
 
     static boolean kindAllowed(Set<String> tags, String kind) {
         if (artisanKind(kind)) {
-            return !tags.contains("spectator") && !tags.contains("dlcGhostActive")
+            boolean living = !tags.contains("spectator") && !tags.contains("deadInMap")
+                    && !tags.contains("dlcGhostActive");
+            boolean ghost = tags.contains("spectator") && tags.contains("deadInMap")
+                    && tags.contains("dlcGhostActive");
+            return tags.contains("players") && (living || ghost)
                     && tags.contains("task.artisan.available") && !tags.contains("task.artisan.finished")
                     && tags.contains("artisan.assigned") && tags.contains("inTaskArtisan")
                     && tags.contains("task.artisan_" + kind + ".available");

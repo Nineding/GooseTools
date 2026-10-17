@@ -19,7 +19,7 @@ class GuiTaskEligibilityTest {
     }
 
     @Test void temporaryAbsenceAndMeetingsStillBlockLivingAndDeadPlayers() {
-        for (String blocked : Set.of("inTalk", "endGame", "inPelican", "inDream", "astralProjected", "sniperScoped", "esperPossessing")) {
+        for (String blocked : Set.of("inTalk", "endGame", "inPelican", "inDream", "astralProjected", "sniperScoped", "esperPossessing", "ggdGhostFollowing")) {
             var ghost = new HashSet<>(GHOST); ghost.add(blocked);
             assertFalse(GuiTaskEligibility.eligible(ghost, 11, true), blocked);
             assertFalse(GuiTaskEligibility.eligible(Set.of("players", blocked), 11, true), blocked);
@@ -49,7 +49,7 @@ class GuiTaskEligibilityTest {
             assertFalse(GuiTaskEligibility.kindAllowed(duck, forbidden, 11), forbidden);
     }
 
-    @Test void professionalResultsRequireTheCurrentLivingPlayersCommission() {
+    @Test void professionalResultsRequireTheCurrentPlayersCommission() {
         for (String kind : Set.of("civil", "foodsafety", "nuclear", "powerstation", "telecom")) {
             var tags = new HashSet<>(Set.of("players", "inTaskArtisan", "artisan.assigned",
                     "task.artisan.available", "task.artisan_" + kind + ".available"));
@@ -63,6 +63,29 @@ class GuiTaskEligibilityTest {
             for (String forbidden : Set.of("spectator", "dlcGhostActive", "task.artisan.finished")) {
                 var invalid = new HashSet<>(tags); invalid.add(forbidden);
                 assertFalse(GuiTaskEligibility.kindAllowed(invalid, kind, 11), forbidden);
+            }
+        }
+    }
+
+    @Test void assignedGhostsCanCompleteEveryProfessionForAllFactions() {
+        for (String kind : Set.of("civil", "foodsafety", "nuclear", "powerstation", "telecom")) {
+            for (String faction : Set.of("good", "evil", "neutral")) {
+                var tags = new HashSet<>(GHOST);
+                tags.addAll(Set.of(faction, "inTaskArtisan", "inTaskGooseGui", "artisan.assigned",
+                        "task.artisan.available", "task.artisan_" + kind + ".available"));
+                assertTrue(GuiTaskEligibility.eligible(tags, 11, true));
+                assertTrue(GuiTaskEligibility.kindAllowed(tags, kind, 11), kind + "/" + faction);
+                assertFalse(GuiTaskEligibility.eligible(tags, 11, false));
+                assertFalse(GuiTaskEligibility.kindAllowed(tags, kind, 8));
+                for (String required : Set.of("players", "spectator", "deadInMap", "dlcGhostActive",
+                        "inTaskArtisan", "artisan.assigned", "task.artisan.available",
+                        "task.artisan_" + kind + ".available")) {
+                    var missing = new HashSet<>(tags);
+                    missing.remove(required);
+                    assertFalse(GuiTaskEligibility.kindAllowed(missing, kind, 11), required);
+                }
+                tags.add("task.artisan.finished");
+                assertFalse(GuiTaskEligibility.kindAllowed(tags, kind, 11));
             }
         }
     }
