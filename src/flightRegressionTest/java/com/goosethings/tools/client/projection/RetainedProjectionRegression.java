@@ -61,6 +61,12 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
     @Override public void onInitializeClient() {
         if (!Boolean.getBoolean("goosetools.retainedProjectionRegression")) return;
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(server -> {
+            ServerPlayer fake=fakeId==null?null:server.getPlayerList().getPlayer(fakeId);
+            // This observer has no real network connection to drive ServerPlayer.doTick().
+            // Run vanilla equipment detection so changing its role also updates tracked clients.
+            if(fake!=null)fake.doTick();
+        });
         // Run after the body's extraction callback even when Fabric initializes this fixture first.
         var renderPhase=net.minecraft.resources.Identifier.fromNamespaceAndPath("goosetools_flight_test","retained_body");
         LevelRenderEvents.END_EXTRACTION.addPhaseOrdering(net.fabricmc.fabric.api.event.Event.DEFAULT_PHASE,renderPhase);
@@ -249,10 +255,14 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
     }
 
     private void verifyClient(Minecraft mc) {
-        if(ownerView)require(DreamAvatarClient.retainedProjection() && mc.getCameraEntity()!=mc.player,"owner camera never left physical body");
+        if(ownerView) {
+            require(DreamAvatarClient.retainedProjection() && mc.getCameraEntity()!=mc.player,"owner camera never left physical body");
+            require(mc.player.getItemBySlot(EquipmentSlot.CHEST).is(Items.GOLDEN_CHESTPLATE),"owner body armour changed in the client");
+        }
         else {
             Entity body=mc.level.getEntity(sourceId);
             require(body instanceof RemotePlayer,"observer lost the real remote-player entity");
+            require(((RemotePlayer)body).getItemBySlot(EquipmentSlot.CHEST).is(Items.GOLDEN_CHESTPLATE),"observer's tracked body armour was stale");
             require(!ProjectionBodyClient.shouldSuppressBody(body) && !ProjectionBodyClient.shouldSuppressSource(body),"observer body was suppressed");
             var state=(AvatarRenderState)mc.getEntityRenderDispatcher().extractEntity(body,1);
             require(!state.isInvisible && !state.isInvisibleToPlayer && !state.isSpectator,"observer real body did not have a visible full render state");
