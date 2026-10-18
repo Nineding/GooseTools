@@ -12,7 +12,7 @@ import net.minecraft.core.SectionPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -103,14 +103,15 @@ public final class BirdwatcherWallTransparency {
         float range = limited
                 ? VisionFogState.birdwatcherLimitedRange()
                 : (float) BirdwatcherVisionMath.UNLIMITED_RANGE;
-        BlockPos playerPos = client.player.blockPosition();
+        Entity viewer = VisionFogState.visibilityAnchor(client);
+        BlockPos playerPos = viewer.blockPosition();
         long tick = client.level.getGameTime();
         int interval = limited ? LIMITED_SCAN_INTERVAL_TICKS : UNLIMITED_SCAN_INTERVAL_TICKS;
         boolean moved = playerPos.getX() != lastBlockX
                 || playerPos.getY() != lastBlockY
                 || playerPos.getZ() != lastBlockZ;
         boolean turned = limited && (Float.isNaN(lastYaw)
-                || angularDistance(client.player.getYRot(), lastYaw) >= LIMITED_REFRESH_DEGREES);
+                || angularDistance(viewer.getYRot(), lastYaw) >= LIMITED_REFRESH_DEGREES);
         boolean settingsChanged = limited != lastLimited
                 || Float.isNaN(lastRange)
                 || Math.abs(range - lastRange) > 0.01F;
@@ -119,21 +120,21 @@ public final class BirdwatcherWallTransparency {
             return;
         }
 
-        Set<Long> next = scan(client.level, client.player, limited, range);
+        Set<Long> next = scan(client.level, viewer, limited, range);
         publish(client, next);
         refreshRequested = false;
         lastScanTick = tick;
         lastBlockX = playerPos.getX();
         lastBlockY = playerPos.getY();
         lastBlockZ = playerPos.getZ();
-        lastYaw = client.player.getYRot();
+        lastYaw = viewer.getYRot();
         lastRange = range;
         lastLimited = limited;
     }
 
     private static Set<Long> scan(
             ClientLevel level,
-            Player player,
+            Entity player,
             boolean limited,
             double range) {
         HashSet<Long> result = new HashSet<>();

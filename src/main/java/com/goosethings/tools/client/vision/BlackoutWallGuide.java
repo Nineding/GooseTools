@@ -51,7 +51,7 @@ public final class BlackoutWallGuide {
     }
 
     private static void rebuild(Minecraft client) {
-        BlockPos origin = client.player.blockPosition();
+        BlockPos origin = VisionFogState.visibilityAnchor(client).blockPosition();
         int y = origin.getY();
         var walls = BlackoutWallGuideMath.boundary(
                 new BlackoutWallGuideMath.Cell(origin.getX(), origin.getZ()), RADIUS,

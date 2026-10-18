@@ -48,19 +48,23 @@ public final class BirdwatcherSync {
     }
 
     private static void sync(MinecraftServer server, ServerPlayer player) {
-        boolean active = isAuthorized(player);
-        boolean limited = active
-                && readSetting(server, DLC_SCORE, 0) == 1
-                && readSetting(server, LIMITED_VISION_SCORE, 0) == 1;
-        Snapshot next = new Snapshot(active, limited);
+        Snapshot next = snapshot(server, player);
         if (next.equals(LAST_SENT.get(player.getUUID()))) {
             return;
         }
         if (ServerPlayNetworking.canSend(player, GooseToolsPayloads.BirdwatcherStateS2C.TYPE)) {
             ServerPlayNetworking.send(player,
-                    new GooseToolsPayloads.BirdwatcherStateS2C(active, limited));
+                    new GooseToolsPayloads.BirdwatcherStateS2C(next.active(), next.limited()));
             LAST_SENT.put(player.getUUID(), next);
         }
+    }
+
+    static Snapshot snapshot(MinecraftServer server, ServerPlayer player) {
+        boolean active = isAuthorized(VisionViewpoint.resolve(player));
+        boolean limited = active
+                && readSetting(server, DLC_SCORE, 0) == 1
+                && readSetting(server, LIMITED_VISION_SCORE, 0) == 1;
+        return new Snapshot(active, limited);
     }
 
     private static boolean isAuthorized(ServerPlayer player) {
@@ -89,6 +93,6 @@ public final class BirdwatcherSync {
         return score == null ? fallback : score.value();
     }
 
-    private record Snapshot(boolean active, boolean limited) {
+    record Snapshot(boolean active, boolean limited) {
     }
 }

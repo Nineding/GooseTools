@@ -58,14 +58,7 @@ public final class VisionSync {
     }
 
     private static void syncPlayer(MinecraftServer server, ServerPlayer player) {
-        boolean powerBlackout = isPowerBlackoutTarget(server, player);
-        float radius = powerBlackout ? POWER_BLACKOUT_CLEAR_RADIUS : configuredRadius(server, player);
-        float fadeDistance = powerBlackout ? POWER_BLACKOUT_FADE_DISTANCE : FADE_DISTANCE;
-        VisionSnapshot next = new VisionSnapshot(
-                isActive(server, player, powerBlackout),
-                radius,
-                radius + fadeDistance,
-                powerBlackout);
+        VisionSnapshot next = snapshot(server, player);
         VisionSnapshot previous = LAST_SENT.get(player.getUUID());
         if (next.equals(previous)) {
             return;
@@ -78,6 +71,18 @@ public final class VisionSync {
                     next.horizontalCylinder()));
             LAST_SENT.put(player.getUUID(), next);
         }
+    }
+
+    static VisionSnapshot snapshot(MinecraftServer server, ServerPlayer player) {
+        ServerPlayer source = VisionViewpoint.resolve(player);
+        boolean powerBlackout = isPowerBlackoutTarget(server, source);
+        float radius = powerBlackout ? POWER_BLACKOUT_CLEAR_RADIUS : configuredRadius(server, source);
+        float fadeDistance = powerBlackout ? POWER_BLACKOUT_FADE_DISTANCE : FADE_DISTANCE;
+        return new VisionSnapshot(
+                isActive(server, source, powerBlackout),
+                radius,
+                radius + fadeDistance,
+                powerBlackout);
     }
 
     private static boolean isActive(MinecraftServer server, ServerPlayer player, boolean powerBlackout) {
@@ -136,7 +141,7 @@ public final class VisionSync {
         return score == null ? fallback : score.value();
     }
 
-    private record VisionSnapshot(
+    record VisionSnapshot(
             boolean active,
             float clearRadius,
             float fullFogRadius,
