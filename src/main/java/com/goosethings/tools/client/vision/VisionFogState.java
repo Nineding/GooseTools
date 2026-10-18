@@ -5,11 +5,14 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.fog.FogData;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.decoration.Mannequin;
 import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.Vec3;
 
 /** Client-only radial fog for limited vision. */
@@ -28,10 +31,11 @@ public final class VisionFogState {
     private VisionFogState() {
     }
 
-    public static boolean shouldHidePlayerVisual(Entity entity) {
+    public static boolean shouldHideEntityVisual(Entity entity) {
         Minecraft client = Minecraft.getInstance();
         if (client.player == null
-                || !(entity instanceof Player || entity instanceof Mannequin || entity instanceof ArmorStand)) {
+                || !(entity instanceof Player || entity instanceof Mannequin || entity instanceof ArmorStand
+                || isSniperCrosshair(entity))) {
             return false;
         }
         Entity viewer = visibilityAnchor(client);
@@ -70,6 +74,15 @@ public final class VisionFogState {
         return VisionBoundary.outside(delta.x, delta.y, delta.z, fullFogRadius, horizontalCylinder);
     }
 
+    private static boolean isSniperCrosshair(Entity entity) {
+        if (!(entity instanceof ItemEntity item) || !item.getItem().is(Items.STAINED_GLASS_PANE.lightBlue())) {
+            return false;
+        }
+        // Entity scoreboard tags are server-only; the existing model component is synchronized.
+        var model = item.getItem().get(DataComponents.CUSTOM_MODEL_DATA);
+        return model != null && model.strings().contains("crosschair");
+    }
+
     /** Visibility of custom names, intentionally ignoring glow-outline exceptions. */
     public static float nameTagVisibilityAlpha(Entity entity) {
         Minecraft client = Minecraft.getInstance();
@@ -106,7 +119,7 @@ public final class VisionFogState {
         return Mth.lerp(strength, 1.0F, fogVisibility);
     }
 
-    private static Entity visibilityAnchor(Minecraft client) {
+    static Entity visibilityAnchor(Minecraft client) {
         // A swallowed player's own entity remains parked away from the Pelican while the
         // camera follows the Pelican. Culling from that parked body hides every actor in view.
         Camera camera = client.gameRenderer.mainCamera();
@@ -115,15 +128,13 @@ public final class VisionFogState {
     }
 
     public static float limitCameraDistance(Camera camera, float vanilla) {
-        if (BirdwatcherClientState.isLimitedActive()
-                && camera.entity() == Minecraft.getInstance().player) {
+        if (BirdwatcherClientState.isLimitedActive()) {
             return VisionBoundary.cameraDistance(
                     vanilla,
                     (float) BirdwatcherVisionMath.NEAR_RADIUS,
                     (float) BirdwatcherVisionMath.NEAR_RADIUS);
         }
-        if (!horizontalCylinder || (targetStrength <= 0.0F && strength <= 0.001F)
-                || camera.entity() != Minecraft.getInstance().player) {
+        if (!horizontalCylinder || (targetStrength <= 0.0F && strength <= 0.001F)) {
             return vanilla;
         }
         return VisionBoundary.cameraDistance(vanilla, clearRadius, targetClearRadius);
@@ -167,7 +178,7 @@ public final class VisionFogState {
             return;
         }
 
-        float cameraOffset = (camera == null || horizontalCylinder) ? 0.0F : cameraOffsetFromPlayer(camera);
+        float cameraOffset = (camera == null || horizontalCylinder) ? 0.0F : cameraOffsetFromViewer(camera);
         float limitedStart = Math.max(0.0F, clearRadius - cameraOffset);
         float limitedEnd = Math.max(limitedStart + MIN_FOG_SPAN, fullFogRadius - cameraOffset);
 
@@ -205,17 +216,16 @@ public final class VisionFogState {
         return Mth.lerp(strength, original, Math.min(original, limit));
     }
 
-    private static float cameraOffsetFromPlayer(Camera camera) {
-        Minecraft client = Minecraft.getInstance();
-        if (client.player == null || camera.entity() != client.player || !camera.isDetached()) {
+    private static float cameraOffsetFromViewer(Camera camera) {
+        if (camera.entity() == null || !camera.isDetached()) {
             return 0.0F;
         }
-        return (float) camera.position().distanceTo(client.player.getEyePosition());
+        return (float) camera.position().distanceTo(camera.entity().getEyePosition());
     }
 
     static MaskParameters maskParameters(Camera camera) {
-        // Cylindrical visibility is anchored to the player's X/Z, not the detached camera.
-        float cameraOffset = horizontalCylinder ? 0.0F : cameraOffsetFromPlayer(camera);
+        // Cylindrical visibility is anchored to the viewed entity, including a passenger's host.
+        float cameraOffset = horizontalCylinder ? 0.0F : cameraOffsetFromViewer(camera);
         float limitedStart = Math.max(0.0F, clearRadius - cameraOffset);
         float limitedEnd = Math.max(limitedStart + MIN_FOG_SPAN, fullFogRadius - cameraOffset);
         return new MaskParameters(strength, limitedStart, limitedEnd, horizontalCylinder);

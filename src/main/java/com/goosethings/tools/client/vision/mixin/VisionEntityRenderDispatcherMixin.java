@@ -12,11 +12,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(EntityRenderDispatcher.class)
 public abstract class VisionEntityRenderDispatcherMixin {
     @Inject(method = "shouldRender", at = @At("HEAD"), cancellable = true)
-    private <E extends Entity> void goosetools$hideCompletePlayer(E entity, Frustum frustum,
+    private <E extends Entity> void goosetools$hideCompleteVisual(E entity, Frustum frustum,
             double cameraX, double cameraY, double cameraZ, float partialTick,
             CallbackInfoReturnable<Boolean> callback) {
-        // Reject the entire entity before armour, held items, labels and outline layers are submitted.
-        if (VisionFogState.shouldHidePlayerVisual(entity)) {
+        // Reject players and sniper markers before any of their render layers are submitted.
+        if (VisionFogState.shouldHideEntityVisual(entity)) {
             callback.setReturnValue(false);
         }
     }

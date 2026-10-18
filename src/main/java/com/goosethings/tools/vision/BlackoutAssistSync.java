@@ -46,14 +46,7 @@ public final class BlackoutAssistSync {
     }
 
     private static void syncPlayer(MinecraftServer server, ServerPlayer player) {
-        Set<String> tags = player.entityTags();
-        boolean blackout = readScore(server, SETTINGS_OBJECTIVE, DLC_SCORE, 0) == 1
-                && isBlackout(server, tags);
-        boolean eligible = blackout
-                && tags.contains("gamingGGD")
-                && tags.contains("players")
-                && ELIGIBILITY_BLOCKERS.stream().noneMatch(tags::contains);
-        Snapshot next = new Snapshot(blackout, eligible, tags.contains("lobby"));
+        Snapshot next = snapshot(server, player);
         if (next.equals(LAST_SENT.get(player.getUUID()))) {
             return;
         }
@@ -62,6 +55,17 @@ public final class BlackoutAssistSync {
                     next.blackout(), next.eligible(), next.inLobby()));
             LAST_SENT.put(player.getUUID(), next);
         }
+    }
+
+    static Snapshot snapshot(MinecraftServer server, ServerPlayer player) {
+        Set<String> tags = VisionViewpoint.resolve(player).entityTags();
+        boolean blackout = readScore(server, SETTINGS_OBJECTIVE, DLC_SCORE, 0) == 1
+                && isBlackout(server, tags);
+        boolean eligible = blackout
+                && tags.contains("gamingGGD")
+                && tags.contains("players")
+                && ELIGIBILITY_BLOCKERS.stream().noneMatch(tags::contains);
+        return new Snapshot(blackout, eligible, player.entityTags().contains("lobby"));
     }
 
     private static boolean isBlackout(MinecraftServer server, Set<String> tags) {
@@ -83,6 +87,6 @@ public final class BlackoutAssistSync {
         return score == null ? fallback : score.value();
     }
 
-    private record Snapshot(boolean blackout, boolean eligible, boolean inLobby) {
+    record Snapshot(boolean blackout, boolean eligible, boolean inLobby) {
     }
 }

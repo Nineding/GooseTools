@@ -156,7 +156,8 @@ final class ShaderVisionMask {
         double cameraX = camera.position().x();
         double cameraY = camera.position().y();
         double cameraZ = camera.position().z();
-        var playerPosition = client.player.getPosition(camera.getCameraEntityPartialTicks(client.getDeltaTracker()));
+        var playerPosition = VisionFogState.visibilityAnchor(client).getPosition(
+                camera.getCameraEntityPartialTicks(client.getDeltaTracker()));
         float centerX = (float) (playerPosition.x - cameraX);
         float centerZ = (float) (playerPosition.z - cameraZ);
         float bottomY = (float) (client.level.getMinY() - cameraY - 16.0D);
@@ -209,7 +210,8 @@ final class ShaderVisionMask {
         double cameraX = camera.position().x();
         double cameraY = camera.position().y();
         double cameraZ = camera.position().z();
-        var playerPosition = client.player.getPosition(camera.getCameraEntityPartialTicks(client.getDeltaTracker()));
+        var playerPosition = VisionFogState.visibilityAnchor(client).getPosition(
+                camera.getCameraEntityPartialTicks(client.getDeltaTracker()));
         float centerX = (float) (playerPosition.x - cameraX);
         float centerZ = (float) (playerPosition.z - cameraZ);
         float bottomY = (float) (client.level.getMinY() - cameraY - 16.0D);
@@ -264,8 +266,9 @@ final class ShaderVisionMask {
         double cameraX = camera.position().x();
         double cameraY = camera.position().y();
         double cameraZ = camera.position().z();
-        var playerPosition = client.player.getPosition(camera.getCameraEntityPartialTicks(client.getDeltaTracker()));
-        var look = client.player.getLookAngle();
+        var viewer = VisionFogState.visibilityAnchor(client);
+        var playerPosition = viewer.getPosition(camera.getCameraEntityPartialTicks(client.getDeltaTracker()));
+        var look = viewer.getLookAngle();
         float centerX = (float) (playerPosition.x - cameraX);
         float centerZ = (float) (playerPosition.z - cameraZ);
         float bottomY = (float) (client.level.getMinY() - cameraY - 16.0D);
