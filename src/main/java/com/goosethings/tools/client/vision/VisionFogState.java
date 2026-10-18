@@ -39,7 +39,8 @@ public final class VisionFogState {
             return false;
         }
         Entity viewer = visibilityAnchor(client);
-        if (entity == client.player || entity == viewer) {
+        if (entity == viewer || entity == client.player
+                && !com.goosethings.tools.client.dream.DreamAvatarClient.retainedProjection()) {
             return false;
         }
         if (BirdwatcherClientState.isLimitedActive()) {
@@ -90,7 +91,8 @@ public final class VisionFogState {
             return 0.0F;
         }
         Entity viewer = visibilityAnchor(client);
-        if (entity == client.player || entity == viewer) {
+        if (entity == viewer || entity == client.player
+                && !com.goosethings.tools.client.dream.DreamAvatarClient.retainedProjection()) {
             return 1.0F;
         }
         if (BirdwatcherClientState.isLimitedActive()) {

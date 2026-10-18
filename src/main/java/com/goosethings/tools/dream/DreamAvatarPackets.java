@@ -14,12 +14,14 @@ public final class DreamAvatarPackets {
   PayloadTypeRegistry.serverboundPlay().register(Input.TYPE,Input.CODEC);
   PayloadTypeRegistry.serverboundPlay().register(Ready.TYPE,Ready.CODEC);
  }
- public record View(long session,boolean active,double x,double y,double z,boolean raven) implements CustomPacketPayload {
+ public record View(long session,boolean active,double x,double y,double z,boolean raven,int projectionKind) implements CustomPacketPayload {
+  public View(long session,boolean active,double x,double y,double z,boolean raven) {this(session,active,x,y,z,raven,-1);}
   public static final Type<View> TYPE=DreamAvatarPackets.type("dream_avatar_view_v1");
   public static final StreamCodec<RegistryFriendlyByteBuf,View> CODEC=StreamCodec.of(
-   (b,p)->{b.writeLong(p.session);b.writeBoolean(p.active);b.writeDouble(p.x);b.writeDouble(p.y);b.writeDouble(p.z);b.writeBoolean(p.raven);},
-   b->new View(b.readLong(),b.readBoolean(),b.readDouble(),b.readDouble(),b.readDouble(),b.readBoolean()));
-  public View {if(session<=0||!Double.isFinite(x)||!Double.isFinite(y)||!Double.isFinite(z)||Math.abs(x)>30000000||Math.abs(z)>30000000||Math.abs(y)>20000)throw new IllegalArgumentException("Invalid dream view");}
+   (b,p)->{b.writeLong(p.session);b.writeBoolean(p.active);b.writeDouble(p.x);b.writeDouble(p.y);b.writeDouble(p.z);b.writeBoolean(p.raven);b.writeVarInt(p.projectionKind);},
+   b->new View(b.readLong(),b.readBoolean(),b.readDouble(),b.readDouble(),b.readDouble(),b.readBoolean(),b.readVarInt()));
+  public View {if(session<=0||!Double.isFinite(x)||!Double.isFinite(y)||!Double.isFinite(z)||Math.abs(x)>30000000||Math.abs(z)>30000000||Math.abs(y)>20000||projectionKind< -1||projectionKind>3)throw new IllegalArgumentException("Invalid dream view");}
+  public float flightScale(){return projectionKind==0?0.2F:projectionKind==1?0.25F:1.0F;}
   @Override public Type<View> type(){return TYPE;}
  }
  public record Input(long session,long sequence,float sideways,float forward,float yaw,float pitch,int buttons) implements CustomPacketPayload {

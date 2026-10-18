@@ -14,7 +14,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class AbstractClientPlayerMimeSkinMixin {
     @Inject(method = "getSkin", at = @At("HEAD"), cancellable = true)
     private void goosetools$localAppearanceSkin(CallbackInfoReturnable<PlayerSkin> cir) {
-        if ((Object) this != Minecraft.getInstance().player) {
+        if ((Object) this != Minecraft.getInstance().player
+                || com.goosethings.tools.client.projection.ProjectionBodyClient.extractingRetainedOwner()) {
             return;
         }
         PlayerSkin skin = LocalAppearanceClient.overrideSkin();

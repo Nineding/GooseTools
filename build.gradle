@@ -225,6 +225,17 @@ loom {
             runDir 'build/projection-regression-test'
             vmArg '-Dgoosetools.projectionRegressionTest=true'
         }
+        retainedProjectionRegressionTest {
+            client()
+            source sourceSets.flightRegressionTest
+            runDir 'build/retained-projection-regression-test'
+            vmArg '-Dgoosetools.retainedProjectionRegression=true'
+            vmArg '-Dgoosetools.retainedDatapack=' + file('../../../GooseGooseDuck/datapack').absolutePath
+            programArg '--width'
+            programArg '1000'
+            programArg '--height'
+            programArg '700'
+        }
         dreamRegressionTest {
             client()
             source sourceSets.flightRegressionTest
@@ -420,6 +431,16 @@ tasks.named('runProjectionRegressionTest') {
         if (!result.isFile() || !result.text.startsWith('PASS ')) {
             throw new GradleException('Projection regression failed; inspect build/projection-regression-test/logs/latest.log')
         }
+        logger.lifecycle(result.text)
+    }
+}
+
+tasks.named('runRetainedProjectionRegressionTest') {
+    timeout = java.time.Duration.ofMinutes(5)
+    doFirst { layout.buildDirectory.file('retained-projection-regression-test/retained-result.txt').get().asFile.delete() }
+    doLast {
+        def result = layout.buildDirectory.file('retained-projection-regression-test/retained-result.txt').get().asFile
+        if (!result.isFile() || !result.text.startsWith('PASS ')) throw new GradleException('Retained projection regression failed; inspect its isolated log')
         logger.lifecycle(result.text)
     }
 }

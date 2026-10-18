@@ -29,24 +29,24 @@ public abstract class DreamInteractionMixin {
     }
     @WrapMethod(method="handlePlayerAction")
     private void dream$blockAction(ServerboundPlayerActionPacket packet,Operation<Void> original) {
-        DreamSpatialContext.run(DreamAvatarServer.active(player),()-> {original.call(packet);return null;});
+        DreamSpatialContext.runFor(player,()-> {original.call(packet);return null;});
     }
     @WrapMethod(method="handleUseItemOn")
     private void dream$block(ServerboundUseItemOnPacket packet,Operation<Void> original) {
-        DreamSpatialContext.run(DreamAvatarServer.active(player),()-> {original.call(packet);return null;});
+        DreamSpatialContext.runFor(player,()-> {original.call(packet);return null;});
     }
     @WrapMethod(method="handleUseItem")
     private void dream$item(ServerboundUseItemPacket packet,Operation<Void> original) {
         float yaw=player.getYRot(),pitch=player.getXRot();
-        DreamSpatialContext.run(DreamAvatarServer.active(player),()-> {original.call(packet);return null;});
+        DreamSpatialContext.runFor(player,()-> {original.call(packet);return null;});
         if(DreamAvatarServer.active(player)) {player.setYRot(yaw);player.setXRot(pitch);}
     }
     @WrapMethod(method="handleInteract")
     private void dream$entity(ServerboundInteractPacket packet,Operation<Void> original) {
-        DreamSpatialContext.run(DreamAvatarServer.active(player),()-> {original.call(packet);return null;});
+        DreamSpatialContext.runFor(player,()-> {original.call(packet);return null;});
     }
     @WrapMethod(method="handleContainerClick")
     private void dream$inventory(ServerboundContainerClickPacket packet,Operation<Void> original) {
-        DreamSpatialContext.run(DreamAvatarServer.active(player),()-> {original.call(packet);return null;});
+        DreamSpatialContext.runFor(player,()-> {original.call(packet);return null;});
     }
 }

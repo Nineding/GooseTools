@@ -62,6 +62,7 @@ public final class AimClaimService {
     private static final UUID NO_TARGET = new UUID(0L, 0L);
 
     private static final Map<UUID, PendingClaim> PENDING = new HashMap<>();
+    private static final Map<UUID, Deque<EntitySample>> ORIGIN_HISTORY = new HashMap<>();
     private static final Map<UUID, Long> LAST_SEQUENCE = new HashMap<>();
     private static final Map<UUID, Integer> LAST_PACKET_TICK = new HashMap<>();
     private static final Map<UUID, Deque<EntitySample>> HISTORY = new HashMap<>();
@@ -138,7 +139,9 @@ public final class AimClaimService {
                 ? target.position() : visualAnchor.position();
         Vec3 visualCenter = visualAnchor == null
                 ? target.getBoundingBox().getCenter() : visualAnchor.box().getCenter();
-        if (player.position().distanceTo(visualPosition) > maximumRayDistance
+        Entity shooterActor = com.goosethings.tools.dream.DreamAvatarServer.actor(player);
+        Vec3 shooterPosition = shooterActor == null ? player.position() : shooterActor.position();
+        if (shooterPosition.distanceTo(visualPosition) > maximumRayDistance
                 || visualCenter.distanceTo(claimedTargetCenter)
                         > HARD_DISPLACEMENT_LIMIT) {
             return 0;
@@ -213,10 +216,17 @@ public final class AimClaimService {
                 while (samples.size() > HISTORY_TICKS) {
                     samples.removeLast();
                 }
+                Entity actor = com.goosethings.tools.dream.DreamAvatarServer.actor(entity);
+                if (actor != null) {
+                    Deque<EntitySample> origins = ORIGIN_HISTORY.computeIfAbsent(entity.getUUID(), ignored -> new ArrayDeque<>());
+                    origins.addFirst(sample(actor, now));
+                    while (origins.size() > HISTORY_TICKS) origins.removeLast();
+                } else ORIGIN_HISTORY.remove(entity.getUUID());
             }
         }
         HISTORY.entrySet().removeIf(entry -> !seen.contains(entry.getKey())
                 && (entry.getValue().isEmpty() || now - entry.getValue().getFirst().tick() > HISTORY_TICKS));
+        ORIGIN_HISTORY.keySet().removeIf(id -> !seen.contains(id));
         PENDING.entrySet().removeIf(entry -> now - entry.getValue().receivedTick() > CLAIM_TTL_TICKS);
     }
 
@@ -226,14 +236,16 @@ public final class AimClaimService {
             ResourceKey<Level> dimension,
             int now,
             int allowedHistoryTicks) {
-        Vec3 currentEye = player.getEyePosition();
+        Entity actor = com.goosethings.tools.dream.DreamAvatarServer.actor(player);
+        Vec3 currentEye = actor == null ? player.getEyePosition() : actor.getEyePosition();
         if (currentEye.distanceTo(claimedOrigin) > HARD_DISPLACEMENT_LIMIT) {
             return false;
         }
         if (currentEye.distanceTo(claimedOrigin) <= ORIGIN_HISTORY_TOLERANCE) {
             return true;
         }
-        for (EntitySample sample : historyFor(player, now)) {
+        for (EntitySample sample : actor == null ? historyFor(player, now)
+                : ORIGIN_HISTORY.getOrDefault(player.getUUID(), new ArrayDeque<>())) {
             int age = now - sample.tick();
             if (age >= 0
                     && age <= allowedHistoryTicks
@@ -401,6 +413,7 @@ public final class AimClaimService {
         LAST_SEQUENCE.remove(playerId);
         LAST_PACKET_TICK.remove(playerId);
         HISTORY.remove(playerId);
+        ORIGIN_HISTORY.remove(playerId);
     }
 
     private static void clearAll() {
@@ -408,6 +421,7 @@ public final class AimClaimService {
         LAST_SEQUENCE.clear();
         LAST_PACKET_TICK.clear();
         HISTORY.clear();
+        ORIGIN_HISTORY.clear();
     }
 
     private record PendingClaim(int receivedTick, GooseToolsPayloads.AimClaimC2S payload) {

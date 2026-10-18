@@ -11,7 +11,7 @@
   "icon": "assets/goosetools/icon.png",
   "environment": "*",
   "custom": {
-    "goosetools:protocol": 35
+    "goosetools:protocol": 36
   },
   "entrypoints": {
     "main": [

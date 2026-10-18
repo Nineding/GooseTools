@@ -3,6 +3,7 @@ package com.goosethings.tools.projection;
 import com.goosethings.tools.network.GooseToolsPayloads;
 import com.goosethings.tools.network.MandatoryHandshake;
 import com.goosethings.tools.mime.MimeControlSync;
+import com.goosethings.tools.dream.DreamAvatarServer;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -44,13 +45,12 @@ import java.util.TreeSet;
 import java.util.UUID;
 
 /**
- * Keeps the original client-side player body at a stable entry transform while
- * the authenticated {@link ServerPlayer} remains the authoritative control
- * context for a remote skill projection.
+ * Keeps the real, normally tracked player body in the world while the shared
+ * dream-avatar service owns a skill's independent movement and camera.
  *
  * <p>The server creates only an invisible Marker anchor for data-pack spatial
- * selectors. GooseTools clients retain the already-existing player render at
- * that anchor; no visible mannequin or fake server player is spawned.</p>
+ * selectors. In-round skills render the actual player entity at that anchor;
+ * no replacement body is published to observers.</p>
  */
 public final class ProjectionBodyServer {
     private static final int RETURN_GRACE_TICKS = 8;
@@ -128,12 +128,14 @@ public final class ProjectionBodyServer {
     public static void register() {
         ServerTickEvents.END_SERVER_TICK.register(ProjectionBodyServer::tick);
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            handler.player.removeTag("projectionBodyRetained");
             LAST_SCENES.remove(handler.player.getUUID());
             LAST_SENT_TICKS.remove(handler.player.getUUID());
             dirty = true;
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             UUID playerId = handler.player.getUUID();
+            handler.player.removeTag("projectionBodyRetained");
             Session session = SESSIONS.remove(playerId);
             if (session != null) {
                 releaseMimeBodyController(server, session, true);
@@ -191,6 +193,12 @@ public final class ProjectionBodyServer {
         if (server == null) {
             return false;
         }
+        if (!kind.isDream() && (!fullBloodEnabled(server) || !MandatoryHandshake.isVerified(player)
+                || !Boolean.TRUE.equals(net.fabricmc.loader.api.FabricLoader.getInstance().getObjectShare()
+                        .get("goosethings:retained_projections"))
+                || player.entityTags().contains("spectator") || player.entityTags().contains("inTalk")
+                || player.entityTags().contains("inPelican") || player.entityTags().contains("endGame")
+                || DreamAvatarServer.active(player))) return false;
         Session previous = SESSIONS.remove(player.getUUID());
         if (previous != null) {
             releaseMimeBodyController(server, previous, true);
@@ -205,6 +213,15 @@ public final class ProjectionBodyServer {
         SESSIONS.put(player.getUUID(), new Session(
                 player.getUUID(), kind, snapshot, anchor.getUUID(),
                 GooseToolsPayloads.ProjectionBody.PREPARED, -1));
+        if (!kind.isDream()) {
+            player.addTag("projectionBodyRetained");
+            if (!DreamAvatarServer.beginProjection(player, kind)) {
+                player.removeTag("projectionBodyRetained");
+                SESSIONS.remove(player.getUUID());
+                anchor.discard();
+                return false;
+            }
+        }
         dirty = true;
         syncAll(server);
         return true;
@@ -218,9 +235,10 @@ public final class ProjectionBodyServer {
         }
         session.phase = GooseToolsPayloads.ProjectionBody.ACTIVE;
         if (session.kind == Kind.MIME) {
-            session.mimeSourcePosition = player.position();
-            session.mimeSourceDimension = player.level().dimension();
-            session.mimeSourceOnGround = player.onGround();
+            Entity actor = controlActor(player);
+            session.mimeSourcePosition = actor.position();
+            session.mimeSourceDimension = actor.level().dimension();
+            session.mimeSourceOnGround = actor.onGround();
         }
         dirty = true;
         syncAll(player.level().getServer());
@@ -233,6 +251,8 @@ public final class ProjectionBodyServer {
         if (session == null) {
             return false;
         }
+        if (!session.kind.isDream()) DreamAvatarServer.end(player);
+        if (!session.kind.isDream() && unavailable(player)) return retire(player);
         ServerPlayer controller = session.mimeControllerId == null ? null
                 : player.level().getServer().getPlayerList()
                 .getPlayer(session.mimeControllerId);
@@ -272,6 +292,10 @@ public final class ProjectionBodyServer {
         if (session == null) {
             return false;
         }
+        if (!session.kind.isDream()) {
+            DreamAvatarServer.end(player);
+            player.removeTag("projectionBodyRetained");
+        }
         MinecraftServer server = player.level().getServer();
         ServerPlayer controller = server == null || session.mimeControllerId == null
                 ? null : server.getPlayerList().getPlayer(session.mimeControllerId);
@@ -298,6 +322,8 @@ public final class ProjectionBodyServer {
             return false;
         }
         SESSIONS.remove(player.getUUID());
+        if (!session.kind.isDream()) DreamAvatarServer.end(player);
+        player.removeTag("projectionBodyRetained");
         discardAnchor(player.level().getServer(), session.anchorId);
         dirty = true;
         syncAll(player.level().getServer());
@@ -310,6 +336,8 @@ public final class ProjectionBodyServer {
         if (session == null) {
             return false;
         }
+        if (!session.kind.isDream()) DreamAvatarServer.end(player);
+        player.removeTag("projectionBodyRetained");
         releaseMimeBodyController(server, session, true);
         discardAnchor(server, session.anchorId);
         dirty = true;
@@ -321,6 +349,31 @@ public final class ProjectionBodyServer {
         Session session = SESSIONS.get(playerId);
         return session != null
                 && session.phase == GooseToolsPayloads.ProjectionBody.ACTIVE;
+    }
+
+    public static boolean isRetained(ServerPlayer player) {
+        Session session = SESSIONS.get(player.getUUID());
+        return session != null && !session.kind.isDream()
+                && session.phase != GooseToolsPayloads.ProjectionBody.RETURNING
+                && player.entityTags().contains("projectionBodyRetained");
+    }
+
+    private static boolean unavailable(ServerPlayer player) {
+        Set<String> tags = player.entityTags();
+        return tags.contains("spectator") || tags.contains("inTalk") || tags.contains("inPelican")
+                || tags.contains("endGame") || tags.contains("dlcGhostActive") || tags.contains("dlcDeadViewer");
+    }
+
+    private static boolean fullBloodEnabled(MinecraftServer server) {
+        var objective = server.getScoreboard().getObjective("ggdadv");
+        var score = objective == null ? null : server.getScoreboard().getPlayerScoreInfo(
+                net.minecraft.world.scores.ScoreHolder.forNameOnly("FullBloodDLC"), objective);
+        return score != null && score.value() == 1;
+    }
+
+    private static Entity controlActor(ServerPlayer player) {
+        Entity actor = DreamAvatarServer.actor(player);
+        return actor == null ? player : actor;
     }
 
     public static Kind kind(UUID playerId) {
@@ -444,6 +497,11 @@ public final class ProjectionBodyServer {
                 changed = true;
                 continue;
             }
+            if (isRetained(player) && (unavailable(player) || !fullBloodEnabled(server))) {
+                abandon(server, player);
+                changed = true;
+                continue;
+            }
             if (session.phase == GooseToolsPayloads.ProjectionBody.RETURNING
                     && tick >= session.removeAtTick) {
                 SESSIONS.remove(session.playerId);
@@ -497,6 +555,7 @@ public final class ProjectionBodyServer {
             if (activeMime) {
                 syncBodyMotion(server, player, session, session.playerId, 0.0F, 0.0F);
             }
+            if (isRetained(player)) applyRealBody(player, session);
             if (findEntity(server, session.anchorId) == null) {
                 Marker replacement = createAnchor(player, session.kind, session.body);
                 if (replacement != null) {
@@ -553,7 +612,7 @@ public final class ProjectionBodyServer {
         if (verticalCollision) {
             session.bodyVelocityY = 0.0D;
         } else if (mirroredJump) {
-            session.bodyVelocityY = Math.max(player.getDeltaMovement().y, 0.0D);
+            session.bodyVelocityY = Math.max(controlActor(player).getDeltaMovement().y, 0.0D);
         } else {
             session.bodyVelocityY = requestedY;
         }
@@ -651,9 +710,10 @@ public final class ProjectionBodyServer {
      */
     private static MimeBodyMovementPolicy.Movement captureMimeMovement(
             ServerPlayer player, Session session) {
-        Vec3 current = player.position();
-        ResourceKey<Level> dimension = player.level().dimension();
-        boolean onGround = player.onGround();
+        Entity actor = controlActor(player);
+        Vec3 current = actor.position();
+        ResourceKey<Level> dimension = actor.level().dimension();
+        boolean onGround = actor.onGround();
         Vec3 previous = session.mimeSourcePosition;
         ResourceKey<Level> previousDimension = session.mimeSourceDimension;
         boolean previousOnGround = session.mimeSourceOnGround;
@@ -672,20 +732,21 @@ public final class ProjectionBodyServer {
     private static boolean syncMimeControlledBody(
             ServerPlayer controller, Session session) {
         BodySnapshot previous = session.body;
-        BodyMotion motion = BodyMotion.capture(controller);
+        LivingEntity actor = (LivingEntity) controlActor(controller);
+        BodyMotion motion = BodyMotion.capture(actor);
         AABB nextPoseBox = controller.getDimensions(motion.pose)
-                .makeBoundingBox(controller.position());
+                .makeBoundingBox(actor.position());
         if (!isBodyCollisionFree(controller.level(), nextPoseBox)) {
             motion = motion.withPose(previous.pose);
         }
         session.body = previous.withTransform(
-                controller.level(), controller.position(), motion);
+                (ServerLevel) actor.level(), actor.position(), motion);
         session.lastSafeBodyPosition = session.body.position;
         session.bodyVelocityY = 0.0D;
-        session.bodyOnGround = controller.onGround();
+        session.bodyOnGround = actor.onGround();
 
         Vec3 animationPrevious = session.lastBodyAnimationPosition;
-        Vec3 animationCurrent = controller.position();
+        Vec3 animationCurrent = actor.position();
         session.lastBodyAnimationPosition = animationCurrent;
         double horizontal = animationPrevious == null ? 0.0D
                 : animationCurrent.subtract(animationPrevious).horizontalDistance();
@@ -708,19 +769,20 @@ public final class ProjectionBodyServer {
     private static void syncBodyMotion(
             MinecraftServer server, ServerPlayer player, Session session,
             UUID bodyOwnerId, float walkPosition, float walkSpeed) {
-        float swingProgress = player.isSwinging()
-                ? player.getSwingAnimation(1.0F) : -1.0F;
-        boolean newSwing = player.isSwinging()
+        LivingEntity actor = (LivingEntity) controlActor(player);
+        float swingProgress = actor.isSwinging()
+                ? actor.getSwingAnimation(1.0F) : -1.0F;
+        boolean newSwing = actor.isSwinging()
                 && (session.lastSwingProgress < 0.0F
                 || swingProgress < session.lastSwingProgress);
         session.lastSwingProgress = swingProgress;
         if (newSwing) {
             session.swingSequence++;
-            LivingEntity.SwingDescription swing = player.getCurrentSwing();
+            LivingEntity.SwingDescription swing = actor.getCurrentSwing();
             session.offHand = swing != null && swing.hand() == InteractionHand.OFF_HAND;
         }
 
-        BodyMotion next = BodyMotion.capture(player);
+        BodyMotion next = BodyMotion.capture(actor);
         if (next.pose != session.body.pose) {
             AABB nextPoseBox = player.getDimensions(next.pose)
                     .makeBoundingBox(session.body.position);
@@ -739,6 +801,7 @@ public final class ProjectionBodyServer {
         session.lastSentWalkAnimationPosition = walkPosition;
         session.lastSentWalkAnimationSpeed = walkSpeed;
         session.body = session.body.withMotion(next);
+        if (!session.kind.isDream()) return;
         GooseToolsPayloads.ProjectionBodyMotionS2C payload =
                 new GooseToolsPayloads.ProjectionBodyMotionS2C(
                         fakeBodyId(bodyOwnerId),
@@ -797,6 +860,8 @@ public final class ProjectionBodyServer {
                 .toList();
         Session viewerSession = SESSIONS.get(viewer.getUUID());
         for (Session session : sessions) {
+            // Round-skill bodies are the real tracked players; only their remote actors are synthetic.
+            if (!session.kind.isDream()) continue;
             // Dream meeting chairs use DreamStandInServer's dedicated RemotePlayer
             // copy. Keeping them out of this scene prevents two client clones from
             // competing for the same body during enter/wake hand-offs.
@@ -954,12 +1019,18 @@ public final class ProjectionBodyServer {
 
     private static void clearState(MinecraftServer server) {
         for (Session session : SESSIONS.values()) {
+            ServerPlayer owner = server.getPlayerList().getPlayer(session.playerId);
+            if (owner != null && !session.kind.isDream()) {
+                DreamAvatarServer.end(owner);
+                owner.removeTag("projectionBodyRetained");
+            }
             releaseMimeBodyController(server, session, false);
             discardAnchor(server, session.anchorId);
         }
         SESSIONS.clear();
         LAST_SCENES.clear();
         LAST_SENT_TICKS.clear();
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) player.removeTag("projectionBodyRetained");
     }
 
     private static void releaseBodiesControlledBy(
@@ -1050,7 +1121,7 @@ public final class ProjectionBodyServer {
             float bodyRot,
             float headRot,
             Pose pose) {
-        private static BodyMotion capture(ServerPlayer player) {
+        private static BodyMotion capture(LivingEntity player) {
             return new BodyMotion(
                     player.getYRot(),
                     player.getXRot(),
@@ -1062,6 +1133,20 @@ public final class ProjectionBodyServer {
         private BodyMotion withPose(Pose nextPose) {
             return new BodyMotion(yRot, xRot, bodyRot, headRot, nextPose);
         }
+    }
+
+    private static void applyRealBody(ServerPlayer player, Session session) {
+        BodySnapshot body = session.body;
+        if (player.level() != body.level) return;
+        if (player.position().distanceToSqr(body.position) > MOTION_EPSILON) {
+            player.connection.teleport(body.position.x, body.position.y, body.position.z,
+                    body.yRot, body.xRot);
+        }
+        player.setYRot(body.yRot);player.setXRot(body.xRot);
+        player.setYBodyRot(body.bodyRot);player.setYHeadRot(body.headRot);
+        player.setPose(body.pose);player.setDeltaMovement(Vec3.ZERO);
+        player.setOnGround(session.bodyOnGround);
+        player.noPhysics = false;
     }
 
     private static final class Session {

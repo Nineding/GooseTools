@@ -1,6 +1,7 @@
 package com.goosethings.tools.dream;
 
 import com.goosethings.tools.network.MandatoryHandshake;
+import com.goosethings.tools.projection.ProjectionBodyServer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -22,10 +23,11 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.ArrayDeque;
 
-/** Independent dream physics. The authenticated player never leaves their meeting chair. */
+/** Shared remote-avatar physics. The authenticated player's visible body stays in the world. */
 public final class DreamAvatarServer {
     private static final Map<UUID, Session> SESSIONS = new HashMap<>();
     private static final TicketType VIEW_TICKET = new TicketType(40L, TicketType.FLAG_LOADING | TicketType.FLAG_SIMULATION);
+    private static final TicketType BODY_TICKET = new TicketType(40L, TicketType.FLAG_LOADING | TicketType.FLAG_SIMULATION);
     private static long nextSession;
     private DreamAvatarServer() {}
     public static void register() {
@@ -46,7 +48,21 @@ public final class DreamAvatarServer {
         if(SESSIONS.containsKey(owner.getUUID())
                 || !MandatoryHandshake.isVerified(owner) || owner.getVehicle()==null
                 || !DreamStandInServer.isPrepared(owner, raven)) return false;
-        Session session=new Session(++nextSession, owner, new Body(level, owner, raven), raven);
+        return begin(owner, level, position, yaw, pitch, raven, -1);
+    }
+
+    /** Round skills retain their real, interactable player instead of publishing a body clone. */
+    public static boolean beginProjection(ServerPlayer owner, ProjectionBodyServer.Kind kind) {
+        if (kind == null || kind.isDream() || SESSIONS.containsKey(owner.getUUID())
+                || !MandatoryHandshake.isVerified(owner)) return false;
+        return begin(owner, owner.level(), owner.position(), owner.getYRot(), owner.getXRot(),
+                kind == ProjectionBodyServer.Kind.ASTRAL || kind == ProjectionBodyServer.Kind.SNIPER,
+                kind.networkId());
+    }
+
+    private static boolean begin(ServerPlayer owner, ServerLevel level, Vec3 position,
+                                 float yaw, float pitch, boolean raven, int projectionKind) {
+        Session session=new Session(++nextSession, owner, new Body(level, owner, raven, projectionKind), raven, projectionKind);
         session.body.absSnapTo(position.x,position.y,position.z,yaw,pitch);
         session.body.setOldPosAndRot();
         session.body.setYHeadRot(yaw);session.body.setYBodyRot(yaw);
@@ -62,7 +78,8 @@ public final class DreamAvatarServer {
         track(session);
         if (level != owner.level()) owner.connection.send(new net.minecraft.network.protocol.game.ClientboundGameEventPacket(
                 net.minecraft.network.protocol.game.ClientboundGameEventPacket.LEVEL_CHUNKS_LOAD_START, 0));
-        ServerPlayNetworking.send(owner,new DreamAvatarPackets.View(session.id,true,position.x,position.y,position.z,raven));
+        ServerPlayNetworking.send(owner,new DreamAvatarPackets.View(session.id,true,position.x,position.y,position.z,raven,projectionKind));
+        DreamStandInServer.avatarChanged();
         return true;
     }
     public static Entity actor(Entity owner) {
@@ -70,13 +87,29 @@ public final class DreamAvatarServer {
         Session s=SESSIONS.get(owner.getUUID());return s==null?null:s.body;
     }
     public static boolean active(ServerPlayer owner) { return SESSIONS.containsKey(owner.getUUID()); }
+    public static boolean retainsProjectionBody(ServerPlayer owner) {
+        Session session=SESSIONS.get(owner.getUUID());return session!=null && session.projectionKind>=0;
+    }
+    public static int projectionKind(ServerPlayer owner) {
+        Session session=SESSIONS.get(owner.getUUID());return session==null?-1:session.projectionKind;
+    }
+    public static UUID projectionTarget(ServerPlayer owner) {
+        Session session=SESSIONS.get(owner.getUUID());return session==null?null:session.targetId;
+    }
+    /** Changes only the remote actor; the real body remains tracked at its own position. */
+    public static boolean followProjection(ServerPlayer owner, ServerPlayer target) {
+        Session session=SESSIONS.get(owner.getUUID());
+        if(session==null || session.projectionKind<2 || target==owner || target.level()!=owner.level())return false;
+        session.targetId=target.getUUID();
+        return move(owner,target.level(),target.position(),target.getYRot(),target.getXRot());
+    }
     public static boolean isSeatedOwner(ServerPlayer player) {
         Session session = SESSIONS.get(player.getUUID());
         return session != null && session.owner == player;
     }
     public static Pose meetingPose(ServerPlayer player) {
         Session session = SESSIONS.get(player.getUUID());
-        return session == null || session.owner != player ? null
+        return session == null || session.owner != player || session.projectionKind>=0 ? null
                 : player.entityTags().contains("dreamRemote") ? session.body.getPose() : session.meetingPose;
     }
     /** The connection remains authenticated as the owner; only chunk source and priority use the viewer. */
@@ -112,12 +145,13 @@ public final class DreamAvatarServer {
     }
     public static Entity end(ServerPlayer owner) {
         owner.getAdvancements().setPlayer(owner);
-        DreamStandInServer.retainAvatarSnapshot(owner);
+        if(!retainsProjectionBody(owner))DreamStandInServer.retainAvatarSnapshot(owner);
         Session s=SESSIONS.remove(owner.getUUID());
         if(s==null)return null;
-        owner.setPose(s.meetingPose);
+        if(s.projectionKind<0)owner.setPose(s.meetingPose);
         s.body.stopRiding();
         if(s.chunk!=null) s.body.level().getChunkSource().removeTicketWithRadius(VIEW_TICKET,s.chunk,s.radius);
+        if(s.bodyChunk!=null)owner.level().getChunkSource().removeTicketWithRadius(BODY_TICKET,s.bodyChunk,2);
         ((DreamChunkTracking)(Object)s.body.level().getChunkSource().chunkMap).dream$removeViewer(s.viewer);
         if (s.body.level() != owner.level()) owner.connection.send(new net.minecraft.network.protocol.game.ClientboundRespawnPacket(
                 owner.createCommonSpawnInfo(owner.level()), (byte)3));
@@ -126,7 +160,8 @@ public final class DreamAvatarServer {
         if (s.body.level() != owner.level()) owner.connection.send(new net.minecraft.network.protocol.game.ClientboundGameEventPacket(
                 net.minecraft.network.protocol.game.ClientboundGameEventPacket.LEVEL_CHUNKS_LOAD_START, 0));
         if(owner.connection!=null && ServerPlayNetworking.canSend(owner,DreamAvatarPackets.View.TYPE))
-            ServerPlayNetworking.send(owner,new DreamAvatarPackets.View(s.id,false,owner.getX(),owner.getY(),owner.getZ(),s.raven));
+            ServerPlayNetworking.send(owner,new DreamAvatarPackets.View(s.id,false,owner.getX(),owner.getY(),owner.getZ(),s.raven,s.projectionKind));
+        DreamStandInServer.avatarChanged();
         return s.body;
     }
     public static boolean move(ServerPlayer owner, ServerLevel level, Vec3 position, float yaw, float pitch) {
@@ -149,12 +184,26 @@ public final class DreamAvatarServer {
     private static void tick(MinecraftServer server) {
         for(Session s:List.copyOf(SESSIONS.values())) {
             var tags=s.owner.entityTags();
-            if(s.owner.hasDisconnected() || tags.contains("spectator") || tags.contains("endGame")
-                    || !tags.contains("inDream") && server.getTickCount()-s.started>2
-                    || s.owner.getVehicle()==null || s.owner.getVehicle().isRemoved()) {end(s.owner);continue;}
+            boolean unavailable=s.owner.hasDisconnected() || tags.contains("spectator") || tags.contains("endGame");
+            if(s.projectionKind<0)unavailable|=(!tags.contains("inDream") && server.getTickCount()-s.started>2)
+                    || s.owner.getVehicle()==null || s.owner.getVehicle().isRemoved();
+            else unavailable|=tags.contains("inTalk") || tags.contains("inPelican")
+                    || !ProjectionBodyServer.isRetained(s.owner);
+            if(unavailable) {end(s.owner);continue;}
             if(!s.ready && server.getTickCount()-s.started>200) {
-                server.getCommands().performPrefixedCommand(s.owner.createCommandSourceStack().withSuppressedOutput(),"function ggd:skill/dream/wake");
+                String function=s.projectionKind<0?"ggd:skill/dream/wake":"ggd:skill/"+
+                        ProjectionBodyServer.kind(s.owner.getUUID()).commandName()+"/force_cleanup";
+                server.getCommands().performPrefixedCommand(s.owner.createCommandSourceStack().withSuppressedOutput(),"function "+function);
                 continue;
+            }
+            if(s.projectionKind==2) {
+                ServerPlayer target=s.targetId==null?null:server.getPlayerList().getPlayer(s.targetId);
+                if(target!=null && target.level()==s.body.level()) {
+                    s.body.absSnapTo(target.getX(),target.getY(),target.getZ(),target.getYRot(),target.getXRot());
+                    s.body.setPose(target.getPose());s.body.setDeltaMovement(Vec3.ZERO);
+                    s.body.setYHeadRot(target.getYHeadRot());s.body.setYBodyRot(target.yBodyRot);
+                }
+                track(s);DreamStandInServer.avatarChanged();continue;
             }
             track(s);
             if(!s.ready || !s.body.level().hasChunkAt(s.body.blockPosition()))continue;
@@ -194,7 +243,7 @@ public final class DreamAvatarServer {
                 s.body.xxa=side;s.body.zza=forward;
                 // The existing Raven multiplier is 2: vanilla .05 flying speed becomes .1.
                 int vertical=((buttons&1)!=0?1:0)-((buttons&2)!=0?1:0);
-                s.body.setDeltaMovement(s.body.getDeltaMovement().add(0,vertical*0.3,0));
+                s.body.setDeltaMovement(s.body.getDeltaMovement().add(0,vertical*0.3*s.body.flightScale,0));
                 s.body.tick();s.body.setOnGround(false);
             } else {
                 s.jumpCharge=0;
@@ -211,7 +260,7 @@ public final class DreamAvatarServer {
                 s.owner.setYRot(s.body.getYRot());s.owner.setXRot(s.body.getXRot());
                 s.owner.setYBodyRot(s.body.yBodyRot);s.owner.setYHeadRot(s.body.getYHeadRot());
             }
-            s.owner.setPose(tags.contains("dreamRemote") ? s.body.getPose() : s.meetingPose);
+            if(s.projectionKind<0)s.owner.setPose(tags.contains("dreamRemote") ? s.body.getPose() : s.meetingPose);
             if(s.raven)sendFlight(s);
             // Scene samples preserve a moving player body rather than a hidden camera.
             DreamStandInServer.avatarChanged();
@@ -223,6 +272,13 @@ public final class DreamAvatarServer {
                 s.body.position(),s.body.getDeltaMovement(),!s.body.isPassenger()));
     }
     private static void track(Session s) {
+        if(s.projectionKind>=0) {
+            ChunkPos bodyChunk=s.owner.chunkPosition();
+            if(s.bodyChunk!=null && !s.bodyChunk.equals(bodyChunk))
+                s.owner.level().getChunkSource().removeTicketWithRadius(BODY_TICKET,s.bodyChunk,2);
+            s.bodyChunk=bodyChunk;
+            s.owner.level().getChunkSource().addTicketWithRadius(BODY_TICKET,bodyChunk,2);
+        }
         ChunkPos center=s.body.chunkPosition();
         int radius=Math.min(12,Math.max(3,s.owner.requestedViewDistance()))+1;
         if(s.chunk!=null && (!s.chunk.equals(center)||s.radius!=radius))
@@ -235,12 +291,12 @@ public final class DreamAvatarServer {
     }
     private static final class Session {
         final long id;final ServerPlayer owner;final Body body; final ServerPlayer viewer; final boolean raven;final int started;
-        final Pose meetingPose;
+        final Pose meetingPose;final int projectionKind;UUID targetId;
         long sequence=-1,receivedSequence=-1,epoch;int lastInput=-100,jumpCharge;boolean ready;DreamAvatarPackets.Input input;
         final ArrayDeque<DreamAvatarPackets.Input> pending=new ArrayDeque<>();
-        ChunkPos chunk;int radius;Vec3 lastSafe;
-        Session(long id,ServerPlayer owner,Body body,boolean raven) {
-            this.id=id;this.owner=owner;this.body=body;this.raven=raven;
+        ChunkPos chunk,bodyChunk;int radius;Vec3 lastSafe;
+        Session(long id,ServerPlayer owner,Body body,boolean raven,int projectionKind) {
+            this.id=id;this.owner=owner;this.body=body;this.raven=raven;this.projectionKind=projectionKind;
             meetingPose = owner.getPose();
             viewer = new ViewPlayer(owner, body.level());
             started=owner.level().getServer().getTickCount();lastSafe=body.position();
@@ -257,9 +313,11 @@ public final class DreamAvatarServer {
     }
     /** Detached vanilla humanoid physics: never spawned, tracked or saved as a visible mannequin. */
     private static final class Body extends Mannequin {
-        final ServerPlayer owner;final boolean raven;
-        Body(ServerLevel level,ServerPlayer owner,boolean raven) {
+        final ServerPlayer owner;final boolean raven;final float flightScale;final int projectionKind;
+        Body(ServerLevel level,ServerPlayer owner,boolean raven,int projectionKind) {
             super(level);this.owner=owner;this.raven=raven;noPhysics=raven;setNoGravity(raven);
+            this.projectionKind=projectionKind;
+            flightScale=projectionKind==0?0.2F:projectionKind==1?0.25F:1.0F;
             getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(owner.getAttributeValue(Attributes.MOVEMENT_SPEED));
             getAttribute(Attributes.STEP_HEIGHT).setBaseValue(owner.getAttributeValue(Attributes.STEP_HEIGHT));
         }
@@ -267,12 +325,12 @@ public final class DreamAvatarServer {
         @Override public void travel(Vec3 input) {
             if (!raven) {super.travel(input);return;}
             // Match native flying acceleration and drag, without floor/fluid slowdown for noclip.
-            var motion=DreamFlightMotion.travel(position(),getDeltaMovement(),input,getYRot(),isSprinting());
+            var motion=DreamFlightMotion.travel(position(),getDeltaMovement(),input,getYRot(),isSprinting(),flightScale);
             move(net.minecraft.world.entity.MoverType.SELF,motion.position().subtract(position()));
             setDeltaMovement(motion.velocity());
         }
         @Override public boolean hurtServer(ServerLevel level,DamageSource source,float amount) {
-            if(raven)return false;
+            if(raven || projectionKind>=0)return false;
             return DreamSpatialContext.run(false,()->owner.hurtServer(level,source,amount));
         }
         @Override public boolean isPushable() {return false;}

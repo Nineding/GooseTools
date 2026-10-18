@@ -35,9 +35,12 @@ public final class DreamAvatarClient {
     }
 
     public static boolean active() { return view != null; }
+    public static boolean retainedProjection() { return view != null && view.projectionKind() >= 0; }
+    public static boolean followsTarget() { return view != null && view.projectionKind() == 2; }
+    public static boolean isControlledAvatar(Entity entity) { return controls(entity); }
     static boolean controls(Entity entity) {
         Minecraft client = Minecraft.getInstance();
-        return active() && client.player != null
+        return active() && !followsTarget() && client.player != null
                 && entity == DreamStandInClient.liveAvatar(client.player.getUUID());
     }
     static boolean predicts(Entity entity) { return controls(entity) && view.raven() && flight.active(); }
@@ -66,6 +69,7 @@ public final class DreamAvatarClient {
 
     /** Vanilla already applied sensitivity and inversion to these mouse deltas. */
     public static void turn(double horizontal, double vertical) {
+        if (followsTarget()) return;
         yaw = Mth.wrapDegrees(yaw + (float) horizontal * 0.15F);
         pitch = Mth.clamp(pitch + (float) vertical * 0.15F, -90F, 90F);
         Entity camera = Minecraft.getInstance().getCameraEntity();
@@ -91,6 +95,7 @@ public final class DreamAvatarClient {
         }
         reset(client);
         view = payload;
+        flight = new DreamFlightPrediction(payload.flightScale());
         previousCamera = client.getCameraEntity();
         yaw = client.player == null ? 0 : client.player.getYRot();
         pitch = client.player == null ? 0 : client.player.getXRot();
@@ -112,11 +117,14 @@ public final class DreamAvatarClient {
             if (client.gui.screen() instanceof net.minecraft.client.gui.screens.LevelLoadingScreen)
                 client.setScreenAndShow(null);
         }
-        body.setYRot(yaw);
-        body.setXRot(pitch);
-        body.setYHeadRot(yaw);
-        body.setYBodyRot(yaw);
+        if (!followsTarget()) {
+            body.setYRot(yaw);
+            body.setXRot(pitch);
+            body.setYHeadRot(yaw);
+            body.setYBodyRot(yaw);
+        }
         client.setCameraEntity(body);
+        if (followsTarget()) return;
         Input input = client.gui.screen() == null ? keys : Input.EMPTY;
         Vec2 vector = client.gui.screen() == null ? movement : Vec2.ZERO;
         int buttons = (input.jump() ? 1 : 0) | (input.shift() ? 2 : 0) | (input.sprint() ? 4 : 0);
