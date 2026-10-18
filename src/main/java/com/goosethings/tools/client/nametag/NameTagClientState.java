@@ -84,9 +84,12 @@ public final class NameTagClientState {
         if (entity != null && MimeControllerViewClient.isControlling()
                 && MimeControllerViewClient.targetId() != null) {
             Minecraft minecraft = Minecraft.getInstance();
-            if (minecraft != null && entity == minecraft.player) {
+            if (minecraft != null && entity == minecraft.player
+                    && !com.goosethings.tools.client.dream.DreamAvatarClient.retainedProjection()) {
                 return MimeControllerViewClient.targetId();
             }
+            if (com.goosethings.tools.client.dream.DreamAvatarClient.isControlledAvatar(entity))
+                return MimeControllerViewClient.targetId();
         }
         UUID alias = entity == null ? null : LOCAL_ENTITY_ALIASES.get(entity.getUUID());
         if (alias == null && entity != null) {

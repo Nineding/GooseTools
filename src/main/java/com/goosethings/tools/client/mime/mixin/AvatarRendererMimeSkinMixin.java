@@ -18,7 +18,8 @@ public abstract class AvatarRendererMimeSkinMixin {
             at = @At("TAIL"))
     private void goosetools$localAppearanceSkin(Avatar entity, AvatarRenderState state,
                                                 float partialTick, CallbackInfo ci) {
-        if (entity != Minecraft.getInstance().player) {
+        if (entity != Minecraft.getInstance().player
+                || com.goosethings.tools.client.projection.ProjectionBodyClient.extractingRetainedOwner()) {
             return;
         }
         LocalAppearanceClient.applyAvatarLook(state);

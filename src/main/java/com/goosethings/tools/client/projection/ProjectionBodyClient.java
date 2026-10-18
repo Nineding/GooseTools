@@ -45,11 +45,27 @@ public final class ProjectionBodyClient {
     private static long revision = -1L;
     private static int nextEntityId = -1_900_000_000;
     private static boolean bypassRetention;
+    private static boolean extractingRetainedOwner;
 
     private ProjectionBodyClient() {
     }
 
     public static void register() {
+        net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents.END_EXTRACTION.register(context -> {
+            Minecraft client = Minecraft.getInstance();
+            if (!com.goosethings.tools.client.dream.DreamAvatarClient.retainedProjection()
+                    || client.player == null || client.level == null || context.camera().entity() == client.player
+                    || !client.level.hasChunkAt(client.player.blockPosition())
+                    || com.goosethings.tools.client.vision.VisionFogState.shouldHideEntityVisual(client.player)
+                    || !client.player.shouldRenderAtSqrDistance(context.camera().position().distanceToSqr(client.player.position()))) return;
+            // Vanilla omits LocalPlayer whenever another entity owns the camera. Extract the actual
+            // retained body once, rather than creating a second entity with another UUID/lifecycle.
+            extractingRetainedOwner = true;
+            try {
+                context.levelState().entityRenderStates.add(client.getEntityRenderDispatcher().extractEntity(
+                        client.player, context.deltaTracker().getGameTimeDeltaPartialTick(true)));
+            } finally { extractingRetainedOwner = false; }
+        });
         ClientPlayNetworking.registerGlobalReceiver(
                 GooseToolsPayloads.ProjectionBodiesS2C.TYPE,
                 (payload, context) -> context.client().execute(() -> applyScene(payload)));
@@ -59,6 +75,8 @@ public final class ProjectionBodyClient {
         ClientTickEvents.END_CLIENT_TICK.register(ProjectionBodyClient::tick);
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> clear());
     }
+
+    public static boolean extractingRetainedOwner() { return extractingRetainedOwner; }
 
     /** Called before ClientLevel discards an entity sent as hidden by the server. */
     public static boolean shouldRetain(ClientLevel level, int entityId) {

@@ -9,19 +9,27 @@ public final class DreamFlightMotion {
     public record State(Vec3 position, Vec3 velocity) {}
 
     public static State step(State state, DreamAvatarPackets.Input input) {
+        return step(state, input, 1.0F);
+    }
+
+    public static State step(State state, DreamAvatarPackets.Input input, float scale) {
         int vertical = ((input.buttons() & 1) != 0 ? 1 : 0) - ((input.buttons() & 2) != 0 ? 1 : 0);
-        Vec3 velocity = state.velocity().add(0, vertical * 0.3, 0);
+        Vec3 velocity = state.velocity().add(0, vertical * 0.3 * scale, 0);
         // LivingEntity.aiStep clamps small velocities and damps its raw controls.
         velocity = new Vec3(clamp(velocity.x), clamp(velocity.y), clamp(velocity.z));
         return travel(state.position(), velocity,
                 new Vec3(input.sideways() * 0.98F, 0, input.forward() * 0.98F),
-                input.yaw(), (input.buttons() & 4) != 0);
+                input.yaw(), (input.buttons() & 4) != 0, scale);
     }
 
     public static State travel(Vec3 position, Vec3 velocity, Vec3 controls, float yaw, boolean sprint) {
+        return travel(position, velocity, controls, yaw, sprint, 1.0F);
+    }
+
+    public static State travel(Vec3 position, Vec3 velocity, Vec3 controls, float yaw, boolean sprint, float scale) {
         double length = controls.lengthSqr();
         if (length >= 1.0E-7) {
-            Vec3 input = (length > 1 ? controls.normalize() : controls).scale(sprint ? 0.2F : 0.1F);
+            Vec3 input = (length > 1 ? controls.normalize() : controls).scale((sprint ? 0.2F : 0.1F) * scale);
             float sin = Mth.sin(yaw * (float)(Math.PI / 180)), cos = Mth.cos(yaw * (float)(Math.PI / 180));
             velocity = velocity.add(input.x * cos - input.z * sin, input.y, input.z * cos + input.x * sin);
         }

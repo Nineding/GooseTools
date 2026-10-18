@@ -381,6 +381,7 @@ public final class DreamStandInServer {
         List<Session> sessions = SESSIONS.values().stream()
                 .sorted(Comparator.comparing(session -> session.playerId))
                 .toList();
+        appendProjectionAvatars(server, viewer, result);
         Session ownSession = SESSIONS.get(viewer.getUUID());
         if (ownSession == null || !ownSession.active) {
             return List.copyOf(result);
@@ -418,6 +419,37 @@ public final class DreamStandInServer {
                     .forEach(result::add);
         }
         return List.copyOf(result);
+    }
+
+    private static void appendProjectionAvatars(MinecraftServer server, ServerPlayer viewer,
+                                                List<GooseToolsPayloads.DreamStandIn> result) {
+        int viewerKind = DreamAvatarServer.projectionKind(viewer);
+        for (ServerPlayer source : server.getPlayerList().getPlayers()) {
+            if (!ProjectionBodyServer.isRetained(source)) continue;
+            int kind = DreamAvatarServer.projectionKind(source);
+            boolean owner = source == viewer;
+            boolean hiddenAudience = viewer.entityTags().contains("spectator")
+                    || viewerKind == GooseToolsPayloads.ProjectionBody.ASTRAL
+                    || viewerKind == GooseToolsPayloads.ProjectionBody.ESPER
+                    || viewerKind == GooseToolsPayloads.ProjectionBody.MIME;
+            // Sniper has a private scope; Mime's target already owns the public controlled body.
+            if (!owner && (kind == GooseToolsPayloads.ProjectionBody.SNIPER
+                    || kind == GooseToolsPayloads.ProjectionBody.MIME || !hiddenAudience)) continue;
+            Entity actor = DreamAvatarServer.actor(source);
+            if (actor == null) continue;
+            UUID targetId = DreamAvatarServer.projectionTarget(source);
+            ServerPlayer appearance = kind == GooseToolsPayloads.ProjectionBody.MIME && targetId != null
+                    ? server.getPlayerList().getPlayer(targetId) : source;
+            if (appearance == null) appearance = source;
+            if (viewerKind == GooseToolsPayloads.ProjectionBody.ASTRAL && !owner) appearance = viewer;
+            List<ItemStack> equipment = new ArrayList<>();
+            for (EquipmentSlot slot : EquipmentSlot.values()) equipment.add(appearance.getItemBySlot(slot).copy());
+            result.add(new GooseToolsPayloads.DreamStandIn(namedId("avatar", source.getUUID(), source.getUUID()),
+                    source.getUUID(), appearance.getUUID(), source.getGameProfile().name(),
+                    actor.level().dimension().identifier().toString(), GooseToolsPayloads.DreamStandIn.LIVE_AVATAR,
+                    false, actor.isPassenger(), actor.getX(), actor.getY(), actor.getZ(), actor.getYRot(),
+                    actor.getXRot(), actor.getYRot(), actor.getYRot(), actor.getPose().name(), List.copyOf(equipment)));
+        }
     }
 
     private static GooseToolsPayloads.DreamStandIn meetingStandIn(
