@@ -14,4 +14,5 @@ final class AiNameVoteOpenQueue<T> {
     }
     void cancel(long id) { if (this.id == id) clear(); }
     void clear() { pending = null; }
+    void removeIf(java.util.function.Predicate<T> test) {if(pending!=null && test.test(pending)) clear();}
 }

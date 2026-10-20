@@ -16,8 +16,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 
 /** Receives the local player's filtered report archive from the server. */
@@ -25,8 +23,7 @@ public final class AiReportClient {
     private Incoming transfer;
     private final AiReportHistory history = new AiReportHistory();
     private final AiReportOpenQueue manualOpen = new AiReportOpenQueue();
-    private long autoOpenGeneration;
-    private Long pendingAutoGameId;
+    private final java.util.LinkedHashMap<Long,Long> pendingAutoGames=new java.util.LinkedHashMap<>();
 
     public void register() {
         ClientPlayNetworking.registerGlobalReceiver(GooseToolsPayloads.AiReportStartS2C.TYPE,
@@ -49,11 +46,13 @@ public final class AiReportClient {
     private void openPending(Minecraft client) {
         if (AiReviewFlowClient.presentationBlocked(client)) return;
         if (manualOpen.consume(history.size() > 0)) {
-            pendingAutoGameId = null;
+            pendingAutoGames.clear();
             openNow(client);
-        } else if (pendingAutoGameId != null && client.gui.screen() == null) {
-            JsonObject report = history.get(pendingAutoGameId);
-            pendingAutoGameId = null;
+        } else if (!pendingAutoGames.isEmpty() && client.gui.screen() == null) {
+            var next=pendingAutoGames.entrySet().iterator().next();
+            if(System.currentTimeMillis()<next.getValue())return;
+            long id=next.getKey();pendingAutoGames.remove(id);
+            JsonObject report = history.get(id);
             if (report != null) client.setScreenAndShow(new AiReportScreen(report));
         }
     }
@@ -76,7 +75,7 @@ public final class AiReportClient {
             transfer = null;
             return;
         }
-        transfer = new Incoming(payload.transferId(), payload.compressedSize(), payload.chunkCount());
+        transfer = new Incoming(payload.transferId(), payload.compressedSize(), payload.chunkCount(),payload.autoOpen());
     }
 
     private void accept(long transferId, int index, byte[] bytes) {
@@ -89,7 +88,7 @@ public final class AiReportClient {
             JsonObject parsed = JsonParser.parseString(json).getAsJsonObject();
             validate(parsed);
             long gameId = history.add(parsed);
-            scheduleAutoOpen(gameId);
+            if(current.autoOpen) scheduleAutoOpen(gameId);
         } catch (Exception exception) {
             GooseTools.LOGGER.warn("Rejected AI report: {}", exception.getMessage());
             Minecraft client = Minecraft.getInstance();
@@ -102,11 +101,10 @@ public final class AiReportClient {
 
     private void clear() {
         transfer = null;
-        pendingAutoGameId = null;
+        pendingAutoGames.clear();
         AiReviewFlowClient.clear();
         history.clear();
         manualOpen.clear();
-        autoOpenGeneration++;
         Minecraft client = Minecraft.getInstance();
         if (client.gui.screen() instanceof AiReportScreen
                 || client.gui.screen() instanceof AiReportSelectionScreen) {
@@ -115,15 +113,8 @@ public final class AiReportClient {
     }
 
     private void scheduleAutoOpen(long gameId) {
-        long generation = ++autoOpenGeneration;
-        CompletableFuture.delayedExecutor(300L, TimeUnit.MILLISECONDS).execute(() -> {
-            Minecraft client = Minecraft.getInstance();
-            client.execute(() -> {
-                if (generation != autoOpenGeneration) return;
-                JsonObject latest = history.get(gameId);
-                if (latest != null) pendingAutoGameId = gameId;
-            });
-        });
+        pendingAutoGames.putIfAbsent(gameId,System.currentTimeMillis()+300);
+        while(pendingAutoGames.size()>64) pendingAutoGames.remove(pendingAutoGames.keySet().iterator().next());
     }
 
     private static void validate(JsonObject value) throws IOException {
@@ -150,13 +141,15 @@ public final class AiReportClient {
     }
 
     private static final class Incoming {
+        final boolean autoOpen;
         private final long id;
         private final int size;
         private final byte[][] chunks;
         private int received;
         private int bytes;
 
-        private Incoming(long id, int size, int count) {
+        private Incoming(long id, int size, int count,boolean autoOpen) {
+            this.autoOpen=autoOpen;
             this.id = id;
             this.size = size;
             this.chunks = new byte[count][];

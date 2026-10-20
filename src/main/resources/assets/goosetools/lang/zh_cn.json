@@ -878,5 +878,12 @@
   "summary.goosetools.dlc_required": "获胜动画需要启用满血 DLC。",
   "summary.goosetools.server_only": "请在官网服务器的网页游戏商店获取付费获胜动画。",
   "screen.goosetools.ai.index_source.ai": "正式鹅鸭指数 · AI 评定",
-  "screen.goosetools.ai.index_source.rules_fallback": "正式鹅鸭指数 · AI 未通过或超时，采用规则评分"
+  "screen.goosetools.ai.index_source.rules_fallback": "正式鹅鸭指数 · AI 未通过或超时，采用规则评分",
+  "screen.goosetools.ai_name_vote.accelerated": "多数玩家已提交 · 剩余 %s 秒",
+  "hud.goosetools.ai.match": "第 %s 局 · %s",
+  "summary.goosetools.previous_title": "第 %s 局结算",
+  "screen.goosetools.ai.view_settlement": "查看结算",
+  "screen.goosetools.ai.rewards": "本局奖励 · %s 经验 · %s 鹅鹅币",
+  "screen.goosetools.ai.award.mvp": "本局荣誉：MVP",
+  "screen.goosetools.ai.award.smvp": "本局荣誉：SMVP"
 }

@@ -14,10 +14,10 @@ public final class AiProgressHud {
 
     static void apply(GooseToolsPayloads.AiProgressS2C payload) {
         if (payload.stage() == null || payload.stage().isBlank()) {
-            state = null;
+            if(state==null || payload.gameId()==0 || state.gameId()==payload.gameId()) state = null;
             return;
         }
-        state = new State(payload.stage(), payload.percent(), payload.completed(), payload.total(),
+        state = new State(payload.gameId(), payload.stage(), payload.percent(), payload.completed(), payload.total(),
                 payload.terminal() ? System.currentTimeMillis() + 6_000L : Long.MAX_VALUE);
     }
 
@@ -36,7 +36,7 @@ public final class AiProgressHud {
         int width = Math.min(300, Math.max(180, graphics.guiWidth() - 40));
         int left = (graphics.guiWidth() - width) / 2;
         int top = 8;
-        Component label = label(current);
+        Component label = current.gameId()>0?Component.translatableWithFallback("hud.goosetools.ai.match","Match #%s · %s",current.gameId(),label(current)):label(current);
         graphics.fill(left, top, left + width, top + 29, 0xDD0A1118);
         graphics.outline(left, top, width, 29, 0xFF4E7187);
         graphics.text(minecraft.font, label, left + 8, top + 5, 0xFFEAF7FF, false);
@@ -71,6 +71,6 @@ public final class AiProgressHud {
         };
     }
 
-    private record State(String stage, int percent, int completed, int total, long expiresAtMillis) {
+    private record State(long gameId, String stage, int percent, int completed, int total, long expiresAtMillis) {
     }
 }

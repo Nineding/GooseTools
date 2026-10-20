@@ -35,6 +35,13 @@ public final class AiReportScreen extends Screen {
         this.parent = parent;
     }
 
+    @Override protected void init() {
+        long id=report.get("game_id").getAsLong();
+        if(AiSummaryClient.has(id)) addRenderableWidget(net.minecraft.client.gui.components.Button.builder(
+                Component.translatableWithFallback("screen.goosetools.ai.view_settlement","View settlement"),
+                b->AiSummaryClient.open(id,this)).bounds(width-MARGIN-166,17,106,18).build());
+    }
+
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         graphics.fill(0, 0, width, height, 0xF012171D);
@@ -81,6 +88,7 @@ public final class AiReportScreen extends Screen {
                         : Component.translatableWithFallback(
                                 "screen.goosetools.ai.back_hint", "Esc: back to report history"),
                 MARGIN, height - 19, 0xFF78909E, false);
+        super.extractRenderState(graphics,mouseX,mouseY,partialTick);
     }
 
     @Override
@@ -154,6 +162,12 @@ public final class AiReportScreen extends Screen {
                 ? integer(player, "settled_index") + " · " + string(player, "index_grade")
                 : integer(player, "score") + "/100"), width, 0xFF91D7FF);
         if (settled) {
+            if(player.has("gained_xp")) add(out,Component.translatableWithFallback(
+                    "screen.goosetools.ai.rewards","Match rewards · %s XP · %s Goose Coins",
+                    integer(player,"gained_xp"),integer(player,"gained_coins")).getString(),width,0xFFFFD36E);
+            if(integer(player,"award")>0) add(out,Component.translatableWithFallback(
+                    "screen.goosetools.ai.award."+(integer(player,"award")==2?"smvp":"mvp"),
+                    "Match award: %s",integer(player,"award")==2?"SMVP":"MVP").getString(),width,0xFFFFD36E);
             add(out, Component.translatableWithFallback(
                     "screen.goosetools.ai.index_source." + string(player, "score_source"),
                     "Official match index · source: %s", string(player, "score_source")).getString(), width, 0xFFB5CFDC);

@@ -68,6 +68,8 @@ public final class GooseToolsPayloads {
         PayloadTypeRegistry.clientboundPlay().register(AiProgressS2C.TYPE, AiProgressS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(AiNameVoteOpenS2C.TYPE, AiNameVoteOpenS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(AiNameVoteCloseS2C.TYPE, AiNameVoteCloseS2C.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(AiNameVoteCountdownS2C.TYPE, AiNameVoteCountdownS2C.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(com.goosethings.tools.result.AiSummaryPayload.TYPE, com.goosethings.tools.result.AiSummaryPayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(AiNameVoteC2S.TYPE, AiNameVoteC2S.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(AiNameVoteReadyC2S.TYPE, AiNameVoteReadyC2S.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(AiDebugStartS2C.TYPE, AiDebugStartS2C.CODEC);
@@ -1149,14 +1151,16 @@ public final class GooseToolsPayloads {
         }
     }
 
-    public record AiReportStartS2C(long transferId, int compressedSize, int chunkCount)
+    public record AiReportStartS2C(long transferId, int compressedSize, int chunkCount,boolean autoOpen)
             implements CustomPacketPayload {
         public static final Type<AiReportStartS2C> TYPE = GooseToolsPayloads.type("ai_report_start_s2c_v1");
         public static final StreamCodec<RegistryFriendlyByteBuf, AiReportStartS2C> CODEC = StreamCodec.composite(
                 ByteBufCodecs.VAR_LONG, AiReportStartS2C::transferId,
                 ByteBufCodecs.VAR_INT, AiReportStartS2C::compressedSize,
                 ByteBufCodecs.VAR_INT, AiReportStartS2C::chunkCount,
+                ByteBufCodecs.BOOL,AiReportStartS2C::autoOpen,
                 AiReportStartS2C::new);
+        public AiReportStartS2C(long transferId,int compressedSize,int chunkCount){this(transferId,compressedSize,chunkCount,true);}
 
         @Override
         public Type<AiReportStartS2C> type() { return TYPE; }
@@ -1185,16 +1189,21 @@ public final class GooseToolsPayloads {
         public Type<AiReportClearS2C> type() { return TYPE; }
     }
 
-    public record AiProgressS2C(String stage, int percent, int completed, int total, boolean terminal)
+    public record AiProgressS2C(long gameId, String stage, int percent, int completed, int total, boolean terminal)
             implements CustomPacketPayload {
         public static final Type<AiProgressS2C> TYPE = GooseToolsPayloads.type("ai_progress_s2c_v1");
         public static final StreamCodec<RegistryFriendlyByteBuf, AiProgressS2C> CODEC = StreamCodec.composite(
+                ByteBufCodecs.VAR_LONG, AiProgressS2C::gameId,
                 ByteBufCodecs.stringUtf8(32), AiProgressS2C::stage,
                 ByteBufCodecs.VAR_INT, AiProgressS2C::percent,
                 ByteBufCodecs.VAR_INT, AiProgressS2C::completed,
                 ByteBufCodecs.VAR_INT, AiProgressS2C::total,
                 ByteBufCodecs.BOOL, AiProgressS2C::terminal,
                 AiProgressS2C::new);
+
+        public AiProgressS2C(String stage,int percent,int completed,int total,boolean terminal) {
+            this(0,stage,percent,completed,total,terminal);
+        }
 
         public AiProgressS2C {
             stage = stage == null ? "" : stage;
@@ -1209,6 +1218,7 @@ public final class GooseToolsPayloads {
 
     public record AiNameVoteOpenS2C(
             long voteId,
+            long gameId,
             int questionIndex,
             int questionCount,
             int timeoutSeconds,
@@ -1219,6 +1229,11 @@ public final class GooseToolsPayloads {
         public static final Type<AiNameVoteOpenS2C> TYPE = GooseToolsPayloads.type("ai_name_vote_open_s2c_v1");
         public static final StreamCodec<RegistryFriendlyByteBuf, AiNameVoteOpenS2C> CODEC =
                 StreamCodec.of(AiNameVoteOpenS2C::write, AiNameVoteOpenS2C::read);
+
+        public AiNameVoteOpenS2C(long voteId,int questionIndex,int questionCount,int timeoutSeconds,
+                                 String alias,String context,List<AiVoteCandidate> candidates) {
+            this(voteId,0,questionIndex,questionCount,timeoutSeconds,alias,context,candidates);
+        }
 
         public AiNameVoteOpenS2C {
             alias = alias == null ? "" : alias;
@@ -1231,6 +1246,7 @@ public final class GooseToolsPayloads {
 
         private static void write(RegistryFriendlyByteBuf buffer, AiNameVoteOpenS2C payload) {
             buffer.writeVarLong(payload.voteId());
+            buffer.writeVarLong(payload.gameId());
             buffer.writeVarInt(payload.questionIndex());
             buffer.writeVarInt(payload.questionCount());
             buffer.writeVarInt(payload.timeoutSeconds());
@@ -1245,6 +1261,7 @@ public final class GooseToolsPayloads {
 
         private static AiNameVoteOpenS2C read(RegistryFriendlyByteBuf buffer) {
             long voteId = buffer.readVarLong();
+            long gameId = buffer.readVarLong();
             int questionIndex = buffer.readVarInt();
             int questionCount = buffer.readVarInt();
             int timeoutSeconds = buffer.readVarInt();
@@ -1258,12 +1275,20 @@ public final class GooseToolsPayloads {
             for (int index = 0; index < size; index++) {
                 candidates.add(new AiVoteCandidate(buffer.readUUID(), buffer.readUtf(64)));
             }
-            return new AiNameVoteOpenS2C(voteId, questionIndex, questionCount, timeoutSeconds,
+            return new AiNameVoteOpenS2C(voteId, gameId, questionIndex, questionCount, timeoutSeconds,
                     alias, context, candidates);
         }
 
         @Override
         public Type<AiNameVoteOpenS2C> type() { return TYPE; }
+    }
+
+    public record AiNameVoteCountdownS2C(long voteId,int remainingMillis) implements CustomPacketPayload {
+        public static final Type<AiNameVoteCountdownS2C> TYPE=GooseToolsPayloads.type("ai_name_vote_countdown_s2c");
+        public static final StreamCodec<RegistryFriendlyByteBuf,AiNameVoteCountdownS2C> CODEC=StreamCodec.composite(
+                ByteBufCodecs.VAR_LONG,AiNameVoteCountdownS2C::voteId,ByteBufCodecs.VAR_INT,AiNameVoteCountdownS2C::remainingMillis,AiNameVoteCountdownS2C::new);
+        public AiNameVoteCountdownS2C {if(remainingMillis<0 || remainingMillis>5000) throw new IllegalArgumentException("Invalid accelerated vote countdown");}
+        @Override public Type<AiNameVoteCountdownS2C> type(){return TYPE;}
     }
 
     public record AiVoteCandidate(UUID playerId, String playerName) {

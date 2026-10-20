@@ -54,9 +54,9 @@ public final class AiReportServer {
 
     public static void sendCached(ServerPlayer player) {
         NavigableMap<Long, AiReportArchive.StoredReport> reports = REPORTS.get(player.getUUID());
-        if (reports == null) return;
+        if (reports == null || reports.isEmpty()) return;
         for (AiReportArchive.StoredReport report : reports.values()) {
-            send(player, report.compressed());
+            send(player, report.compressed(),report.gameId()==reports.lastKey());
         }
     }
 
@@ -91,20 +91,20 @@ public final class AiReportServer {
             reports.put(stored.gameId(), stored);
             targetArchive.prune(playerId, reports);
             ServerPlayer player = target.getPlayerList().getPlayer(playerId);
-            if (player != null) send(player, stored.compressed());
+            if (player != null) send(player, stored.compressed(),true);
         } catch (IOException exception) {
             GooseTools.LOGGER.warn("Unable to save AI report for {}: {}", playerId, exception.toString());
         }
     }
 
-    private static void send(ServerPlayer player, byte[] compressed) {
+    private static void send(ServerPlayer player, byte[] compressed,boolean autoOpen) {
         if (!MandatoryHandshake.isVerified(player)
                 || !ServerPlayNetworking.canSend(player, GooseToolsPayloads.AiReportStartS2C.TYPE)) return;
         int chunks = (compressed.length + GooseToolsPayloads.MAX_CHUNK_BYTES - 1)
                 / GooseToolsPayloads.MAX_CHUNK_BYTES;
         long transferId = IDS.getAndIncrement();
         ServerPlayNetworking.send(player,
-                new GooseToolsPayloads.AiReportStartS2C(transferId, compressed.length, chunks));
+                new GooseToolsPayloads.AiReportStartS2C(transferId, compressed.length, chunks,autoOpen));
         for (int index = 0; index < chunks; index++) {
             int from = index * GooseToolsPayloads.MAX_CHUNK_BYTES;
             int to = Math.min(compressed.length, from + GooseToolsPayloads.MAX_CHUNK_BYTES);
