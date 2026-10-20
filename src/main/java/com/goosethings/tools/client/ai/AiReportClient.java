@@ -26,6 +26,7 @@ public final class AiReportClient {
     private final AiReportHistory history = new AiReportHistory();
     private final AiReportOpenQueue manualOpen = new AiReportOpenQueue();
     private long autoOpenGeneration;
+    private Long pendingAutoGameId;
 
     public void register() {
         ClientPlayNetworking.registerGlobalReceiver(GooseToolsPayloads.AiReportStartS2C.TYPE,
@@ -46,8 +47,15 @@ public final class AiReportClient {
     }
 
     private void openPending(Minecraft client) {
-        if (!manualOpen.consume(history.size() > 0)) return;
-        openNow(client);
+        if (AiReviewFlowClient.presentationBlocked(client)) return;
+        if (manualOpen.consume(history.size() > 0)) {
+            pendingAutoGameId = null;
+            openNow(client);
+        } else if (pendingAutoGameId != null && client.gui.screen() == null) {
+            JsonObject report = history.get(pendingAutoGameId);
+            pendingAutoGameId = null;
+            if (report != null) client.setScreenAndShow(new AiReportScreen(report));
+        }
     }
 
     private void openNow(Minecraft client) {
@@ -94,6 +102,8 @@ public final class AiReportClient {
 
     private void clear() {
         transfer = null;
+        pendingAutoGameId = null;
+        AiReviewFlowClient.clear();
         history.clear();
         manualOpen.clear();
         autoOpenGeneration++;
@@ -111,7 +121,7 @@ public final class AiReportClient {
             client.execute(() -> {
                 if (generation != autoOpenGeneration) return;
                 JsonObject latest = history.get(gameId);
-                if (latest != null) client.setScreenAndShow(new AiReportScreen(latest));
+                if (latest != null) pendingAutoGameId = gameId;
             });
         });
     }

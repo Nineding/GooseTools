@@ -28,6 +28,7 @@ import java.util.concurrent.CompletableFuture;
 /** One isolated real client: commands/network, every stage tint, dense roster, pair and cleanup. */
 public final class RoleIntroRegression implements ClientModInitializer {
     private boolean world, finished, requested, captured;
+    private final AiVoteRegression aiVote = new AiVoteRegression();
     private final int startScenario=Integer.getInteger("goosetools.roleIntroRegressionStart",0);
     private final int endScenario=Integer.getInteger("goosetools.roleIntroRegressionEnd",13);
     private int warmup, scenario=startScenario, captures;
@@ -60,6 +61,7 @@ public final class RoleIntroRegression implements ClientModInitializer {
             }
             if (mc.player == null || mc.level == null || mc.getSingleplayerServer() == null
                     || !mc.player.connection.hasClientLoaded() || ++warmup < 40) return;
+            if (Boolean.getBoolean("goosetools.aiVoteRegression")) { aiVote.tick(mc); return; }
             if (pending != null) { if (!pending.isDone()) return; pending.join(); pending = null; }
             if (scenario == endScenario) {
                 require(captures == java.util.stream.IntStream.range(startScenario,endScenario)
