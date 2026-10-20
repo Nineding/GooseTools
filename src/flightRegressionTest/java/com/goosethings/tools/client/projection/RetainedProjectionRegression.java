@@ -2,9 +2,13 @@ package com.goosethings.tools.client.projection;
 
 import com.goosethings.tools.GooseTools;
 import com.goosethings.tools.client.dream.DreamAvatarClient;
+import com.goosethings.tools.client.dream.DreamTestLatency;
+import com.goosethings.tools.client.dream.DreamTcpFixture;
 import com.goosethings.tools.dream.DreamAvatarServer;
 import com.goosethings.tools.dream.DreamSpatialContext;
 import com.goosethings.tools.network.MandatoryHandshake;
+import com.goosethings.tools.network.GooseToolsPayloads;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import com.goosethings.tools.projection.ProjectionBodyServer;
 import com.mojang.authlib.GameProfile;
 import net.fabricmc.api.ClientModInitializer;
@@ -48,6 +52,7 @@ import java.util.regex.Pattern;
 
 /** Actual datapack entry points, real remote-player tracking, and the local owner's native body render. */
 public final class RetainedProjectionRegression implements ClientModInitializer {
+    public static boolean suspendBodyTicks;
     private static final String[] ROLES = {"astral", "sniper", "esper", "mime"};
     private static final String[] TAGS = {"Astral", "Sniper", "Esper", "Mime"};
     private boolean opened, initialized, finished;
@@ -57,15 +62,27 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
     private Vec3 entry;
     private boolean ownerView;
     private String lastRender = "none";
+    private Entity movementCamera;
+    private Vec3 movementStart, previousCameraPosition;
+    private int movementSamples;
 
     @Override public void onInitializeClient() {
         if (!Boolean.getBoolean("goosetools.retainedProjectionRegression")) return;
+        DreamTestLatency.register();
+        ClientTickEvents.START_CLIENT_TICK.register(mc -> {
+            suspendBodyTicks=ownerView && (stage==1 || stage==4);
+            boolean moving=ownerView && ticks<20 && (stage==4 && scenario%4!=2
+                    || stage==1 && (scenario%4==0 || scenario%4==1));
+            mc.options.keyUp.setDown(moving);
+        });
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(server -> {
             ServerPlayer fake=fakeId==null?null:server.getPlayerList().getPlayer(fakeId);
             // This observer has no real network connection to drive ServerPlayer.doTick().
             // Run vanilla equipment detection so changing its role also updates tracked clients.
             if(fake!=null)fake.doTick();
+            if(ownerView && stage==4 && scenario%4==2 && fake!=null)
+                fake.teleportTo(fake.level(),fake.getX()+.1,fake.getY(),fake.getZ(),Set.of(),90,0,false);
         });
         // Run after the body's extraction callback even when Fabric initializes this fixture first.
         var renderPhase=net.minecraft.resources.Identifier.fromNamespaceAndPath("goosetools_flight_test","retained_body");
@@ -91,6 +108,7 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
         try {
             if (!opened) {
                 opened = true;mc.options.pauseOnLostFocus = false;
+                if(DreamTcpFixture.open(mc))return;
                 mc.createWorldOpenFlows().createFreshLevel("retained-" + System.currentTimeMillis(),
                         new LevelSettings("Retained projection", GameType.ADVENTURE,
                                 new LevelSettings.DifficultySettings(Difficulty.PEACEFUL,false,false),true,WorldDataConfiguration.DEFAULT),
@@ -98,15 +116,25 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
                                 .getOrThrow(WorldPresets.FLAT).value().createWorldDimensions(), mc.gui.screen());
                 return;
             }
+            if(DreamTcpFixture.awaitConnection(mc))return;
             if (mc.level == null || mc.player == null || !mc.player.connection.hasClientLoaded()) return;
             if (mc.gui.screen() != null) mc.setScreenAndShow(null);
             if (pending != null) { if (!pending.isDone()) return;pending.join();pending = null; }
+            if(ownerView && stage==4) {
+                require(mc.getCameraEntity()==movementCamera,"projection camera switched back to the physical body");
+                Vec3 current=mc.getCameraEntity().position();
+                require(current.distanceTo(previousCameraPosition)<1,"projection camera jumped during sustained input: "+previousCameraPosition+" -> "+current);
+                previousCameraPosition=current;movementSamples++;
+            }
             if (++ticks < 25) return;
             ticks = 0;
             if (!initialized) { initialized = true;installPack(mc);return; }
             if (stage == 0) { ownerBodyFrames=0;renderWaits=0;ownerView=scenario<4 || scenario>=8;server(mc,p->begin(p));stage++;return; }
             if (stage == 1) {
                 verifyClient(mc);
+                if(ownerView && (scenario%4==0 || scenario%4==1))
+                    require(mc.getCameraEntity().position().distanceTo(entry)>.5,"native input could not leave the original body: role="+ROLES[scenario%4]
+                            +", camera="+mc.getCameraEntity().position()+", body="+mc.player.position());
                 if(ownerView && !DreamAvatarClient.followsTarget())DreamAvatarClient.turn(
                         (90-mc.getCameraEntity().getYRot())/.15, -mc.getCameraEntity().getXRot()/.15);
                 server(mc,p->separate(p));stage++;return;
@@ -126,10 +154,26 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
                 });
                 server(mc,p->verifyServer(p));stage++;return;
             }
-            if (stage == 3) { server(mc,p->{
-                if(scenario%4==3)require(source(p).getX()>entry.x+.1,"Mime real body did not mirror plausible remote movement");
-                end(p);
-            });stage++;return; }
+            if (stage == 3) {
+                movementCamera=mc.getCameraEntity();movementStart=previousCameraPosition=movementCamera.position();movementSamples=0;
+                server(mc,p->{
+                    if(scenario%4==3)require(source(p).getX()>entry.x+.1,"Mime real body did not mirror plausible remote movement");
+                    if(ownerView)ServerPlayNetworking.send(p,new GooseToolsPayloads.MimeControlS2C(true,fakeId));
+                });
+                DreamTestLatency.enabled=ownerView && (scenario%4==0 || scenario%4==1);
+                stage++;return;
+            }
+            if(stage==4) {
+                if(ownerView) {
+                    require(movementSamples>=20,"not enough continuous camera samples");
+                    require(mc.getCameraEntity().position().distanceTo(movementStart)>.5,"native movement left the projection stuck at its origin: role="+ROLES[scenario%4]);
+                }
+                DreamTestLatency.enabled=false;mc.options.keyUp.setDown(false);
+                server(mc,p->{
+                    if(ownerView)ServerPlayNetworking.send(p,new GooseToolsPayloads.MimeControlS2C(false,fakeId));
+                    end(p);
+                });stage++;return;
+            }
             require(!DreamAvatarClient.retainedProjection(),"owner retained remote camera after cleanup");
             server(mc,p->{
                 ServerPlayer source=source(p);
@@ -140,14 +184,14 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
             GooseTools.LOGGER.info("Retained projection passed {} {}",ownerView?"owner":"observer",ROLES[scenario%4]);
             if (++scenario==11) {
                 finish(mc,"PASS "+checks+" checks: actual four-role datapack entry points, owner and tracked remote observer, "
-                        +"Seagull borrowing, native body ID/render, 20-block separation, crosshair/voice origins, "
+                        +"Seagull borrowing, native movement and continuous camera samples, native body ID/render, 20-block separation, crosshair/voice origins, "
                         +"physical/remote coordinates, armour, return, meeting/swallowing/death/disconnect cleanup");
             } else stage=0;
         } catch (Throwable error) { GooseTools.LOGGER.error("Retained projection regression failed",error);finish(mc,"FAIL "+error); }
     }
 
     private void installPack(Minecraft mc) throws Exception {
-        var srv=mc.getSingleplayerServer();
+        var srv=DreamTcpFixture.server(mc);
         Path source=Path.of(System.getProperty("goosetools.retainedDatapack"));
         Path target=srv.getWorldPath(LevelResource.DATAPACK_DIR).resolve("Whoiskiller");
         try (var files=Files.walk(source)) {
@@ -287,7 +331,7 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
 
     private ServerPlayer source(ServerPlayer local) {return ownerView?local:local.level().getServer().getPlayerList().getPlayer(fakeId);}
     private void server(Minecraft mc,Consumer<ServerPlayer> operation) {
-        var srv=mc.getSingleplayerServer();UUID local=mc.player.getUUID();
+        var srv=DreamTcpFixture.server(mc);UUID local=mc.player.getUUID();
         pending=CompletableFuture.runAsync(()->operation.accept(srv.getPlayerList().getPlayer(local)),srv);
     }
     private static void command(ServerPlayer player,String command) {
@@ -298,7 +342,9 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
     private void require(boolean condition,String message){checks++;if(!condition)throw new AssertionError(message);}
     private void finish(Minecraft mc,String result) {
         finished=true;
+        suspendBodyTicks=false;
+        mc.options.keyUp.setDown(false);DreamTestLatency.enabled=false;
         try{Files.writeString(mc.gameDirectory.toPath().resolve("retained-result.txt"),result);}catch(Exception error){GooseTools.LOGGER.error("Cannot write retained result",error);}
-        mc.stop();
+        DreamTcpFixture.stop();mc.stop();
     }
 }

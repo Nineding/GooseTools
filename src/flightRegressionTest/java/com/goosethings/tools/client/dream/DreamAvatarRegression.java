@@ -34,7 +34,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-/** Real integrated-server, protocol, destination chunks, visible model and seated-body invariants. */
+/** Native server, protocol, destination chunks, visible model and seated-body invariants. */
 public final class DreamAvatarRegression implements ClientModInitializer {
     private boolean opened, finished, resourcesPrepared;
     private int stage, ticks, scenario, targetWait;
@@ -43,7 +43,7 @@ public final class DreamAvatarRegression implements ClientModInitializer {
     private Vec3 seatedPosition, movementStart;
     private int bodyId;
     private Vec3 vehicleStart;
-    private ItemStack stableEquipment;
+    private ItemStack stableEquipment, expectedEquipment;
     private double previousFlightZ;
     private volatile int stableRefreshes;
     private final Set<String> inventoryMacroArguments = new java.util.HashSet<>();
@@ -79,6 +79,7 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                 opened = true;
                 mc.options.pauseOnLostFocus = false;
                 mc.options.renderDistance().set(4);
+                if(DreamTcpFixture.open(mc))return;
                 mc.createWorldOpenFlows().createFreshLevel("dream-" + System.currentTimeMillis(),
                         new LevelSettings("Dream body regression", GameType.ADVENTURE,
                                 new LevelSettings.DifficultySettings(Difficulty.PEACEFUL, false, false),
@@ -88,7 +89,8 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                                 .getOrThrow(WorldPresets.FLAT).value().createWorldDimensions(), mc.gui.screen());
                 return;
             }
-            if (mc.player == null || mc.level == null || mc.getSingleplayerServer() == null
+            if(DreamTcpFixture.awaitConnection(mc))return;
+            if (mc.player == null || mc.level == null || DreamTcpFixture.server(mc) == null
                     || stage == 0 && !mc.player.connection.hasClientLoaded()) return;
             if (mc.gui.screen() != null) mc.setScreenAndShow(null);
             if (pending != null) {
@@ -100,9 +102,9 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                 resourcesPrepared = true;
                 pending = new CompletableFuture<>();
                 var completed = pending;
-                mc.getSingleplayerServer().execute(() -> {
+                DreamTcpFixture.server(mc).execute(() -> {
                     try {
-                        var srv = mc.getSingleplayerServer();
+                        var srv = DreamTcpFixture.server(mc);
                         var pack = srv.getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT).resolve("datapacks/dream-check");
                         Files.createDirectories(pack.resolve("data/ggd/function/task/dream_regression"));
                         Files.createDirectories(pack.resolve("data/ggd/function/talker"));
@@ -331,17 +333,23 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                         require(!p.entityTags().contains("dreamRemote"),"second native right-click did not disable remote skill");
                         assertDreamToolbar(p);
                         require(p.getPose()==net.minecraft.world.entity.Pose.STANDING,"remote off did not restore seated pose");
+                        expectedEquipment=p.getMainHandItem().copy();
                     });
                     DreamAvatarClient.turn(-40/0.15,10/0.15);
                     movementStart=DreamStandInClient.liveAvatar(mc.player.getUUID()).position();
                     previousFlightZ=movementStart.z;
                     DreamTestLatency.enabled=scenario==1;
-                    mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);stage=2;ticks=0;
+                    mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);stage=2;ticks=0;targetWait=0;
                 }
             } else if (stage == 2) {
                 DreamRemotePlayer body = DreamStandInClient.liveAvatar(mc.player.getUUID());
                 require(body != null && mc.getCameraEntity() == body, "visible model lost");
                 require(mc.player.input.keyPresses.equals(Input.EMPTY), "movement leaked to seated player");
+                // Completion of a server task does not imply its equipment scene has crossed TCP.
+                if(ticks==0 && !ItemStack.matches(body.getMainHandItem(),expectedEquipment)) {
+                    require(++targetWait<60,"remote-off equipment scene did not reach dream avatar");
+                    return;
+                }
                 ++ticks;
                 if(ticks==3) stableEquipment=body.getMainHandItem();
                 if(ticks>=4 && ticks<=20) require(body.getMainHandItem()==stableEquipment,"unchanged dream equipment was rebuilt");
@@ -492,8 +500,8 @@ public final class DreamAvatarRegression implements ClientModInitializer {
     }
     private CompletableFuture<Void> server(Minecraft mc, java.util.function.Consumer<ServerPlayer> action) {
         UUID id = mc.player.getUUID();
-        return CompletableFuture.runAsync(() -> action.accept(mc.getSingleplayerServer().getPlayerList().getPlayer(id)),
-                mc.getSingleplayerServer());
+        return CompletableFuture.runAsync(() -> action.accept(DreamTcpFixture.server(mc).getPlayerList().getPlayer(id)),
+                DreamTcpFixture.server(mc));
     }
     private static int score(ServerPlayer p, String name) {
         var info = p.level().getServer().getScoreboard().getPlayerScoreInfo(
@@ -510,6 +518,7 @@ public final class DreamAvatarRegression implements ClientModInitializer {
         finished = true; mc.options.keyUp.setDown(false);mc.options.keyJump.setDown(false);mc.options.keyShift.setDown(false);
         try { Files.writeString(mc.gameDirectory.toPath().resolve("dream-result.txt"), result); }
         catch (Exception error) { GooseTools.LOGGER.error("Dream regression result", error); }
+        DreamTcpFixture.stop();
         mc.stop();
     }
 }

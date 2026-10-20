@@ -12,7 +12,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class MouseHandlerMimeControlMixin {
     @Inject(method = "turnPlayer", at = @At("HEAD"), cancellable = true)
     private void goosetools$lockMimeControlledView(CallbackInfo ci) {
-        if (MimeControlClient.isControlled()) {
+        if (MimeControlClient.isControlled()
+                && !com.goosethings.tools.client.dream.DreamAvatarClient.retainedProjection()) {
             ci.cancel();
         }
     }

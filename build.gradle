@@ -231,6 +231,7 @@ loom {
             source sourceSets.flightRegressionTest
             runDir 'build/retained-projection-regression-test'
             vmArg '-Dgoosetools.retainedProjectionRegression=true'
+            vmArg '-Dgoosetools.testTcp=' + providers.gradleProperty('tcpFixture').getOrElse('false')
             vmArg '-Dgoosetools.retainedDatapack=' + file('../../../GooseGooseDuck/datapack').absolutePath
             programArg '--width'
             programArg '1000'
@@ -242,6 +243,7 @@ loom {
             source sourceSets.flightRegressionTest
             runDir 'build/dream-regression-test'
             vmArg '-Dgoosetools.dreamRegressionTest=true'
+            vmArg '-Dgoosetools.testTcp=' + providers.gradleProperty('tcpFixture').getOrElse('false')
             if (providers.gradleProperty('dreamDatapack').isPresent())
                 vmArg '-Dgoosetools.dreamDatapack=' + providers.gradleProperty('dreamDatapack').get()
         }
@@ -284,7 +286,7 @@ tasks.named('runGhostRegressionTest') {
     }
 }
 tasks.named('runDreamRegressionTest') {
-    timeout = java.time.Duration.ofMinutes(5)
+    timeout = java.time.Duration.ofMinutes(providers.gradleProperty('tcpFixture').getOrElse('false').toBoolean() ? 8 : 5)
     doFirst {
         def run = file('build/dream-regression-test'); run.mkdirs()
         file('build/dream-regression-test/options.txt').text = 'pauseOnLostFocus:false\nrenderDistance:4\nlang:en_us\ntutorialStep:none\n'
@@ -437,7 +439,7 @@ tasks.named('runProjectionRegressionTest') {
 }
 
 tasks.named('runRetainedProjectionRegressionTest') {
-    timeout = java.time.Duration.ofMinutes(5)
+    timeout = java.time.Duration.ofMinutes(providers.gradleProperty('tcpFixture').getOrElse('false').toBoolean() ? 8 : 5)
     doFirst { layout.buildDirectory.file('retained-projection-regression-test/retained-result.txt').get().asFile.delete() }
     doLast {
         def result = layout.buildDirectory.file('retained-projection-regression-test/retained-result.txt').get().asFile
