@@ -15,7 +15,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class KeyboardInputMimeControlMixin extends ClientInput {
     @Inject(method = "tick", at = @At("TAIL"))
     private void goosetools$blockMimeControlledMovement(CallbackInfo ci) {
-        if (MimeControlClient.isControlled()) {
+        if (MimeControlClient.isControlled()
+                && !com.goosethings.tools.client.dream.DreamAvatarClient.retainedProjection()) {
             keyPresses = Input.EMPTY;
             moveVector = Vec2.ZERO;
         }
