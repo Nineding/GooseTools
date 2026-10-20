@@ -25,6 +25,8 @@ public final class DreamAvatarClient {
     private static ClientInput projectionInput;
     private static DreamFlightPrediction flight = new DreamFlightPrediction();
     private static DreamAvatarPackets.Flight latestFlight;
+    private static DreamGroundPrediction ground=new DreamGroundPrediction();
+    private static DreamAvatarPackets.Ground latestGround;
 
     private DreamAvatarClient() {}
 
@@ -33,6 +35,8 @@ public final class DreamAvatarClient {
                 (payload, context) -> context.client().execute(() -> apply(payload)));
         ClientPlayNetworking.registerGlobalReceiver(DreamAvatarPackets.Flight.TYPE,
                 (payload, context) -> context.client().execute(() -> applyFlight(payload)));
+        ClientPlayNetworking.registerGlobalReceiver(DreamAvatarPackets.Ground.TYPE,
+                (payload, context) -> context.client().execute(() -> applyGround(payload)));
         ClientTickEvents.START_CLIENT_TICK.register(DreamAvatarClient::tickInput);
         ClientTickEvents.END_CLIENT_TICK.register(DreamAvatarClient::tick);
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> reset(client));
@@ -47,7 +51,17 @@ public final class DreamAvatarClient {
         return active() && !followsTarget() && client.player != null
                 && entity == DreamStandInClient.liveAvatar(client.player.getUUID());
     }
-    static boolean predicts(Entity entity) { return controls(entity) && view.raven() && flight.active(); }
+    static boolean predicts(Entity entity) { return controls(entity) && (view.raven()?flight.active():ground.active()); }
+
+    private static void applyGround(DreamAvatarPackets.Ground payload) {
+        if(view==null || view.raven() || view.projectionKind()>=0 || payload.session()!=view.session())return;
+        if(latestGround!=null && payload.tick()<=latestGround.tick())return;
+        latestGround=payload;
+        Minecraft client=Minecraft.getInstance();
+        if(client.player==null)return;
+        DreamRemotePlayer model=DreamStandInClient.liveAvatar(client.player.getUUID());
+        if(model!=null)ground.accept(payload,model);
+    }
 
     private static void applyFlight(DreamAvatarPackets.Flight payload) {
         if (view == null || !view.raven() || payload.session() != view.session()) return;
@@ -123,6 +137,7 @@ public final class DreamAvatarClient {
         DreamRemotePlayer body = DreamStandInClient.liveAvatar(client.player.getUUID());
         if (body == null) return; // Wait for both the authoritative body and its destination chunk.
         if (latestFlight != null) flight.accept(latestFlight, body);
+        if (latestGround != null) ground.accept(latestGround, body);
         if (!ready) {
             yaw = body.getYRot();
             pitch = body.getXRot();
@@ -148,6 +163,7 @@ public final class DreamAvatarClient {
         var inputPacket = new DreamAvatarPackets.Input(
                 view.session(), sequence++, vector.x, vector.y, yaw, pitch, buttons);
         if (view.raven()) flight.tick(inputPacket, body);
+        else if(view.projectionKind()<0)ground.tick(inputPacket,body);
         ClientPlayNetworking.send(inputPacket);
     }
 
@@ -167,5 +183,6 @@ public final class DreamAvatarClient {
         projectionInput = null;
         flight = new DreamFlightPrediction();
         latestFlight = null;
+        ground=new DreamGroundPrediction();latestGround=null;
     }
 }

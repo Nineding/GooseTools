@@ -3,6 +3,7 @@
   "package": "com.goosethings.tools.dream.mixin",
   "compatibilityLevel": "JAVA_25",
   "mixins": [
+    "DreamJumpStateMixin",
     "DreamChunkMapMixin",
     "DreamChunkSenderMixin",
     "DreamEntityTrackingMixin",
