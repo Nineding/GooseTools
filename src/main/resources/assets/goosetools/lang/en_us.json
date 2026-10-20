@@ -878,5 +878,12 @@
   "summary.goosetools.dlc_required": "Victory animations require Full Blood DLC.",
   "summary.goosetools.server_only": "Get paid victory animations from the official server web game shop.",
   "screen.goosetools.ai.index_source.ai": "Official Goose Duck Index · AI assessed",
-  "screen.goosetools.ai.index_source.rules_fallback": "Official Goose Duck Index · rule fallback (AI invalid or timed out)"
+  "screen.goosetools.ai.index_source.rules_fallback": "Official Goose Duck Index · rule fallback (AI invalid or timed out)",
+  "screen.goosetools.ai_name_vote.accelerated": "Most players voted · %s seconds remaining",
+  "hud.goosetools.ai.match": "Match #%s · %s",
+  "summary.goosetools.previous_title": "Match #%s settlement",
+  "screen.goosetools.ai.view_settlement": "View settlement",
+  "screen.goosetools.ai.rewards": "Match rewards · %s XP · %s Goose Coins",
+  "screen.goosetools.ai.award.mvp": "Match award: MVP",
+  "screen.goosetools.ai.award.smvp": "Match award: SMVP"
 }

@@ -38,6 +38,7 @@ public final class PostgameSummaryScreen extends Screen implements ProtectedInpu
     private static SummaryPayload readyToDisplay;
     public static boolean waiting() {return waiting!=null;}
     private final SummaryPayload payload;
+    private final Screen returnTo;
     private final long started=System.nanoTime();
     private MeetingAlertRemotePlayer model;
     private boolean skipped,acknowledged;
@@ -48,7 +49,11 @@ public final class PostgameSummaryScreen extends Screen implements ProtectedInpu
     private SimpleSoundInstance xpSound, levelSound;
     private Button advanceButton, backButton;
     public PostgameSummaryScreen(SummaryPayload payload) {
-        super(tr("title","Match summary")); this.payload=payload; soundedLevel=payload.startLevel();
+        this(payload,null,0);
+    }
+    public PostgameSummaryScreen(SummaryPayload payload,Screen returnTo,long gameId) {
+        super(gameId>0?tr("previous_title","Match #%s settlement",gameId):tr("title","Match summary"));
+        this.payload=payload;this.returnTo=returnTo;soundedLevel=payload.startLevel();
     }
     public SummaryPayload payload() {return payload;}
     public static void register() {
@@ -128,7 +133,7 @@ public final class PostgameSummaryScreen extends Screen implements ProtectedInpu
         if(levelSound!=null) {minecraft.getSoundManager().stop(levelSound);levelSound=null;}
     }
     @Override public void onClose() {
-        stopGrowthSounds(); acknowledge(); minecraft.gui.setScreen(null);
+        stopGrowthSounds(); acknowledge(); minecraft.gui.setScreen(returnTo);
     }
     private void acknowledge() {
         if(!acknowledged&&minecraft.getConnection()!=null&&ClientPlayNetworking.canSend(SummaryControlPayload.TYPE))

@@ -111,6 +111,7 @@ public final class MandatoryHandshake {
         SOUND_PHYSICS.put(playerId, payload.soundPhysicsVersion().trim());
         TaskMarkerSync.send(player);
         AiReportServer.sendCached(player);
+        com.goosethings.tools.result.AiSummaryServer.sendCached(player);
         AiReviewFlowServer.sendCurrent(player);
         GooseTools.LOGGER.info(
                 "Verified GooseTools client {} (mod {}, protocol {})",

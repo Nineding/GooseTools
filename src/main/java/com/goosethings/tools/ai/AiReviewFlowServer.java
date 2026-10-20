@@ -45,6 +45,8 @@ public final class AiReviewFlowServer {
                 (Consumer<String>) AiReviewFlowServer::acceptProgress);
         FabricLoader.getInstance().getObjectShare().put("goosetools:ai_flow_clear",
                 (Runnable) AiReviewFlowServer::clear);
+        FabricLoader.getInstance().getObjectShare().put("goosetools:ai_flow_clear_match",
+                (java.util.function.LongConsumer) AiReviewFlowServer::clearMatch);
         FabricLoader.getInstance().getObjectShare().put("goosetools:ai_name_vote_request",
                 (Function<String, CompletableFuture<String>>) AiReviewFlowServer::requestVote);
         ServerPlayNetworking.registerGlobalReceiver(GooseToolsPayloads.AiNameVoteC2S.TYPE,
@@ -80,6 +82,7 @@ public final class AiReviewFlowServer {
             String stage = string(value, "stage", 32);
             if (!PROGRESS_STAGES.contains(stage)) return;
             GooseToolsPayloads.AiProgressS2C payload = new GooseToolsPayloads.AiProgressS2C(
+                    value.has("game_id")?value.get("game_id").getAsLong():0,
                     stage,
                     integer(value, "percent", 0),
                     integer(value, "completed", 0),
@@ -120,6 +123,7 @@ public final class AiReviewFlowServer {
             int questionIndex = Math.clamp(integer(root, "question_index", 1), 1, 8);
             int questionCount = Math.clamp(integer(root, "question_count", 1), questionIndex, 8);
             int timeoutSeconds = Math.clamp(integer(root, "timeout_seconds", 20), 10, 120);
+            timeoutSeconds=Math.min(timeoutSeconds,Math.clamp(integer(root,"maximum_wait_seconds",180),1,600));
             int minimumVotes = Math.clamp(integer(root, "minimum_votes", 2), 1, 64);
             List<GooseToolsPayloads.AiVoteCandidate> candidates = candidates(root);
             Set<UUID> candidateIds = new HashSet<>();
@@ -138,12 +142,13 @@ public final class AiReviewFlowServer {
                 return;
             }
             long id = IDS.getAndIncrement();
-            poll = new Poll(id, candidateIds, Set.copyOf(eligible), minimumVotes,
+            long gameId=root.has("game_id")?root.get("game_id").getAsLong():0;
+            poll = new Poll(id, gameId, candidateIds, Set.copyOf(eligible), minimumVotes,
                     new AiVoteWindow(eligible, System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(
                             Math.clamp(integer(root, "maximum_wait_seconds", 180), 1, 600)),
                             java.util.concurrent.TimeUnit.SECONDS.toNanos(timeoutSeconds)), result, new HashMap<>());
             GooseToolsPayloads.AiNameVoteOpenS2C payload = new GooseToolsPayloads.AiNameVoteOpenS2C(
-                    id, questionIndex, questionCount, timeoutSeconds, alias, context, candidates);
+                    id, gameId, questionIndex, questionCount, timeoutSeconds, alias, context, candidates);
             for (UUID playerId : eligible) {
                 ServerPlayer player = target.getPlayerList().getPlayer(playerId);
                 if (player != null) ServerPlayNetworking.send(player, payload);
@@ -187,6 +192,7 @@ public final class AiReviewFlowServer {
         current.votes().putIfAbsent(player.getUUID(), choice);
         current.window().finish(player.getUUID());
         if (current.votes().size() >= current.eligible().size()) finishPoll(resolve(current));
+        else accelerate(current);
     }
 
     private static void tick(MinecraftServer target) {
@@ -196,6 +202,7 @@ public final class AiReviewFlowServer {
             for (UUID id : current.eligible()) {
                 if (target.getPlayerList().getPlayer(id) == null) current.window().finish(id);
             }
+            accelerate(current);
             for (UUID id : current.window().expire(System.nanoTime())) {
                 ServerPlayer player = target.getPlayerList().getPlayer(id);
                 if (player != null) ServerPlayNetworking.send(player, new GooseToolsPayloads.AiNameVoteCloseS2C(current.id()));
@@ -261,6 +268,31 @@ public final class AiReviewFlowServer {
         });
     }
 
+    private static void clearMatch(long gameId) {
+        MinecraftServer target=server;if(target==null)return;
+        target.execute(()->{
+            if(poll!=null && poll.gameId()==gameId) finishPoll(resolve(poll));
+            if(progress!=null && progress.payload().gameId()==gameId) {
+                progress=null;broadcast(new GooseToolsPayloads.AiProgressS2C(gameId,"",0,0,0,true));
+            }
+        });
+    }
+
+    private static void accelerate(Poll current) {
+        if(poll!=current || server==null) return;
+        long online=current.eligible().stream().filter(id->server.getPlayerList().getPlayer(id)!=null).count();
+        if(!participationMajority(current.votes().size(),online)) return;
+        long now=System.nanoTime();
+        if(!current.window().accelerate(now,java.util.concurrent.TimeUnit.SECONDS.toNanos(5))) return;
+        int remaining=(int)Math.clamp(java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(current.window().deadline()-now),0,5000);
+        for(UUID id:current.eligible()) {
+            ServerPlayer player=server.getPlayerList().getPlayer(id);
+            if(player!=null && ServerPlayNetworking.canSend(player,GooseToolsPayloads.AiNameVoteCountdownS2C.TYPE))
+                ServerPlayNetworking.send(player,new GooseToolsPayloads.AiNameVoteCountdownS2C(current.id(),remaining));
+        }
+    }
+    static boolean participationMajority(int votes,long eligible) {return eligible>0 && votes*2L>eligible;}
+
     private static void broadcast(GooseToolsPayloads.AiProgressS2C payload) {
         MinecraftServer target = server;
         if (target == null) return;
@@ -291,7 +323,7 @@ public final class AiReviewFlowServer {
         return value.has(key) && value.get(key).isJsonPrimitive() ? value.get(key).getAsInt() : fallback;
     }
 
-    private record Poll(long id, Set<UUID> candidates, Set<UUID> eligible, int minimumVotes,
+    private record Poll(long id, long gameId, Set<UUID> candidates, Set<UUID> eligible, int minimumVotes,
                         AiVoteWindow window, CompletableFuture<String> result, Map<UUID, UUID> votes) {
     }
 

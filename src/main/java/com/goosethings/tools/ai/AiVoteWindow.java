@@ -9,7 +9,8 @@ import java.util.UUID;
 /** An unseen question consumes no personal voting time and never creates an abstention. */
 final class AiVoteWindow {
     private final Set<UUID> eligible;
-    private final long overallDeadline;
+    private long overallDeadline;
+    private boolean accelerated;
     private final long duration;
     private final Map<UUID, Long> deadlines = new HashMap<>();
     private final Set<UUID> finished = new HashSet<>();
@@ -27,7 +28,7 @@ final class AiVoteWindow {
 
     boolean canVote(UUID player, long now) {
         Long deadline = deadlines.get(player);
-        return deadline != null && now < deadline && !finished.contains(player);
+        return deadline != null && now < Math.min(deadline,overallDeadline) && !finished.contains(player);
     }
 
     void finish(UUID player) { if (eligible.contains(player)) finished.add(player); }
@@ -41,4 +42,10 @@ final class AiVoteWindow {
     }
 
     boolean complete(long now) { return now >= overallDeadline || finished.containsAll(eligible); }
+
+    boolean accelerate(long now,long remaining) {
+        if(accelerated) return false;
+        accelerated=true;overallDeadline=Math.min(overallDeadline,now+remaining);return true;
+    }
+    long deadline() {return overallDeadline;}
 }

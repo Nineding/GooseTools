@@ -15,6 +15,7 @@ public final class AiReviewFlowClient {
     static final UUID UNKNOWN = new UUID(0L, 0L);
 
     private static final AiNameVoteOpenQueue<GooseToolsPayloads.AiNameVoteOpenS2C> PENDING = new AiNameVoteOpenQueue<>();
+    private static final java.util.Map<Long,Long> ACCELERATED = new java.util.LinkedHashMap<>();
 
     private AiReviewFlowClient() {
     }
@@ -23,12 +24,20 @@ public final class AiReviewFlowClient {
         ClientPlayNetworking.registerGlobalReceiver(GooseToolsPayloads.AiProgressS2C.TYPE,
                 (payload, context) -> context.client().execute(() -> {
                     AiProgressHud.apply(payload);
-                    if (payload.stage().isEmpty()) clear();
+                    if (payload.stage().isEmpty()) clearMatch(payload.gameId());
                 }));
         ClientPlayNetworking.registerGlobalReceiver(GooseToolsPayloads.AiNameVoteOpenS2C.TYPE,
                 (payload, context) -> context.client().execute(() -> open(payload)));
         ClientPlayNetworking.registerGlobalReceiver(GooseToolsPayloads.AiNameVoteCloseS2C.TYPE,
                 (payload, context) -> context.client().execute(() -> close(payload.voteId())));
+        ClientPlayNetworking.registerGlobalReceiver(GooseToolsPayloads.AiNameVoteCountdownS2C.TYPE,
+                (payload,context)->context.client().execute(()->{
+                    long deadline=System.currentTimeMillis()+payload.remainingMillis();
+                    ACCELERATED.merge(payload.voteId(),deadline,Math::min);
+                    while(ACCELERATED.size()>8) ACCELERATED.remove(ACCELERATED.keySet().iterator().next());
+                    if(context.client().gui.screen() instanceof AiNameVoteScreen s && s.voteId()==payload.voteId())
+                        s.accelerate(ACCELERATED.get(payload.voteId()));
+                }));
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(() -> {
             AiProgressHud.clear();
             clear();
@@ -38,7 +47,9 @@ public final class AiReviewFlowClient {
             var payload = PENDING.consume(client.level == null || client.player == null || presentationBlocked(client)
                     || client.gui.screen() != null);
             if (payload != null) {
-                client.setScreenAndShow(new AiNameVoteScreen(payload));
+                var screen=new AiNameVoteScreen(payload);
+                if(ACCELERATED.containsKey(payload.voteId())) screen.accelerate(ACCELERATED.get(payload.voteId()));
+                client.setScreenAndShow(screen);
                 ClientPlayNetworking.send(new GooseToolsPayloads.AiNameVoteReadyC2S(payload.voteId()));
             }
         });
@@ -55,13 +66,20 @@ public final class AiReviewFlowClient {
 
     public static void clear() {
         PENDING.clear();
+        ACCELERATED.clear();
         Minecraft client = Minecraft.getInstance();
         if (client.gui.screen() instanceof AiNameVoteScreen screen) screen.closeFromServer();
     }
 
+    private static void clearMatch(long gameId) {
+        if(gameId==0) {clear();return;}
+        PENDING.removeIf(p->p.gameId()==gameId);
+        if(Minecraft.getInstance().gui.screen() instanceof AiNameVoteScreen s && s.gameId()==gameId) close(s.voteId());
+    }
+
     private static void open(GooseToolsPayloads.AiNameVoteOpenS2C payload) {
         if (payload.questionIndex() < 1 || payload.questionCount() < payload.questionIndex()
-                || payload.questionCount() > 8 || payload.timeoutSeconds() < 10
+                || payload.questionCount() > 8 || payload.timeoutSeconds() < 1
                 || payload.timeoutSeconds() > 120 || payload.alias().isBlank()
                 || payload.candidates().isEmpty()) {
             GooseTools.LOGGER.warn("Rejected invalid AI name-vote screen payload");
@@ -77,6 +95,7 @@ public final class AiReviewFlowClient {
 
     private static void close(long voteId) {
         PENDING.cancel(voteId);
+        ACCELERATED.remove(voteId);
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.gui.screen() instanceof AiNameVoteScreen screen && screen.voteId() == voteId) {
             screen.closeFromServer();

@@ -20,6 +20,7 @@ public final class AiNameVoteScreen extends Screen {
     private final long openedAtMillis = System.currentTimeMillis();
     private int page;
     private boolean submitted;
+    private long acceleratedDeadline=Long.MAX_VALUE;
 
     AiNameVoteScreen(GooseToolsPayloads.AiNameVoteOpenS2C vote) {
         super(Component.translatableWithFallback(
@@ -30,6 +31,8 @@ public final class AiNameVoteScreen extends Screen {
     long voteId() {
         return vote.voteId();
     }
+    long gameId() {return vote.gameId();}
+    void accelerate(long deadline) {acceleratedDeadline=Math.min(acceleratedDeadline,deadline);}
 
     void closeFromServer() {
         Minecraft minecraft = Minecraft.getInstance();
@@ -51,6 +54,7 @@ public final class AiNameVoteScreen extends Screen {
         Component count = Component.translatableWithFallback(
                 "screen.goosetools.ai_name_vote.question_count", "Question %s/%s",
                 vote.questionIndex(), vote.questionCount());
+        if(vote.gameId()>0) count=count.copy().append(Component.literal(" · #"+vote.gameId()));
         graphics.text(font, count, width / 2 - font.width(count) / 2, 37, 0xFF8EABB9, false);
 
         List<FormattedCharSequence> context = font.split(Component.literal(vote.context()), panelRight - panelLeft - 32);
@@ -95,10 +99,10 @@ public final class AiNameVoteScreen extends Screen {
             drawPageButton(graphics, previousButton(), mouseX, mouseY, page > 0, "‹");
             drawPageButton(graphics, nextButton(), mouseX, mouseY, page + 1 < pages, "›");
         }
-        int leftSeconds = Math.max(0, vote.timeoutSeconds()
-                - (int) ((System.currentTimeMillis() - openedAtMillis) / 1000L));
+        int leftSeconds=(int)Math.max(0,(Math.min(openedAtMillis+vote.timeoutSeconds()*1000L,acceleratedDeadline)-System.currentTimeMillis()+999)/1000);
         Component timer = Component.translatableWithFallback(
-                "screen.goosetools.ai_name_vote.timer", "%s seconds remaining", leftSeconds);
+                acceleratedDeadline==Long.MAX_VALUE?"screen.goosetools.ai_name_vote.timer":"screen.goosetools.ai_name_vote.accelerated",
+                acceleratedDeadline==Long.MAX_VALUE?"%s seconds remaining":"Most players voted · %s seconds remaining", leftSeconds);
         graphics.text(font, timer, width / 2 - font.width(timer) / 2, height - 26, 0xFF91A9B5, false);
     }
 

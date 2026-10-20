@@ -97,7 +97,7 @@ public final class SummaryServer {
         accountCommand(player,"gooseaccount selection ggdVictoryAction "+action);
         return 1;
     }
-    private static int victoryAction(ServerPlayer player) {
+    static int victoryAction(ServerPlayer player) {
         if(player==null) return 0;
         var server=player.level().getServer();
         return CelebrationPolicy.authorized(score(player,"ggdVictoryAction"),

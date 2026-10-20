@@ -68,6 +68,7 @@ public final class GooseToolsClient implements ClientModInitializer {
         AI_REPORT.register();
         AI_DEBUG_TRACE.register();
         AiReviewFlowClient.register();
+        com.goosethings.tools.client.ai.AiSummaryClient.register();
         GooseToolsClientCommands.register(WEB_MANAGER, AI_REPORT);
         new GgdXaeroMapClient().onInitializeClient();
         RecommendedShaderManager.register();
