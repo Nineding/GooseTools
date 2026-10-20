@@ -5,6 +5,8 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.ClientInput;
+import net.minecraft.client.player.KeyboardInput;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Input;
@@ -20,6 +22,7 @@ public final class DreamAvatarClient {
     private static float pitch;
     private static Input keys = Input.EMPTY;
     private static Vec2 movement = Vec2.ZERO;
+    private static ClientInput projectionInput;
     private static DreamFlightPrediction flight = new DreamFlightPrediction();
     private static DreamAvatarPackets.Flight latestFlight;
 
@@ -30,6 +33,7 @@ public final class DreamAvatarClient {
                 (payload, context) -> context.client().execute(() -> apply(payload)));
         ClientPlayNetworking.registerGlobalReceiver(DreamAvatarPackets.Flight.TYPE,
                 (payload, context) -> context.client().execute(() -> applyFlight(payload)));
+        ClientTickEvents.START_CLIENT_TICK.register(DreamAvatarClient::tickInput);
         ClientTickEvents.END_CLIENT_TICK.register(DreamAvatarClient::tick);
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> reset(client));
     }
@@ -62,9 +66,22 @@ public final class DreamAvatarClient {
         if (entity instanceof DreamRemotePlayer body) state.isPassenger=body.dreamRiding;
     }
 
-    public static void capture(Input input, Vec2 vector) {
+    public static void capture(ClientInput source, Input input, Vec2 vector) {
+        if (source != projectionInput) return;
         keys = input;
         movement = vector;
+    }
+
+    /** The retained body's simulation may stop; its camera still needs one native input sample per tick. */
+    private static void tickInput(Minecraft client) {
+        keys = Input.EMPTY;
+        movement = Vec2.ZERO;
+        if (view == null || client.player == null || client.level == null) return;
+        // LocalPlayer.aiStep is suspended; keep pickup animations advancing exactly once.
+        client.player.getInventory().tick();
+        if (followsTarget()) return;
+        if (projectionInput == null) projectionInput = new KeyboardInput(client.options);
+        projectionInput.tick();
     }
 
     /** Vanilla already applied sensitivity and inversion to these mouse deltas. */
@@ -123,7 +140,7 @@ public final class DreamAvatarClient {
             body.setYHeadRot(yaw);
             body.setYBodyRot(yaw);
         }
-        client.setCameraEntity(body);
+        if (client.getCameraEntity() != body) client.setCameraEntity(body);
         if (followsTarget()) return;
         Input input = client.gui.screen() == null ? keys : Input.EMPTY;
         Vec2 vector = client.gui.screen() == null ? movement : Vec2.ZERO;
@@ -147,6 +164,7 @@ public final class DreamAvatarClient {
         sequence = 0;
         keys = Input.EMPTY;
         movement = Vec2.ZERO;
+        projectionInput = null;
         flight = new DreamFlightPrediction();
         latestFlight = null;
     }

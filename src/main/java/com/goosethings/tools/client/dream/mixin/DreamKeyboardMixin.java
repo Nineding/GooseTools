@@ -15,7 +15,7 @@ public abstract class DreamKeyboardMixin extends ClientInput {
     @Inject(method = "tick", at = @At("TAIL"))
     private void dream$capture(CallbackInfo callback) {
         if (DreamAvatarClient.active()) {
-            DreamAvatarClient.capture(keyPresses, moveVector);
+            DreamAvatarClient.capture(this, keyPresses, moveVector);
             keyPresses = Input.EMPTY;
             moveVector = Vec2.ZERO;
         }
