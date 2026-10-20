@@ -8,6 +8,7 @@
     "RenderSectionRegionMixin",
     "SodiumLevelSliceMixin",
     "VisionEntityRenderDispatcherMixin",
+    "VisionTerrainParticleMixin",
     "VisionCameraMixin"
   ],
   "injectors": {

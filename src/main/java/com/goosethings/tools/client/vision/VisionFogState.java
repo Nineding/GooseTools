@@ -75,6 +75,24 @@ public final class VisionFogState {
         return VisionBoundary.outside(delta.x, delta.y, delta.z, fullFogRadius, horizontalCylinder);
     }
 
+    /** Particle positions have no glow exception and must be checked again on every frame. */
+    public static boolean shouldHideTerrainParticle(double x, double y, double z) {
+        Minecraft client = Minecraft.getInstance();
+        if (client.player == null) {
+            return false;
+        }
+        Entity viewer = visibilityAnchor(client);
+        if (BirdwatcherClientState.isLimitedActive()) {
+            Vec3 look = viewer.getLookAngle();
+            return !BirdwatcherVisionMath.inLimitedField(
+                    x - viewer.getX(), z - viewer.getZ(), look.x(), look.z(),
+                    birdwatcherLimitedRange() + birdwatcherFadeDistance());
+        }
+        return strength > 0.001F && VisionBoundary.outside(
+                x - viewer.getX(), y - viewer.getEyeY(), z - viewer.getZ(),
+                fullFogRadius, horizontalCylinder);
+    }
+
     private static boolean isSniperCrosshair(Entity entity) {
         if (!(entity instanceof ItemEntity item) || !item.getItem().is(Items.STAINED_GLASS_PANE.lightBlue())) {
             return false;
