@@ -149,8 +149,17 @@ public final class AiReportScreen extends Screen {
 
     private void personal(List<Line> out, int width) {
         JsonObject player = report.getAsJsonObject("personal");
-        add(out, string(player, "player_name") + "  " + integer(player, "score") + "/100",
-                width, 0xFF91D7FF);
+        boolean settled = player.has("settled_index");
+        add(out, string(player, "player_name") + "  " + (settled
+                ? integer(player, "settled_index") + " · " + string(player, "index_grade")
+                : integer(player, "score") + "/100"), width, 0xFF91D7FF);
+        if (settled) {
+            add(out, Component.translatableWithFallback(
+                    "screen.goosetools.ai.index_source." + string(player, "score_source"),
+                    "Official match index · source: %s", string(player, "score_source")).getString(), width, 0xFFB5CFDC);
+            add(out, string(player, "index_reasoning"), width, 0xFFE2EDF3);
+            bullets(out, array(player, "strategy_assessments"), width, 0xFFB5CFDC);
+        }
         add(out, Component.translatableWithFallback(
                 "screen.goosetools.ai.score_breakdown",
                 "Role %s/30 · Reasoning/Deception %s/25 · Teamwork %s/20 · Impact %s/15 · Discipline %s/10",
@@ -166,7 +175,7 @@ public final class AiReportScreen extends Screen {
         section(out, "screen.goosetools.ai.evidence", "Evidence", width);
         bullets(out, array(player, "evidence"), width, 0xFFAEC9D8);
         blank(out);
-        add(out, Component.translatableWithFallback(
+        if (!settled) add(out, Component.translatableWithFallback(
                 "screen.goosetools.ai.display_only",
                 "This AI score is display-only and does not affect rewards, XP, rank, or achievements.").getString(),
                 width, 0xFF8297A3);

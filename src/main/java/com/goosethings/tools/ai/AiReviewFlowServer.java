@@ -49,6 +49,12 @@ public final class AiReviewFlowServer {
                 (Function<String, CompletableFuture<String>>) AiReviewFlowServer::requestVote);
         ServerPlayNetworking.registerGlobalReceiver(GooseToolsPayloads.AiNameVoteC2S.TYPE,
                 (payload, context) -> context.server().execute(() -> vote(context.player(), payload)));
+        ServerPlayNetworking.registerGlobalReceiver(GooseToolsPayloads.AiNameVoteReadyC2S.TYPE,
+                (payload, context) -> context.server().execute(() -> {
+                    Poll current = poll;
+                    if (current != null && current.id() == payload.voteId() && MandatoryHandshake.isVerified(context.player()))
+                        current.window().ready(context.player().getUUID(), System.nanoTime());
+                }));
         ServerTickEvents.END_SERVER_TICK.register(AiReviewFlowServer::tick);
         ServerLifecycleEvents.SERVER_STOPPED.register(ignored -> {
             if (poll != null) poll.result().complete(emptyResult(0, 0));
@@ -133,7 +139,9 @@ public final class AiReviewFlowServer {
             }
             long id = IDS.getAndIncrement();
             poll = new Poll(id, candidateIds, Set.copyOf(eligible), minimumVotes,
-                    target.getTickCount() + timeoutSeconds * 20, result, new HashMap<>());
+                    new AiVoteWindow(eligible, System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(
+                            Math.clamp(integer(root, "maximum_wait_seconds", 180), 1, 600)),
+                            java.util.concurrent.TimeUnit.SECONDS.toNanos(timeoutSeconds)), result, new HashMap<>());
             GooseToolsPayloads.AiNameVoteOpenS2C payload = new GooseToolsPayloads.AiNameVoteOpenS2C(
                     id, questionIndex, questionCount, timeoutSeconds, alias, context, candidates);
             for (UUID playerId : eligible) {
@@ -172,17 +180,28 @@ public final class AiReviewFlowServer {
     private static void vote(ServerPlayer player, GooseToolsPayloads.AiNameVoteC2S payload) {
         Poll current = poll;
         if (current == null || payload.voteId() != current.id() || !MandatoryHandshake.isVerified(player)
-                || !current.eligible().contains(player.getUUID())) return;
+                || !current.eligible().contains(player.getUUID())
+                || !current.window().canVote(player.getUUID(), System.nanoTime())) return;
         UUID choice = payload.candidateId();
         if (!UNKNOWN.equals(choice) && !current.candidates().contains(choice)) return;
         current.votes().putIfAbsent(player.getUUID(), choice);
+        current.window().finish(player.getUUID());
         if (current.votes().size() >= current.eligible().size()) finishPoll(resolve(current));
     }
 
     private static void tick(MinecraftServer target) {
         server = target;
         Poll current = poll;
-        if (current != null && target.getTickCount() >= current.deadlineTick()) finishPoll(resolve(current));
+        if (current != null) {
+            for (UUID id : current.eligible()) {
+                if (target.getPlayerList().getPlayer(id) == null) current.window().finish(id);
+            }
+            for (UUID id : current.window().expire(System.nanoTime())) {
+                ServerPlayer player = target.getPlayerList().getPlayer(id);
+                if (player != null) ServerPlayNetworking.send(player, new GooseToolsPayloads.AiNameVoteCloseS2C(current.id()));
+            }
+            if (current.window().complete(System.nanoTime())) finishPoll(resolve(current));
+        }
         ProgressState state = progress;
         if (state != null && target.getTickCount() >= state.expiresAtTick()) progress = null;
     }
@@ -273,7 +292,7 @@ public final class AiReviewFlowServer {
     }
 
     private record Poll(long id, Set<UUID> candidates, Set<UUID> eligible, int minimumVotes,
-                        int deadlineTick, CompletableFuture<String> result, Map<UUID, UUID> votes) {
+                        AiVoteWindow window, CompletableFuture<String> result, Map<UUID, UUID> votes) {
     }
 
     private record ProgressState(GooseToolsPayloads.AiProgressS2C payload, int expiresAtTick) {

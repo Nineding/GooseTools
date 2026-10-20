@@ -69,6 +69,7 @@ public final class GooseToolsPayloads {
         PayloadTypeRegistry.clientboundPlay().register(AiNameVoteOpenS2C.TYPE, AiNameVoteOpenS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(AiNameVoteCloseS2C.TYPE, AiNameVoteCloseS2C.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(AiNameVoteC2S.TYPE, AiNameVoteC2S.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(AiNameVoteReadyC2S.TYPE, AiNameVoteReadyC2S.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(AiDebugStartS2C.TYPE, AiDebugStartS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(AiDebugChunkS2C.TYPE, AiDebugChunkS2C.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(AimClaimC2S.TYPE, AimClaimC2S.CODEC);
@@ -1281,6 +1282,13 @@ public final class GooseToolsPayloads {
 
         @Override
         public Type<AiNameVoteCloseS2C> type() { return TYPE; }
+    }
+
+    public record AiNameVoteReadyC2S(long voteId) implements CustomPacketPayload {
+        public static final Type<AiNameVoteReadyC2S> TYPE = GooseToolsPayloads.type("ai_name_vote_ready_c2s_v1");
+        public static final StreamCodec<RegistryFriendlyByteBuf, AiNameVoteReadyC2S> CODEC =
+                StreamCodec.composite(ByteBufCodecs.VAR_LONG, AiNameVoteReadyC2S::voteId, AiNameVoteReadyC2S::new);
+        @Override public Type<AiNameVoteReadyC2S> type() { return TYPE; }
     }
 
     public record AiNameVoteC2S(long voteId, UUID candidateId) implements CustomPacketPayload {

@@ -876,5 +876,7 @@
   "summary.goosetools.dance_price": "Dance · 300 Goose coins",
   "summary.goosetools.taunt_price": "Top taunt · 4000 Goose coins",
   "summary.goosetools.dlc_required": "Victory animations require Full Blood DLC.",
-  "summary.goosetools.server_only": "Get paid victory animations from the official server web game shop."
+  "summary.goosetools.server_only": "Get paid victory animations from the official server web game shop.",
+  "screen.goosetools.ai.index_source.ai": "Official Goose Duck Index · AI assessed",
+  "screen.goosetools.ai.index_source.rules_fallback": "Official Goose Duck Index · rule fallback (AI invalid or timed out)"
 }

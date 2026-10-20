@@ -32,6 +32,8 @@ public final class MatchResultServer {
                 .then(Commands.literal("capture").executes(ctx -> capture(ctx.getSource().getServer())))
                 .then(Commands.literal("open").then(Commands.argument("players", EntityArgument.players())
                         .executes(ctx -> open(ctx.getSource().getServer(), EntityArgument.getPlayers(ctx, "players")))))
+                .then(Commands.literal("hide").then(Commands.argument("players", EntityArgument.players())
+                        .executes(ctx -> hide(EntityArgument.getPlayers(ctx, "players")))))
                 .then(Commands.literal("close").then(Commands.argument("players", EntityArgument.players())
                         .executes(ctx -> close(EntityArgument.getPlayers(ctx, "players")))));
     }
@@ -88,6 +90,9 @@ public final class MatchResultServer {
     }
     private static int close(Collection<ServerPlayer> viewers) {
         pending = null;
+        return hide(viewers);
+    }
+    private static int hide(Collection<ServerPlayer> viewers) {
         for (var viewer : viewers) if (ServerPlayNetworking.canSend(viewer, MatchResultPayload.TYPE))
             ServerPlayNetworking.send(viewer, MatchResultPayload.CLOSE);
         return viewers.size();
