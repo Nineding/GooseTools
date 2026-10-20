@@ -11,6 +11,7 @@ public final class DreamAvatarPackets {
  public static void register() {
   PayloadTypeRegistry.clientboundPlay().register(View.TYPE,View.CODEC);
   PayloadTypeRegistry.clientboundPlay().register(Flight.TYPE,Flight.CODEC);
+  PayloadTypeRegistry.clientboundPlay().register(Ground.TYPE,Ground.CODEC);
   PayloadTypeRegistry.serverboundPlay().register(Input.TYPE,Input.CODEC);
   PayloadTypeRegistry.serverboundPlay().register(Ready.TYPE,Ready.CODEC);
  }
@@ -37,6 +38,31 @@ public final class DreamAvatarPackets {
   public static final Type<Ready> TYPE=DreamAvatarPackets.type("dream_avatar_ready_v1");
   public static final StreamCodec<RegistryFriendlyByteBuf,Ready> CODEC=StreamCodec.of((b,p)->b.writeLong(p.session),b->new Ready(b.readLong()));
   @Override public Type<Ready> type(){return TYPE;}
+ }
+ public record Ground(long session,long tick,long sequence,long epoch,
+                      net.minecraft.world.phys.Vec3 position,net.minecraft.world.phys.Vec3 velocity,
+                      boolean onGround,boolean walking,double speed,double stepHeight,int jumpDelay,double fallDistance)
+                      implements CustomPacketPayload {
+  public static final Type<Ground> TYPE=DreamAvatarPackets.type("dream_avatar_ground_v1");
+  public static final StreamCodec<RegistryFriendlyByteBuf,Ground> CODEC=StreamCodec.of(
+   (b,p)->{b.writeLong(p.session);b.writeLong(p.tick);b.writeLong(p.sequence);b.writeLong(p.epoch);
+    b.writeDouble(p.position.x);b.writeDouble(p.position.y);b.writeDouble(p.position.z);
+    b.writeDouble(p.velocity.x);b.writeDouble(p.velocity.y);b.writeDouble(p.velocity.z);
+    b.writeBoolean(p.onGround);b.writeBoolean(p.walking);b.writeDouble(p.speed);b.writeDouble(p.stepHeight);
+    b.writeVarInt(p.jumpDelay);b.writeDouble(p.fallDistance);},
+   b->new Ground(b.readLong(),b.readLong(),b.readLong(),b.readLong(),
+    new net.minecraft.world.phys.Vec3(b.readDouble(),b.readDouble(),b.readDouble()),
+    new net.minecraft.world.phys.Vec3(b.readDouble(),b.readDouble(),b.readDouble()),
+    b.readBoolean(),b.readBoolean(),b.readDouble(),b.readDouble(),b.readVarInt(),b.readDouble()));
+  public Ground {
+   if(session<=0||tick<0||sequence< -1||epoch<0||position==null||velocity==null
+    ||!Double.isFinite(position.lengthSqr())||!Double.isFinite(velocity.lengthSqr())
+    ||Math.abs(position.x)>30000000||Math.abs(position.z)>30000000||Math.abs(position.y)>20000
+    ||!Double.isFinite(speed)||speed<0||speed>1024||!Double.isFinite(stepHeight)||stepHeight<0||stepHeight>64
+    ||jumpDelay<0||jumpDelay>1000||!Double.isFinite(fallDistance)||fallDistance<0)
+    throw new IllegalArgumentException("Invalid dream ground state");
+  }
+  @Override public Type<Ground> type(){return TYPE;}
  }
  public record Flight(long session,long tick,long sequence,long epoch,
                       net.minecraft.world.phys.Vec3 position,net.minecraft.world.phys.Vec3 velocity,

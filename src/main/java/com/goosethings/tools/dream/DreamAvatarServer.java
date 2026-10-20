@@ -14,7 +14,6 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.decoration.Mannequin;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.phys.Vec3;
 import java.util.HashMap;
@@ -176,7 +175,7 @@ public final class DreamAvatarServer {
         if(s==null || !s.ready || input.session()!=s.id || input.sequence()<=s.receivedSequence
                 || !MandatoryHandshake.isVerified(owner))return;
         s.receivedSequence=input.sequence();s.input=input;s.lastInput=owner.level().getServer().getTickCount();
-        if(s.raven) {
+        if(s.raven || s.predictsGround()) {
             if(s.pending.size()>=32)s.pending.removeFirst();
             s.pending.addLast(input);
         }
@@ -207,10 +206,11 @@ public final class DreamAvatarServer {
             }
             track(s);
             if(!s.ready || !s.body.level().hasChunkAt(s.body.blockPosition()))continue;
-            var input=s.raven?s.pending.pollFirst():server.getTickCount()-s.lastInput<=5?s.input:null;
-            // Consume each flight input once, at most one per server tick. Repeating
+            var input=s.raven || s.predictsGround()?s.pending.pollFirst():server.getTickCount()-s.lastInput<=5?s.input:null;
+            // Consume each predicted input once, at most one per server tick. Repeating
             // or skipping batched inputs breaks client replay when the network jitters.
             if(s.raven && input==null) {sendFlight(s);continue;}
+            if(s.predictsGround() && input==null) {sendGround(s);continue;}
             if(input!=null)s.sequence=input.sequence();
             if(input!=null) {
                 s.body.setYRot(input.yaw());s.body.setXRot(input.pitch());
@@ -245,6 +245,9 @@ public final class DreamAvatarServer {
                 int vertical=((buttons&1)!=0?1:0)-((buttons&2)!=0?1:0);
                 s.body.setDeltaMovement(s.body.getDeltaMovement().add(0,vertical*0.3*s.body.flightScale,0));
                 s.body.tick();s.body.setOnGround(false);
+            } else if(s.predictsGround()) {
+                s.jumpCharge=0;
+                s.body.stepGround(input,s.owner.getAttributeValue(Attributes.MOVEMENT_SPEED));
             } else {
                 s.jumpCharge=0;
                 s.body.xxa=side*((buttons&2)!=0?0.3F:1);s.body.zza=forward*((buttons&2)!=0?0.3F:1);
@@ -262,9 +265,17 @@ public final class DreamAvatarServer {
             }
             if(s.projectionKind<0)s.owner.setPose(tags.contains("dreamRemote") ? s.body.getPose() : s.meetingPose);
             if(s.raven)sendFlight(s);
+            if(s.predictsGround())sendGround(s);
             // Scene samples preserve a moving player body rather than a hidden camera.
             DreamStandInServer.avatarChanged();
         }
+    }
+    private static void sendGround(Session s) {
+        ServerPlayNetworking.send(s.owner,new DreamAvatarPackets.Ground(s.id,
+                s.owner.level().getServer().getTickCount(),s.sequence,s.epoch,
+                s.body.position(),s.body.getDeltaMovement(),s.body.onGround(),!s.body.isPassenger(),
+                s.owner.getAttributeValue(Attributes.MOVEMENT_SPEED),s.body.getAttributeValue(Attributes.STEP_HEIGHT),
+                ((DreamJumpState)(Object)s.body).dream$getJumpDelay(),s.body.fallDistance));
     }
     private static void sendFlight(Session s) {
         ServerPlayNetworking.send(s.owner,new DreamAvatarPackets.Flight(s.id,
@@ -295,6 +306,7 @@ public final class DreamAvatarServer {
         long sequence=-1,receivedSequence=-1,epoch;int lastInput=-100,jumpCharge;boolean ready;DreamAvatarPackets.Input input;
         final ArrayDeque<DreamAvatarPackets.Input> pending=new ArrayDeque<>();
         ChunkPos chunk,bodyChunk;int radius;Vec3 lastSafe;
+        boolean predictsGround() {return !raven && projectionKind<0;}
         Session(long id,ServerPlayer owner,Body body,boolean raven,int projectionKind) {
             this.id=id;this.owner=owner;this.body=body;this.raven=raven;this.projectionKind=projectionKind;
             meetingPose = owner.getPose();
@@ -312,7 +324,7 @@ public final class DreamAvatarServer {
         @Override public boolean isClientAuthoritative() { return false; }
     }
     /** Detached vanilla humanoid physics: never spawned, tracked or saved as a visible mannequin. */
-    private static final class Body extends Mannequin {
+    private static final class Body extends DreamGroundBody {
         final ServerPlayer owner;final boolean raven;final float flightScale;final int projectionKind;
         Body(ServerLevel level,ServerPlayer owner,boolean raven,int projectionKind) {
             super(level);this.owner=owner;this.raven=raven;noPhysics=raven;setNoGravity(raven);

@@ -3,8 +3,30 @@ package com.goosethings.tools.dream;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class DreamAvatarPacketsTest {
+    @Test void groundSnapshotRoundTripsCollisionJumpAndAcknowledgementState() {
+        var state=new DreamAvatarPackets.Ground(7,42,19,3,
+                new net.minecraft.world.phys.Vec3(512.5,101,-2),new net.minecraft.world.phys.Vec3(.1,-.08,.2),
+                true,true,.15,.6,8,2.5);
+        var buffer=new net.minecraft.network.RegistryFriendlyByteBuf(io.netty.buffer.Unpooled.buffer(),net.minecraft.core.RegistryAccess.EMPTY);
+        try {
+            DreamAvatarPackets.Ground.CODEC.encode(buffer,state);
+            assertEquals(state,DreamAvatarPackets.Ground.CODEC.decode(buffer));
+            assertEquals(0,buffer.readableBytes());
+        } finally {buffer.release();}
+    }
+
+    @Test void groundSnapshotsRejectInvalidPhysicsAndSequenceState() {
+        var zero=net.minecraft.world.phys.Vec3.ZERO;
+        assertThrows(IllegalArgumentException.class,()->new DreamAvatarPackets.Ground(1,0,-2,0,zero,zero,true,true,.1,.6,0,0));
+        assertThrows(IllegalArgumentException.class,()->new DreamAvatarPackets.Ground(1,0,-1,0,zero,zero,true,true,Double.NaN,.6,0,0));
+        assertThrows(IllegalArgumentException.class,()->new DreamAvatarPackets.Ground(1,0,-1,0,zero,zero,true,true,.1,Double.POSITIVE_INFINITY,0,0));
+        assertThrows(IllegalArgumentException.class,()->new DreamAvatarPackets.Ground(1,0,-1,0,zero,zero,true,true,.1,.6,-1,0));
+        assertThrows(IllegalArgumentException.class,()->new DreamAvatarPackets.Ground(1,0,-1,0,zero,zero,true,true,.1,.6,0,-1));
+    }
+
     private static DreamAvatarPackets.Input input(long session, long sequence,
             float side, float forward, float yaw, float pitch, int buttons) {
         return new DreamAvatarPackets.Input(session, sequence, side, forward, yaw, pitch, buttons);

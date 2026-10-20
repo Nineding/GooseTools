@@ -17,4 +17,11 @@ public abstract class DreamClientLatencyMixin {
     private static void delay(DreamAvatarPackets.Flight state, CallbackInfo callback) {
         if (DreamTestLatency.delayState(() -> deliver(state))) callback.cancel();
     }
+
+    @Invoker("applyGround")
+    public static void deliverGround(DreamAvatarPackets.Ground state) { throw new AssertionError(); }
+    @Inject(method = "applyGround", at = @At("HEAD"), cancellable = true)
+    private static void delayGround(DreamAvatarPackets.Ground state, CallbackInfo callback) {
+        if (DreamTestLatency.delayState(() -> deliverGround(state))) callback.cancel();
+    }
 }

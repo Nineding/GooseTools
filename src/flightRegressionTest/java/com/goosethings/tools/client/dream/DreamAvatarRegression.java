@@ -45,6 +45,8 @@ public final class DreamAvatarRegression implements ClientModInitializer {
     private Vec3 vehicleStart;
     private ItemStack stableEquipment, expectedEquipment;
     private double previousFlightZ;
+    private int groundPhase,groundTicks;
+    private double groundStopZ,groundPeakY;
     private volatile int stableRefreshes;
     private final Set<String> inventoryMacroArguments = new java.util.HashSet<>();
 
@@ -64,9 +66,16 @@ public final class DreamAvatarRegression implements ClientModInitializer {
             }
         });
         ClientTickEvents.START_CLIENT_TICK.register(mc -> {
+            mc.options.keyDown.setDown(false);mc.options.keyLeft.setDown(false);
+            mc.options.keyRight.setDown(false);mc.options.keySprint.setDown(false);
             if (stage == 2 && (ticks > 5 && ticks < 35 || ticks > 70 && ticks < 100 || ticks > 115 && ticks < 145)) mc.options.keyUp.setDown(true);
             else mc.options.keyUp.setDown(false);
             mc.options.keyJump.setDown(stage==2 && ticks>=125 && ticks<135);
+            if(stage==6) {
+                mc.options.keyUp.setDown(groundPhase==2 && (groundTicks<22 || groundTicks>=36 && groundTicks<49)
+                        || groundPhase==4 && groundTicks<14);
+                mc.options.keyJump.setDown(groundPhase==2 && groundTicks>=60 && groundTicks<63);
+            }
             mc.options.keyShift.setDown(stage==5 && ticks>=23 && ticks<34);
         });
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
@@ -160,6 +169,7 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                 });
                 return;
             }
+            if(stage==6) {checkGroundControls(mc);return;}
             if (stage == 0) {
                 if (scenario == 0 && mc.player.tickCount < 30) return;
                 pending = server(mc, p -> {
@@ -338,7 +348,7 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                     DreamAvatarClient.turn(-40/0.15,10/0.15);
                     movementStart=DreamStandInClient.liveAvatar(mc.player.getUUID()).position();
                     previousFlightZ=movementStart.z;
-                    DreamTestLatency.enabled=scenario==1;
+                    DreamTestLatency.enabled=true;
                     mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);stage=2;ticks=0;targetWait=0;
                 }
             } else if (stage == 2) {
@@ -353,15 +363,15 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                 ++ticks;
                 if(ticks==3) stableEquipment=body.getMainHandItem();
                 if(ticks>=4 && ticks<=20) require(body.getMainHandItem()==stableEquipment,"unchanged dream equipment was rebuilt");
-                if(scenario==1 && ticks==8) require(body.getZ()-movementStart.z>.05,
-                        "Raven camera waited for delayed authoritative movement");
-                if(scenario==1 && ticks>=9 && ticks<=34) {
+                if(ticks==8) require(body.getZ()-movementStart.z>.05,
+                        "Dream camera waited for delayed authoritative movement: scenario="+scenario);
+                if(ticks>=9 && ticks<=34) {
                     require(body.getZ()>=previousFlightZ-.001,"delayed flight reconciliation pulled the camera backwards");
                     previousFlightZ=body.getZ();
                 }
                 if (ticks == 40) {
                     DreamTestLatency.enabled=false;
-                    if(scenario==1) require(DreamTestLatency.delayedInputs>25 && DreamTestLatency.delayedStates>25,
+                    require(DreamTestLatency.delayedInputs>25 && DreamTestLatency.delayedStates>25,
                             "real input/state transport did not exercise artificial latency");
                     require(body.position().subtract(movementStart).horizontalDistanceSqr() > .25,
                             "dream body failed to walk");
@@ -393,6 +403,7 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                         require(!p.isSwinging(), "normal dream swing reached meeting body");
                         require(((net.minecraft.world.entity.LivingEntity)actor).isSwinging(), "avatar swing missing");
                     });
+                    if(scenario==0) {stage=6;groundPhase=0;groundTicks=0;}
                 }
                 if (ticks == 50) mc.options.setCameraType(CameraType.FIRST_PERSON);
                 if (ticks == 55) Screenshot.takeScreenshot(mc.gameRenderer.mainRenderTarget(), image -> {
@@ -471,7 +482,7 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                 stage = 4;
             } else if (stage == 4 && scenario == 0) { scenario++; stage = 0; ticks = 0; }
             else if (stage == 4) finish(mc, "PASS overworld Lucid and cross-dimension End Raven: separated body/camera, far-away chunks, visible skin/equipment, "
-                    + "walking, original Raven flight speed, dense sample interpolation and immediate skill displacement, local mouse look unaffected by stale samples, nine number-key slots, actual dream inventory rewards with stable button instances across 15 refreshes, native remote skill right-click at an interactive chest, remote-control rotation/pose protected from native meeting input, first-person hands, map coordinates, boat/camel steering, native input isolation, task coordinates/NBT/teleport/nested scopes, swing isolation, actual wake and meeting redraw, force-end cleanup and real lobby inventory reward; "
+                    + "immediate Lucid movement with delayed input/state, wall/reverse/stop/jump/landing/slab, original Raven flight speed, dense sample interpolation and immediate skill displacement, local mouse look unaffected by stale samples, nine number-key slots, actual dream inventory rewards with stable button instances across 15 refreshes, native remote skill right-click at an interactive chest, remote-control rotation/pose protected from native meeting input, first-person hands, map coordinates, boat/camel steering, native input isolation, task coordinates/NBT/teleport/nested scopes, swing isolation, actual wake and meeting redraw, force-end cleanup and real lobby inventory reward; "
                     + "meeting UUID/entity ID/position/passenger unchanged throughout");
         } catch (Throwable error) {
             GooseTools.LOGGER.error("Dream avatar regression failed", error);
@@ -483,6 +494,78 @@ public final class DreamAvatarRegression implements ClientModInitializer {
         require(player.getId() == bodyId && player.position().distanceToSqr(seatedPosition) < 1E-6,
                 "meeting body moved or changed entity ID");
         require(player.getVehicle() != null && player.getVehicle().getUUID().equals(chairId), "meeting mount changed");
+    }
+
+    /** Real native keys across TCP: response before authority, wall, reverse/stop, jump/land and slab. */
+    private void checkGroundControls(Minecraft mc) {
+        Entity camera=mc.getCameraEntity();
+        if(groundPhase==0) {
+            pending=server(mc,p->{
+                Entity actor=DreamAvatarServer.actor(p);
+                for(int x=519;x<=522;x++)for(int y=101;y<=103;y++)
+                    actor.level().setBlock(new BlockPos(x,y,3),Blocks.STONE.defaultBlockState(),3);
+                require(DreamAvatarServer.move(p,p.level(),new Vec3(520.5,101,.5),0,0),"ground test teleport");
+                actor.setOnGround(true);
+            });
+            turnGroundTestTo(0);
+            groundPhase=1;groundTicks=0;return;
+        }
+        if(groundPhase==1 || groundPhase==3) {
+            require(++groundTicks<100,"ground fixture target/chunk did not arrive");
+            if(camera.position().distanceTo(new Vec3(520.5,101,.5))>.05)return;
+            var block=mc.level.getBlockState(new BlockPos(520,101,groundPhase==1?3:2));
+            if(!block.is(groundPhase==1?Blocks.STONE:Blocks.SMOOTH_STONE_SLAB))return;
+            DreamTestLatency.enabled=true;
+            groundPhase++;groundTicks=0;groundPeakY=101;return;
+        }
+        ++groundTicks;
+        require(camera==DreamStandInClient.liveAvatar(mc.player.getUUID()),"ground prediction replaced camera model");
+        groundPeakY=Math.max(groundPeakY,camera.getY());
+        if(groundPhase==2) {
+            require(Math.abs(net.minecraft.util.Mth.wrapDegrees(camera.getYRot()-(groundTicks<=35?0:180)))<.01,
+                    "ground test heading changed: tick="+groundTicks+", yaw="+camera.getYRot());
+            if(groundTicks==3)require(camera.getZ()>.55,"Lucid forward input waited for the network roundtrip");
+            if(groundTicks>=20 && groundTicks<=30)require(camera.getZ()>2.6 && camera.getZ()<=2.701,"predicted ground camera crossed or missed wall: "+camera.position());
+            if(groundTicks==35)turnGroundTestTo(180);
+            if(groundTicks==39)require(camera.getZ()<2.6,"Lucid reverse input waited for authority");
+            if(groundTicks==54)groundStopZ=camera.getZ();
+            if(groundTicks>=56 && groundTicks<=59)require(Math.abs(camera.getZ()-groundStopZ)<.08,"Lucid camera kept moving after stop");
+            if(groundTicks==63)require(camera.getY()>101.2,"Lucid jump waited for authority");
+            if(groundTicks==82) {
+                require(groundPeakY>101.3 && Math.abs(camera.getY()-101)<.02,"Lucid jump did not land on native floor");
+                DreamTestLatency.enabled=false;
+                pending=server(mc,p->{
+                    Entity actor=DreamAvatarServer.actor(p);
+                    for(int x=519;x<=522;x++)for(int y=101;y<=103;y++)
+                        actor.level().setBlock(new BlockPos(x,y,3),Blocks.AIR.defaultBlockState(),3);
+                    for(int x=519;x<=522;x++)actor.level().setBlock(new BlockPos(x,101,2),Blocks.SMOOTH_STONE_SLAB.defaultBlockState(),3);
+                    require(DreamAvatarServer.move(p,p.level(),new Vec3(520.5,101,.5),0,0),"slab test teleport");
+                    actor.setOnGround(true);assertSeated(p);
+                });
+                turnGroundTestTo(0);
+                groundPhase=3;groundTicks=0;
+            }
+        } else if(groundPhase==4 && groundTicks==22) {
+            require(groundPeakY>101.4 && camera.getZ()>2,"Lucid prediction failed native half-block step");
+            DreamTestLatency.enabled=false;
+            pending=server(mc,p->{
+                Entity actor=DreamAvatarServer.actor(p);
+                require(actor.getZ()>2,"authoritative ground body did not cross the slab");assertSeated(p);
+            });
+            stage=2;ticks=40;
+        }
+    }
+
+    private static void turnGroundTestTo(float heading) {
+        try {
+            var yaw=DreamAvatarClient.class.getDeclaredField("yaw");
+            var pitch=DreamAvatarClient.class.getDeclaredField("pitch");
+            yaw.setAccessible(true);pitch.setAccessible(true);
+            // A just-arrived teleport scene can still carry its server angle. Relative mouse
+            // deltas must be computed from the input controller, not that visual sample.
+            GooseTools.LOGGER.info("Lucid ground test heading {}: input={}, model={}",heading,yaw.getFloat(null),Minecraft.getInstance().getCameraEntity().getYRot());
+            DreamAvatarClient.turn((heading-yaw.getFloat(null))/.15,-pitch.getFloat(null)/.15);
+        } catch(ReflectiveOperationException error) {throw new AssertionError(error);}
     }
     private static boolean hasFlag(ItemStack item,String flag) {
         return item.getOrDefault(net.minecraft.core.component.DataComponents.CUSTOM_DATA,
