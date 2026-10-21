@@ -2,6 +2,9 @@ package com.goosethings.tools.mime;
 
 import com.goosethings.tools.network.GooseToolsPayloads;
 import com.goosethings.tools.projection.ProjectionBodyServer;
+import com.goosethings.tools.dream.DreamAvatarServer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.Vec3;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -22,6 +25,7 @@ public final class MimeControlSync {
     private static final Map<UUID, UUID> CONTROLLED = new ConcurrentHashMap<>();
     private static final Set<UUID> PROJECTION_BODY_TARGETS =
             ConcurrentHashMap.newKeySet();
+    private static final Set<UUID> BODY_FOLLOWERS = ConcurrentHashMap.newKeySet();
 
     private MimeControlSync() {
     }
@@ -39,6 +43,7 @@ public final class MimeControlSync {
                 if (target != null) {
                     clear(target);
                 } else {
+                    BODY_FOLLOWERS.remove(entry.getKey());
                     PROJECTION_BODY_TARGETS.remove(entry.getKey());
                     CONTROLLED.remove(entry.getKey());
                 }
@@ -92,6 +97,7 @@ public final class MimeControlSync {
     private static boolean clear(ServerPlayer target) {
         target.removeTag("mimeProjectionBodyReturned");
         UUID controller = CONTROLLED.remove(target.getUUID());
+        boolean followedBody = BODY_FOLLOWERS.remove(target.getUUID());
         if (controller == null) return false;
         MinecraftServer server = target.level().getServer();
         ServerPlayer mime = server == null ? null : server.getPlayerList().getPlayer(controller);
@@ -101,6 +107,12 @@ public final class MimeControlSync {
                 ProjectionBodyServer.endMimeBodyControl(mime, target);
             }
         } else {
+            // One hand-back correction restores native movement packet baselines.
+            // During control the body moves server-side without camera teleports.
+            if (followedBody && !target.hasDisconnected()) {
+                target.connection.teleport(target.getX(), target.getY(), target.getZ(),
+                        target.getYRot(), target.getXRot());
+            }
             send(target, false, controller);
         }
         sendControllerView(mime, false, target);
@@ -150,6 +162,7 @@ public final class MimeControlSync {
             if (target != null) {
                 clear(target);
             } else {
+                BODY_FOLLOWERS.remove(targetId);
                 PROJECTION_BODY_TARGETS.remove(targetId);
                 CONTROLLED.remove(targetId);
                 sendControllerView(controller, false, null);
@@ -165,6 +178,8 @@ public final class MimeControlSync {
             ServerPlayer controller = server.getPlayerList().getPlayer(entry.getValue());
             boolean projectionBody = PROJECTION_BODY_TARGETS.contains(entry.getKey());
             if (target == null || controller == null
+                    || controller.level() != target.level()
+                    || isUnavailable(controller.entityTags()) || isUnavailable(target.entityTags())
                     || !target.entityTags().contains("mimeControlled")
                     || !controller.entityTags().contains("mimeControlling")
                     || (projectionBody
@@ -173,6 +188,7 @@ public final class MimeControlSync {
                 if (target != null) {
                     clear(target);
                 } else {
+                    BODY_FOLLOWERS.remove(entry.getKey());
                     PROJECTION_BODY_TARGETS.remove(entry.getKey());
                     CONTROLLED.remove(entry.getKey());
                     sendControllerView(controller, false, null);
@@ -181,14 +197,43 @@ public final class MimeControlSync {
                         && controller.entityTags().contains("mimeControlling")) {
                     controller.addTag("mimeAbortRequested");
                 }
+            } else if (followsBody(target)) {
+                Entity actor = DreamAvatarServer.actor(controller);
+                if (actor != null) syncTarget(target, actor);
             }
         }
     }
 
+    /** Only the ordinary controlled body follows; a target's own projection keeps its input. */
+    public static boolean followsBody(ServerPlayer target) {
+        UUID id = CONTROLLED.get(target.getUUID());
+        if (id == null || PROJECTION_BODY_TARGETS.contains(target.getUUID())) return false;
+        ServerPlayer controller = target.level().getServer().getPlayerList().getPlayer(id);
+        return controller != null && controller.level() == target.level()
+                && DreamAvatarServer.projectionKind(controller) == 3
+                && !DreamAvatarServer.active(target);
+    }
+
+    /** GooseThings calls this before ability range checks as well as during its tick. */
+    public static boolean syncTarget(ServerPlayer target, Entity actor) {
+        if (!followsBody(target) || actor.level() != target.level()) return false;
+        target.absSnapTo(actor.getX(), actor.getY(), actor.getZ(), actor.getYRot(), actor.getXRot());
+        target.setYBodyRot(actor.getYRot());
+        target.setYHeadRot(actor.getYRot());
+        target.setPose(actor.getPose());
+        target.setDeltaMovement(Vec3.ZERO);
+        target.setOnGround(actor.onGround());
+        target.fallDistance = 0;
+        target.level().getChunkSource().move(target);
+        return true;
+    }
+
     private static void send(ServerPlayer target, boolean active, UUID controller) {
         if (ServerPlayNetworking.canSend(target, GooseToolsPayloads.MimeControlS2C.TYPE)) {
+            boolean follow = active && followsBody(target);
+            if (follow) BODY_FOLLOWERS.add(target.getUUID());
             ServerPlayNetworking.send(target,
-                    new GooseToolsPayloads.MimeControlS2C(active, controller));
+                    new GooseToolsPayloads.MimeControlS2C(active, controller, follow));
         }
     }
 

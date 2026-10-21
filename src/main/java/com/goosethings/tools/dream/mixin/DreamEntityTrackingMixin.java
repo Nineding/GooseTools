@@ -14,6 +14,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  @Invoker("removePlayer") public abstract void dream$removePlayer(ServerPlayer player);
  @Inject(method="updatePlayer",at=@At("HEAD"),cancellable=true)
  private void dream$viewer(ServerPlayer player,CallbackInfo callback) {
-  if(DreamAvatarServer.isSeatedOwner(player) || entity.getUUID().equals(player.getUUID())){dream$removePlayer(player);callback.cancel();}
+  // The real owner and its detached viewer share a connection. Removing the owner
+  // here also unpairs the viewer, repeatedly despawning nearby moving players.
+  // begin/end explicitly transfer the subscription between these two viewers.
+  if(DreamAvatarServer.isSeatedOwner(player)){callback.cancel();return;}
+  if(entity.getUUID().equals(player.getUUID())){dream$removePlayer(player);callback.cancel();}
  }
 }

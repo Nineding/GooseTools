@@ -54,7 +54,7 @@ public final class DreamAvatarClient {
     static boolean predicts(Entity entity) { return controls(entity) && (view.raven()?flight.active():ground.active()); }
 
     private static void applyGround(DreamAvatarPackets.Ground payload) {
-        if(view==null || view.raven() || view.projectionKind()>=0 || payload.session()!=view.session())return;
+        if(view==null || view.raven() || !predictsGround() || payload.session()!=view.session())return;
         if(latestGround!=null && payload.tick()<=latestGround.tick())return;
         latestGround=payload;
         Minecraft client=Minecraft.getInstance();
@@ -163,8 +163,13 @@ public final class DreamAvatarClient {
         var inputPacket = new DreamAvatarPackets.Input(
                 view.session(), sequence++, vector.x, vector.y, yaw, pitch, buttons);
         if (view.raven()) flight.tick(inputPacket, body);
-        else if(view.projectionKind()<0)ground.tick(inputPacket,body);
+        else if(predictsGround())ground.tick(inputPacket,body);
+        body.finishControlledAnimation();
         ClientPlayNetworking.send(inputPacket);
+    }
+
+    private static boolean predictsGround() {
+        return view != null && (view.projectionKind()<0 || view.projectionKind()==3);
     }
 
     private static void reset(Minecraft client) {

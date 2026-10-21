@@ -25,6 +25,17 @@ final class DreamRemotePlayer extends RemotePlayer {
     }
 
     @Override
+    public void calculateEntityAnimation(boolean useY) {
+        // Local prediction runs after the level tick. Calculate once, after that
+        // movement, instead of damping the walk cycle with a preceding zero step.
+        if (!DreamAvatarClient.controls(this)) super.calculateEntityAnimation(useY);
+    }
+
+    void finishControlledAnimation() {
+        super.calculateEntityAnimation(false);
+    }
+
+    @Override
     public PlayerSkin getSkin() {
         // AbstractClientPlayer construction may reach this virtual method before our
         // constructor body has assigned the source-skin supplier.

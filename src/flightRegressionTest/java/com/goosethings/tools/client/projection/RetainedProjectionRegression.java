@@ -65,6 +65,11 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
     private Entity movementCamera;
     private Vec3 movementStart, previousCameraPosition;
     private int movementSamples;
+    private UUID walkerId;
+    private int walkerEntityId, walkingFrames, bodyWalkingFrames;
+    private Entity trackedWalker;
+    public static volatile boolean countCorrections;
+    public static final java.util.concurrent.atomic.AtomicInteger corrections = new java.util.concurrent.atomic.AtomicInteger();
 
     @Override public void onInitializeClient() {
         if (!Boolean.getBoolean("goosetools.retainedProjectionRegression")) return;
@@ -74,6 +79,8 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
             boolean moving=ownerView && ticks<20 && (stage==4 && scenario%4!=2
                     || stage==1 && (scenario%4==0 || scenario%4==1));
             mc.options.keyUp.setDown(moving);
+            mc.options.keyDown.setDown(false);mc.options.keyLeft.setDown(false);
+            mc.options.keyRight.setDown(false);mc.options.keySprint.setDown(false);
         });
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(server -> {
@@ -81,6 +88,19 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
             // This observer has no real network connection to drive ServerPlayer.doTick().
             // Run vanilla equipment detection so changing its role also updates tracked clients.
             if(fake!=null)fake.doTick();
+            ServerPlayer walker=walkerId==null?null:server.getPlayerList().getPlayer(walkerId);
+            if(walker!=null) {
+                int phase=server.getTickCount()%160;
+                walker.absSnapTo(12.5+.1*Math.min(phase,160-phase),81,4.5,90,0);
+                walker.doTick();
+            }
+            if(!ownerView && scenario==7 && stage==4 && fake!=null) {
+                Entity actor=DreamAvatarServer.actor(fake);
+                if(actor!=null) {
+                    DreamAvatarServer.move(fake,fake.level(),actor.position().add(.12,0,0),90,0);
+                    com.goosethings.tools.dream.DreamStandInServer.avatarChanged();
+                }
+            }
             if(ownerView && stage==4 && scenario%4==2 && fake!=null)
                 fake.teleportTo(fake.level(),fake.getX()+.1,fake.getY(),fake.getZ(),Set.of(),90,0,false);
         });
@@ -125,6 +145,21 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
                 Vec3 current=mc.getCameraEntity().position();
                 require(current.distanceTo(previousCameraPosition)<1,"projection camera jumped during sustained input: "+previousCameraPosition+" -> "+current);
                 previousCameraPosition=current;movementSamples++;
+                require(mc.level.getEntity(walkerEntityId)==trackedWalker,"moving player was removed/recreated in detached view");
+                if(((RemotePlayer)trackedWalker).walkAnimation.speed()>.01)walkingFrames++;
+                if(mc.getCameraEntity() instanceof net.minecraft.world.entity.LivingEntity body
+                        && body.walkAnimation.speed()>.01)bodyWalkingFrames++;
+                // This fixture's END callback may precede the prediction callback.
+                // The second observation is still before the simulated 6-tick round trip.
+                if(scenario%4==3 && movementSamples==2)
+                    require(current.distanceTo(movementStart)>.01,"Mime ground input waited for delayed server movement: "+movementStart+" -> "+current);
+            }
+            if(!ownerView && scenario==7 && stage==4) {
+                require(com.goosethings.tools.client.mime.MimeControlClient.followsBody(),"victim did not enter body-follow camera");
+                require(mc.getCameraEntity()==movementCamera && movementCamera!=mc.player,"victim camera fell back onto the teleported LocalPlayer");
+                Vec3 current=movementCamera.position();
+                require(current.distanceTo(previousCameraPosition)<.5,"victim camera jumped during controlled walking");
+                previousCameraPosition=current;
             }
             if (++ticks < 25) return;
             ticks = 0;
@@ -156,17 +191,30 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
             }
             if (stage == 3) {
                 movementCamera=mc.getCameraEntity();movementStart=previousCameraPosition=movementCamera.position();movementSamples=0;
+                walkingFrames=bodyWalkingFrames=0;
+                if(ownerView) {
+                    trackedWalker=mc.level.getEntity(walkerEntityId);
+                    require(trackedWalker instanceof RemotePlayer,"detached view did not track the walking player");
+                }
+                corrections.set(0);countCorrections=!ownerView && scenario==7;
                 server(mc,p->{
                     if(scenario%4==3)require(source(p).getX()>entry.x+.1,"Mime real body did not mirror plausible remote movement");
                     if(ownerView)ServerPlayNetworking.send(p,new GooseToolsPayloads.MimeControlS2C(true,fakeId));
                 });
-                DreamTestLatency.enabled=ownerView && (scenario%4==0 || scenario%4==1);
+                DreamTestLatency.enabled=ownerView && scenario%4!=2;
                 stage++;return;
             }
             if(stage==4) {
                 if(ownerView) {
                     require(movementSamples>=20,"not enough continuous camera samples");
                     require(mc.getCameraEntity().position().distanceTo(movementStart)>.5,"native movement left the projection stuck at its origin: role="+ROLES[scenario%4]);
+                    require(walkingFrames>10,"tracked remote player slid without walking animation");
+                    if(scenario%4==3)require(bodyWalkingFrames>10,"predicted Mime model slid without walking animation");
+                }
+                if(!ownerView && scenario==7) {
+                    countCorrections=false;
+                    require(corrections.get()==0,"victim received continuous position teleports: "+corrections.get());
+                    require(movementCamera.position().distanceTo(movementStart)>1,"victim's spectator-style body camera did not follow movement");
                 }
                 DreamTestLatency.enabled=false;mc.options.keyUp.setDown(false);
                 server(mc,p->{
@@ -175,6 +223,8 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
                 });stage++;return;
             }
             require(!DreamAvatarClient.retainedProjection(),"owner retained remote camera after cleanup");
+            if(!ownerView && scenario==7)require(!com.goosethings.tools.client.mime.MimeControlClient.isControlled()
+                    && mc.getCameraEntity()==mc.player,"victim camera/input was not restored after disconnect cleanup");
             server(mc,p->{
                 ServerPlayer source=source(p);
                 require(!ProjectionBodyServer.isRetained(source) && DreamAvatarServer.actor(source)==null,"server session survived cleanup");
@@ -184,7 +234,7 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
             GooseTools.LOGGER.info("Retained projection passed {} {}",ownerView?"owner":"observer",ROLES[scenario%4]);
             if (++scenario==11) {
                 finish(mc,"PASS "+checks+" checks: actual four-role datapack entry points, owner and tracked remote observer, "
-                        +"Seagull borrowing, native movement and continuous camera samples, native body ID/render, 20-block separation, crosshair/voice origins, "
+                        +"Seagull borrowing, predicted Mime input, continuous tracked player identity/walk cycles, victim follow camera with zero ongoing teleports, native body ID/render, 20-block separation, crosshair/voice origins, "
                         +"physical/remote coordinates, armour, return, meeting/swallowing/death/disconnect cleanup");
             } else stage=0;
         } catch (Throwable error) { GooseTools.LOGGER.error("Retained projection regression failed",error);finish(mc,"FAIL "+error); }
@@ -194,7 +244,7 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
         var srv=DreamTcpFixture.server(mc);
         Path source=Path.of(System.getProperty("goosetools.retainedDatapack"));
         Path target=srv.getWorldPath(LevelResource.DATAPACK_DIR).resolve("Whoiskiller");
-        try (var files=Files.walk(source)) {
+        pending=CompletableFuture.runAsync(()->{try (var files=Files.walk(source)) {
             for (Path file:files.toList()) {
                 Path relative=source.relativize(file);
                 String name=relative.toString().replace('\\','/');
@@ -202,8 +252,7 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
                 Path destination=target.resolve(relative);
                 if(Files.isDirectory(file))Files.createDirectories(destination);else Files.copy(file,destination);
             }
-        }
-        pending=CompletableFuture.runAsync(()->{
+        } catch(Exception error){throw new java.util.concurrent.CompletionException(error);}}).thenRunAsync(()->{
             srv.getPackRepository().reload();
         },srv).thenCompose(ignored->{
             var ids=new ArrayList<>(srv.getPackRepository().getSelectedIds());ids.add("file/Whoiskiller");
@@ -232,6 +281,17 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
             srv.getPlayerList().getPlayers().add(fake);srv.getPlayerList().getPlayersByUUID().put(fake.getUUID(),fake);
             player.connection.send(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(fake)));
             player.level().addNewPlayer(fake);fakeId=fake.getUUID();
+            var walkerProfile=new GameProfile(UUID.randomUUID(),"ProjectionWalker");
+            var walker=new ServerPlayer(srv,player.level(),walkerProfile,ClientInformation.createDefault());
+            walker.connection=new ServerGamePacketListenerImpl(srv,new Connection(PacketFlow.SERVERBOUND),walker,
+                    CommonListenerCookie.createInitial(walkerProfile,false)) {
+                @Override public void send(Packet<?> packet) {}
+                @Override public void send(Packet<?> packet,io.netty.channel.ChannelFutureListener listener) {}
+            };
+            walker.absSnapTo(14.5,81,4.5,90,0);
+            srv.getPlayerList().getPlayers().add(walker);srv.getPlayerList().getPlayersByUUID().put(walker.getUUID(),walker);
+            player.connection.send(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(walker)));
+            player.level().addNewPlayer(walker);walkerId=walker.getUUID();walkerEntityId=walker.getId();
             try {
                 Field verified=MandatoryHandshake.class.getDeclaredField("VERIFIED");verified.setAccessible(true);
                 ((Set<UUID>)verified.get(null)).add(fakeId);

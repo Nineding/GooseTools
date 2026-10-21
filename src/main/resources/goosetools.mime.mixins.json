@@ -9,6 +9,7 @@
     "HudMimeControlMixin",
     "KeyboardInputMimeControlMixin",
     "MimeEntityRenderDispatcherMixin",
+    "MimeLocalPlayerMixin",
     "MouseHandlerMimeControlMixin"
   ],
   "injectors": {

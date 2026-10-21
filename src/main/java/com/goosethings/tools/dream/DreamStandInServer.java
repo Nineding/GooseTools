@@ -428,16 +428,19 @@ public final class DreamStandInServer {
             if (!ProjectionBodyServer.isRetained(source)) continue;
             int kind = DreamAvatarServer.projectionKind(source);
             boolean owner = source == viewer;
+            UUID targetId = DreamAvatarServer.projectionTarget(source);
+            boolean controlledViewer = kind == GooseToolsPayloads.ProjectionBody.MIME
+                    && viewer.getUUID().equals(targetId)
+                    && com.goosethings.tools.mime.MimeControlSync.followsBody(viewer);
             boolean hiddenAudience = viewer.entityTags().contains("spectator")
                     || viewerKind == GooseToolsPayloads.ProjectionBody.ASTRAL
                     || viewerKind == GooseToolsPayloads.ProjectionBody.ESPER
                     || viewerKind == GooseToolsPayloads.ProjectionBody.MIME;
             // Sniper has a private scope; Mime's target already owns the public controlled body.
-            if (!owner && (kind == GooseToolsPayloads.ProjectionBody.SNIPER
+            if (!owner && !controlledViewer && (kind == GooseToolsPayloads.ProjectionBody.SNIPER
                     || kind == GooseToolsPayloads.ProjectionBody.MIME || !hiddenAudience)) continue;
             Entity actor = DreamAvatarServer.actor(source);
             if (actor == null) continue;
-            UUID targetId = DreamAvatarServer.projectionTarget(source);
             ServerPlayer appearance = kind == GooseToolsPayloads.ProjectionBody.MIME && targetId != null
                     ? server.getPlayerList().getPlayer(targetId) : source;
             if (appearance == null) appearance = source;

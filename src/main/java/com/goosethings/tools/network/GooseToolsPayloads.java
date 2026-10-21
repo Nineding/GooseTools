@@ -119,10 +119,10 @@ public final class GooseToolsPayloads {
         }
     }
 
-    public record MimeControlS2C(boolean active, UUID controllerId)
+    public record MimeControlS2C(boolean active, UUID controllerId, boolean followBody)
             implements CustomPacketPayload {
         public static final Type<MimeControlS2C> TYPE =
-                GooseToolsPayloads.type("mime_control_s2c_v1");
+                GooseToolsPayloads.type("mime_control_s2c_v2");
         public static final StreamCodec<RegistryFriendlyByteBuf, MimeControlS2C> CODEC =
                 StreamCodec.of(MimeControlS2C::write, MimeControlS2C::read);
 
@@ -132,13 +132,18 @@ public final class GooseToolsPayloads {
             }
         }
 
+        public MimeControlS2C(boolean active, UUID controllerId) {
+            this(active, controllerId, false);
+        }
+
         private static void write(RegistryFriendlyByteBuf buffer, MimeControlS2C payload) {
             buffer.writeBoolean(payload.active());
             buffer.writeUUID(payload.controllerId());
+            buffer.writeBoolean(payload.followBody());
         }
 
         private static MimeControlS2C read(RegistryFriendlyByteBuf buffer) {
-            return new MimeControlS2C(buffer.readBoolean(), buffer.readUUID());
+            return new MimeControlS2C(buffer.readBoolean(), buffer.readUUID(), buffer.readBoolean());
         }
 
         @Override
