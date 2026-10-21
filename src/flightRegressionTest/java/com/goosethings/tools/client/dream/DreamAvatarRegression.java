@@ -172,6 +172,7 @@ public final class DreamAvatarRegression implements ClientModInitializer {
             if(stage==6) {checkGroundControls(mc);return;}
             if (stage == 0) {
                 if (scenario == 0 && mc.player.tickCount < 30) return;
+                mc.player.walkAnimation.update(.8F,1,1);
                 pending = server(mc, p -> {
                     require(MandatoryHandshake.isVerified(p), "handshake not ready");
                     var dreamLevel = scenario == 0 ? p.level() : p.level().getServer().getLevel(net.minecraft.world.level.Level.END);
@@ -227,6 +228,9 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                 DreamRemotePlayer body = DreamStandInClient.liveAvatar(mc.player.getUUID());
                 if (body == null || mc.getCameraEntity() != body || !mc.player.connection.hasClientLoaded()) return;
                 require(body.getX() > 500 && mc.player.getX() < 10, "camera/body not separated");
+                for(float partial:new float[]{0,.5F,1})
+                    require(mc.player.walkAnimation.speed(partial)==0,
+                            "seated meeting body retained its pre-dream walk animation");
                 if (!body.getMainHandItem().is(Items.CARROT_ON_A_STICK)) return;
                 require(body.getSkin() != null, "dream skin missing");
                 require(com.goosethings.tools.xaero.GgdMapState.effectiveMapPosition(mc).equals(body.position()), "map followed meeting body");
