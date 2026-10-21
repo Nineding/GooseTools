@@ -6,6 +6,27 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class DreamAvatarPacketsTest {
+    @Test void retainedBodyRoundTripsIndependentHeadBodyPoseAndPosition() {
+        var state=new DreamAvatarPackets.Body(7,42,new net.minecraft.world.phys.Vec3(1.5,81,-3),
+                90,20,65,95,net.minecraft.world.entity.Pose.CROUCHING,true);
+        var buffer=new net.minecraft.network.RegistryFriendlyByteBuf(io.netty.buffer.Unpooled.buffer(),net.minecraft.core.RegistryAccess.EMPTY);
+        try {
+            DreamAvatarPackets.Body.CODEC.encode(buffer,state);
+            assertEquals(state,DreamAvatarPackets.Body.CODEC.decode(buffer));
+            assertEquals(0,buffer.readableBytes());
+        } finally {buffer.release();}
+    }
+
+    @Test void retainedBodiesRejectInvalidSessionPositionAndAngles() {
+        var pose=net.minecraft.world.entity.Pose.STANDING;
+        var pos=net.minecraft.world.phys.Vec3.ZERO;
+        assertThrows(IllegalArgumentException.class,()->new DreamAvatarPackets.Body(0,1,pos,0,0,0,0,pose,true));
+        assertThrows(IllegalArgumentException.class,()->new DreamAvatarPackets.Body(1,-1,pos,0,0,0,0,pose,true));
+        assertThrows(IllegalArgumentException.class,()->new DreamAvatarPackets.Body(1,1,new net.minecraft.world.phys.Vec3(Double.NaN,0,0),0,0,0,0,pose,true));
+        assertThrows(IllegalArgumentException.class,()->new DreamAvatarPackets.Body(1,1,pos,0,0,0,Float.NaN,pose,true));
+        assertThrows(IllegalArgumentException.class,()->new DreamAvatarPackets.Body(1,1,pos,0,0,0,0,null,true));
+    }
+
     @Test void groundSnapshotRoundTripsCollisionJumpAndAcknowledgementState() {
         var state=new DreamAvatarPackets.Ground(7,42,19,3,
                 new net.minecraft.world.phys.Vec3(512.5,101,-2),new net.minecraft.world.phys.Vec3(.1,-.08,.2),

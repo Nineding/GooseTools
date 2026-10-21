@@ -29,6 +29,7 @@ public final class DreamAvatarClient {
     private static DreamAvatarPackets.Ground latestGround;
     private static net.minecraft.client.player.LocalPlayer animatedBody;
     private static net.minecraft.world.phys.Vec3 previousBodyPosition;
+    private static DreamBodyInterpolation retainedBody = new DreamBodyInterpolation();
 
     private DreamAvatarClient() {}
 
@@ -39,6 +40,11 @@ public final class DreamAvatarClient {
                 (payload, context) -> context.client().execute(() -> applyFlight(payload)));
         ClientPlayNetworking.registerGlobalReceiver(DreamAvatarPackets.Ground.TYPE,
                 (payload, context) -> context.client().execute(() -> applyGround(payload)));
+        ClientPlayNetworking.registerGlobalReceiver(DreamAvatarPackets.Body.TYPE,
+                (payload, context) -> context.client().execute(() -> {
+                    if(view != null && view.projectionKind() >= 0 && payload.session() == view.session())
+                        retainedBody.accept(payload);
+                }));
         ClientTickEvents.START_CLIENT_TICK.register(DreamAvatarClient::tickInput);
         ClientTickEvents.END_CLIENT_TICK.register(DreamAvatarClient::tick);
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> reset(client));
@@ -93,7 +99,6 @@ public final class DreamAvatarClient {
         keys = Input.EMPTY;
         movement = Vec2.ZERO;
         if (view == null || client.player == null || client.level == null) return;
-        tickBodyAnimation(client.player);
         // LocalPlayer.aiStep is suspended; keep pickup animations advancing exactly once.
         client.player.getInventory().tick();
         if (followsTarget()) return;
@@ -104,11 +109,13 @@ public final class DreamAvatarClient {
     /** aiStep is suspended, so its previous walk phase must not repeat every render tick. */
     private static void tickBodyAnimation(net.minecraft.client.player.LocalPlayer player) {
         var position = player.position();
-        double distance = animatedBody == player && previousBodyPosition != null
+        boolean fresh = animatedBody != player || previousBodyPosition == null;
+        double distance = !fresh
                 ? position.subtract(previousBodyPosition).horizontalDistance() : 0;
         animatedBody = player;
         previousBodyPosition = position;
-        if (distance < 1.0E-5 || distance > 4 || player.isPassenger() || !player.isAlive()) {
+        if (fresh || distance > 4 || player.isPassenger() || !player.isAlive()
+                || distance < 1.0E-5 && player.walkAnimation.speed() < 1.0E-5) {
             player.walkAnimation.stop();
         } else {
             // Only real body motion (for example, Mime moving a projected body) drives
@@ -129,6 +136,14 @@ public final class DreamAvatarClient {
             camera.yRotO = yaw;
             camera.xRotO = pitch;
         }
+        mirrorMimeLook(Minecraft.getInstance().player, false);
+    }
+
+    private static void mirrorMimeLook(net.minecraft.client.player.LocalPlayer player, boolean turnBody) {
+        if (player == null || view == null || view.projectionKind() != 3) return;
+        player.setYRot(yaw);player.setXRot(pitch);player.setYHeadRot(yaw);
+        player.yRotO = yaw;player.xRotO = pitch;player.yHeadRotO = yaw;
+        if (turnBody) player.setYBodyRot(Mth.rotLerp(.3F, player.yBodyRot, yaw));
     }
 
     private static void apply(DreamAvatarPackets.View payload) {
@@ -154,6 +169,10 @@ public final class DreamAvatarClient {
 
     private static void tick(Minecraft client) {
         if (view == null || client.player == null || client.level == null) return;
+        retainedBody.tick(client.player, view.projectionKind() == 3);
+        mirrorMimeLook(client.player, true);
+        tickBodyAnimation(client.player);
+        retainedBody.captureLook(client.player);
         DreamRemotePlayer body = DreamStandInClient.liveAvatar(client.player.getUUID());
         if (body == null) return; // Wait for both the authoritative body and its destination chunk.
         if (latestFlight != null) flight.accept(latestFlight, body);
@@ -211,5 +230,6 @@ public final class DreamAvatarClient {
         ground=new DreamGroundPrediction();latestGround=null;
         animatedBody = null;
         previousBodyPosition = null;
+        retainedBody = new DreamBodyInterpolation();
     }
 }

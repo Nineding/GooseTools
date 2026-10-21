@@ -1,6 +1,7 @@
 package com.goosethings.tools.dream.mixin;
 
 import com.goosethings.tools.mime.MimeControlSync;
+import com.goosethings.tools.dream.DreamAvatarServer;
 import net.minecraft.network.protocol.PacketUtils;
 import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 import net.minecraft.network.protocol.game.ServerboundPlayerInputPacket;
@@ -20,7 +21,7 @@ public abstract class MimeServerMovementMixin {
     @Inject(method = "handleMovePlayer", at = @At("HEAD"), cancellable = true)
     private void mime$ignoreMove(ServerboundMovePlayerPacket packet, CallbackInfo callback) {
         PacketUtils.ensureRunningOnSameThread(packet, (ServerGamePacketListenerImpl)(Object)this, player.level());
-        if (MimeControlSync.followsBody(player)) callback.cancel();
+        if (MimeControlSync.followsBody(player) || DreamAvatarServer.retainsProjectionBody(player)) callback.cancel();
     }
 
     @Inject(method = "handlePlayerInput", at = @At("HEAD"), cancellable = true)

@@ -504,6 +504,9 @@ public final class DreamAvatarRegression implements ClientModInitializer {
     private void checkGroundControls(Minecraft mc) {
         Entity camera=mc.getCameraEntity();
         if(groundPhase==0) {
+            // Let the previous scenario's delayed key releases reach authority
+            // before establishing this geometry fixture's exact teleport origin.
+            if(++groundTicks<12)return;
             pending=server(mc,p->{
                 Entity actor=DreamAvatarServer.actor(p);
                 for(int x=519;x<=522;x++)for(int y=101;y<=103;y++)
@@ -515,7 +518,8 @@ public final class DreamAvatarRegression implements ClientModInitializer {
             groundPhase=1;groundTicks=0;return;
         }
         if(groundPhase==1 || groundPhase==3) {
-            require(++groundTicks<100,"ground fixture target/chunk did not arrive");
+            require(++groundTicks<100,"ground fixture target/chunk did not arrive: phase="+groundPhase
+                    +", camera="+camera.position()+", block="+mc.level.getBlockState(new BlockPos(520,101,groundPhase==1?3:2)));
             if(camera.position().distanceTo(new Vec3(520.5,101,.5))>.05)return;
             var block=mc.level.getBlockState(new BlockPos(520,101,groundPhase==1?3:2));
             if(!block.is(groundPhase==1?Blocks.STONE:Blocks.SMOOTH_STONE_SLAB))return;
