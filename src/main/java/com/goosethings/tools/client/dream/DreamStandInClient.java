@@ -48,6 +48,10 @@ public final class DreamStandInClient {
     private DreamStandInClient() {
     }
 
+    public static Entity cameraAvatar(UUID owner) {
+        return liveAvatar(owner);
+    }
+
     static DreamRemotePlayer liveAvatar(UUID owner) {
         for (View view : VIEWS.values()) {
             if (view.state.kind() == GooseToolsPayloads.DreamStandIn.LIVE_AVATAR
@@ -332,6 +336,7 @@ public final class DreamStandInClient {
             pose = DreamStandInClient.pose(next.pose());
             if (model != null && next.kind() == GooseToolsPayloads.DreamStandIn.LIVE_AVATAR) {
                 model.moveOrInterpolateTo(new Vec3(next.x(), next.y(), next.z()), yRot, xRot);
+                if (!DreamAvatarClient.controls(model)) model.lerpHeadTo(headRot, 3);
             }
         }
 
@@ -476,7 +481,7 @@ public final class DreamStandInClient {
                 model.yRotO = yRot;
                 model.xRotO = xRot;
             }
-            if (!DreamAvatarClient.controls(model)) {
+            if (state.kind() != GooseToolsPayloads.DreamStandIn.LIVE_AVATAR) {
                 model.setYBodyRot(bodyRot);
                 model.yBodyRotO = bodyRot;
                 model.setYHeadRot(headRot);

@@ -306,7 +306,7 @@ public final class DreamAvatarServer {
         long sequence=-1,receivedSequence=-1,epoch;int lastInput=-100,jumpCharge;boolean ready;DreamAvatarPackets.Input input;
         final ArrayDeque<DreamAvatarPackets.Input> pending=new ArrayDeque<>();
         ChunkPos chunk,bodyChunk;int radius;Vec3 lastSafe;
-        boolean predictsGround() {return !raven && projectionKind<0;}
+        boolean predictsGround() {return !raven && (projectionKind<0 || projectionKind==3);}
         Session(long id,ServerPlayer owner,Body body,boolean raven,int projectionKind) {
             this.id=id;this.owner=owner;this.body=body;this.raven=raven;this.projectionKind=projectionKind;
             meetingPose = owner.getPose();
