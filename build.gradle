@@ -147,6 +147,7 @@ loom {
             source sourceSets.roleIntroRegressionTest
             runDir 'build/role-intro-regression-test'
             vmArg '-Dgoosetools.roleIntroRegressionTest=true'
+            vmArg '-Dgoosetools.deathSceneRegression=' + providers.gradleProperty('deathSceneRegression').isPresent()
             vmArg '-Dgoosetools.aiVoteRegression=' + providers.gradleProperty('aiVoteRegression').isPresent()
             vmArg '-Dgoosetools.presentationRegression=' + providers.gradleProperty('presentationRegression').isPresent()
             vmArg '-Dgoosetools.summaryRegression=' + providers.gradleProperty('summaryRegression').isPresent()

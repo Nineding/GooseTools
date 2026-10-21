@@ -39,6 +39,7 @@ public final class GooseTools implements ModInitializer {
     public void onInitialize() {
         GooseToolsPayloads.registerTypes();
         com.goosethings.tools.intro.RoleIntroServer.register();
+        com.goosethings.tools.death.DeathSceneServer.register();
         com.goosethings.tools.result.MatchResultServer.register();
         com.goosethings.tools.result.SummaryServer.register();
         com.goosethings.tools.result.AiSummaryServer.register();

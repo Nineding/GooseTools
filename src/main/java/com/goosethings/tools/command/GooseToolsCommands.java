@@ -46,6 +46,7 @@ public final class GooseToolsCommands {
                 .then(com.goosethings.tools.vision.WitchDoctorVision.command())
                 .then(com.goosethings.tools.meeting.MeetingAlertServer.command())
                 .then(com.goosethings.tools.intro.RoleIntroServer.command())
+                .then(com.goosethings.tools.death.DeathSceneServer.command())
                 .then(com.goosethings.tools.result.MatchResultServer.command())
                 .then(com.goosethings.tools.result.SummaryServer.command())
                 .then(com.goosethings.tools.dream.DreamStandInServer.command())
