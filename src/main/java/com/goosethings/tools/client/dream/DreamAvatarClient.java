@@ -27,6 +27,8 @@ public final class DreamAvatarClient {
     private static DreamAvatarPackets.Flight latestFlight;
     private static DreamGroundPrediction ground=new DreamGroundPrediction();
     private static DreamAvatarPackets.Ground latestGround;
+    private static net.minecraft.client.player.LocalPlayer animatedBody;
+    private static net.minecraft.world.phys.Vec3 previousBodyPosition;
 
     private DreamAvatarClient() {}
 
@@ -91,11 +93,28 @@ public final class DreamAvatarClient {
         keys = Input.EMPTY;
         movement = Vec2.ZERO;
         if (view == null || client.player == null || client.level == null) return;
+        tickBodyAnimation(client.player);
         // LocalPlayer.aiStep is suspended; keep pickup animations advancing exactly once.
         client.player.getInventory().tick();
         if (followsTarget()) return;
         if (projectionInput == null) projectionInput = new KeyboardInput(client.options);
         projectionInput.tick();
+    }
+
+    /** aiStep is suspended, so its previous walk phase must not repeat every render tick. */
+    private static void tickBodyAnimation(net.minecraft.client.player.LocalPlayer player) {
+        var position = player.position();
+        double distance = animatedBody == player && previousBodyPosition != null
+                ? position.subtract(previousBodyPosition).horizontalDistance() : 0;
+        animatedBody = player;
+        previousBodyPosition = position;
+        if (distance < 1.0E-5 || distance > 4 || player.isPassenger() || !player.isAlive()) {
+            player.walkAnimation.stop();
+        } else {
+            // Only real body motion (for example, Mime moving a projected body) drives
+            // its legs. Movement of the independent camera has its own animation state.
+            player.walkAnimation.update((float)Math.min(distance * 4, 1), .4F, 1);
+        }
     }
 
     /** Vanilla already applied sensitivity and inversion to these mouse deltas. */
@@ -126,6 +145,7 @@ public final class DreamAvatarClient {
         }
         reset(client);
         view = payload;
+        if (client.player != null) tickBodyAnimation(client.player);
         flight = new DreamFlightPrediction(payload.flightScale());
         previousCamera = client.getCameraEntity();
         yaw = client.player == null ? 0 : client.player.getYRot();
@@ -189,5 +209,7 @@ public final class DreamAvatarClient {
         flight = new DreamFlightPrediction();
         latestFlight = null;
         ground=new DreamGroundPrediction();latestGround=null;
+        animatedBody = null;
+        previousBodyPosition = null;
     }
 }

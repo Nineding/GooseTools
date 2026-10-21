@@ -68,6 +68,7 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
     private UUID walkerId;
     private int walkerEntityId, walkingFrames, bodyWalkingFrames;
     private Entity trackedWalker;
+    private String idleAnimationError;
     public static volatile boolean countCorrections;
     public static final java.util.concurrent.atomic.AtomicInteger corrections = new java.util.concurrent.atomic.AtomicInteger();
 
@@ -117,6 +118,8 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
             for (var state : context.levelState().entityRenderStates) {
                 if (state instanceof AvatarRenderState avatar && !avatar.isInvisible && !avatar.isSpectator
                         && new Vec3(state.x,state.y,state.z).distanceToSqr(mc.player.position()) < .01) {
+                    if (avatar.walkAnimationSpeed != 0)
+                        idleAnimationError="stationary extracted body retained walk speed "+avatar.walkAnimationSpeed;
                     ownerBodyFrames++;break;
                 }
             }
@@ -164,7 +167,13 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
             if (++ticks < 25) return;
             ticks = 0;
             if (!initialized) { initialized = true;installPack(mc);return; }
-            if (stage == 0) { ownerBodyFrames=0;renderWaits=0;ownerView=scenario<4 || scenario>=8;server(mc,p->begin(p));stage++;return; }
+            if (stage == 0) {
+                ownerBodyFrames=0;renderWaits=0;idleAnimationError=null;ownerView=scenario<4 || scenario>=8;
+                // Enter while the native walk cycle is active. Suspending aiStep must
+                // not freeze this phase and replay its partial-tick limb motion forever.
+                if(ownerView)mc.player.walkAnimation.update(.8F,1,1);
+                server(mc,p->begin(p));stage++;return;
+            }
             if (stage == 1) {
                 verifyClient(mc);
                 if(ownerView && (scenario%4==0 || scenario%4==1))
@@ -183,6 +192,7 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
                         +", chunk="+mc.level.hasChunkAt(mc.player.blockPosition())
                         +", culled="+com.goosethings.tools.client.vision.VisionFogState.shouldHideEntityVisual(mc.player)
                         +", range="+mc.player.shouldRenderAtSqrDistance(mc.getCameraEntity().distanceToSqr(mc.player))+", states="+lastRender);
+                if(ownerView)require(idleAnimationError==null,idleAnimationError);
                 if(scenario==1 || scenario==5)net.minecraft.client.Screenshot.takeScreenshot(mc.gameRenderer.mainRenderTarget(), image->{
                     try(image){image.writeToFile(mc.gameDirectory.toPath().resolve(scenario==1?"retained-owner-sniper.png":"retained-observer-sniper.png"));}
                     catch(Exception error){throw new RuntimeException(error);}
@@ -361,6 +371,11 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
     private void verifyClient(Minecraft mc) {
         if(ownerView) {
             require(DreamAvatarClient.retainedProjection() && mc.getCameraEntity()!=mc.player,"owner camera never left physical body");
+            for(float partial:new float[]{0,.5F,1}) {
+                var body=(AvatarRenderState)mc.getEntityRenderDispatcher().extractEntity(mc.player,partial);
+                require(body.walkAnimationSpeed==0 && mc.player.walkAnimation.speed(partial)==0,
+                        "stationary own body kept walking at partial tick "+partial+": "+body.walkAnimationSpeed);
+            }
             require(mc.player.getItemBySlot(EquipmentSlot.CHEST).is(Items.GOLDEN_CHESTPLATE),"owner body armour changed in the client");
         }
         else {
