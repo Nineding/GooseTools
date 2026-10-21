@@ -69,6 +69,10 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
     private int walkerEntityId, walkingFrames, bodyWalkingFrames;
     private Entity trackedWalker;
     private String idleAnimationError;
+    private Vec3 ownBodyStart, previousOwnBody;
+    private int ownBodyLerpFrames, ownBodyWalkFrames, victimControllerFrames;
+    private float previousOwnBodyYaw;
+    private double cameraTravel, ownBodyTravel;
     public static volatile boolean countCorrections;
     public static final java.util.concurrent.atomic.AtomicInteger corrections = new java.util.concurrent.atomic.AtomicInteger();
 
@@ -76,14 +80,18 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
         if (!Boolean.getBoolean("goosetools.retainedProjectionRegression")) return;
         DreamTestLatency.register();
         ClientTickEvents.START_CLIENT_TICK.register(mc -> {
-            suspendBodyTicks=ownerView && (stage==1 || stage==4);
+            suspendBodyTicks=ownerView && (stage==1 || stage==4 && (scenario%4!=3 || ticks<10));
+            if(ownerView && stage==4 && scenario%4==3 && ticks==12)
+                DreamAvatarClient.turn(180/.15,-40/.15);
             boolean moving=ownerView && ticks<20 && (stage==4 && scenario%4!=2
                     || stage==1 && (scenario%4==0 || scenario%4==1));
             mc.options.keyUp.setDown(moving);
             mc.options.keyDown.setDown(false);mc.options.keyLeft.setDown(false);
             mc.options.keyRight.setDown(false);mc.options.keySprint.setDown(false);
         });
-        ClientTickEvents.END_CLIENT_TICK.register(this::tick);
+        var checkPhase=net.minecraft.resources.Identifier.fromNamespaceAndPath("goosetools_flight_test","after_projection");
+        ClientTickEvents.END_CLIENT_TICK.addPhaseOrdering(net.fabricmc.fabric.api.event.Event.DEFAULT_PHASE,checkPhase);
+        ClientTickEvents.END_CLIENT_TICK.register(checkPhase,this::tick);
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(server -> {
             ServerPlayer fake=fakeId==null?null:server.getPlayerList().getPlayer(fakeId);
             // This observer has no real network connection to drive ServerPlayer.doTick().
@@ -111,6 +119,16 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
         LevelRenderEvents.END_EXTRACTION.register(renderPhase,context -> {
             Minecraft mc = Minecraft.getInstance();
             extractionFrames++;
+            if(!ownerView && scenario==7 && mc.player!=null && mc.level!=null) {
+                Entity controller=mc.level.getEntity(sourceId);
+                if(controller!=null) {
+                    Vec3 position=controller.getPosition(context.deltaTracker().getGameTimeDeltaPartialTick(true));
+                    for(var extracted:context.levelState().entityRenderStates)
+                        if(extracted instanceof AvatarRenderState avatar && !avatar.isInvisible && !avatar.isSpectator
+                                && new Vec3(extracted.x,extracted.y,extracted.z).distanceToSqr(position)<.04)
+                            victimControllerFrames++;
+                }
+            }
             if (!ownerView || !DreamAvatarClient.retainedProjection() || mc.player == null
                     || mc.getCameraEntity().distanceToSqr(mc.player)<100) return;
             lastRender=context.levelState().entityRenderStates.stream().map(state->state.getClass().getSimpleName()+":"+state.x+","+state.y+","+state.z
@@ -147,6 +165,7 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
                 require(mc.getCameraEntity()==movementCamera,"projection camera switched back to the physical body");
                 Vec3 current=mc.getCameraEntity().position();
                 require(current.distanceTo(previousCameraPosition)<1,"projection camera jumped during sustained input: "+previousCameraPosition+" -> "+current);
+                cameraTravel+=current.distanceTo(previousCameraPosition);
                 previousCameraPosition=current;movementSamples++;
                 require(mc.level.getEntity(walkerEntityId)==trackedWalker,"moving player was removed/recreated in detached view");
                 if(((RemotePlayer)trackedWalker).walkAnimation.speed()>.01)walkingFrames++;
@@ -156,6 +175,22 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
                 // The second observation is still before the simulated 6-tick round trip.
                 if(scenario%4==3 && movementSamples==2)
                     require(current.distanceTo(movementStart)>.01,"Mime ground input waited for delayed server movement: "+movementStart+" -> "+current);
+                if(scenario%4==3) {
+                    if(movementSamples>1)require(Math.abs(net.minecraft.util.Mth.wrapDegrees(mc.player.yBodyRotO-previousOwnBodyYaw))<.01,
+                            "Mime original body erased its pre-turn render angle: sample="+movementSamples+", tick="+ticks
+                                    +", old="+mc.player.yBodyRotO+", previous="+previousOwnBodyYaw+", suspended="+suspendBodyTicks);
+                    previousOwnBodyYaw=mc.player.yBodyRot;
+                    require(Math.abs(net.minecraft.util.Mth.wrapDegrees(mc.player.getYHeadRot()-movementCamera.getYRot()))<.01,
+                            "Mime original body's head did not follow local control yaw");
+                    require(Math.abs(mc.player.getXRot()-movementCamera.getXRot())<.01,
+                            "Mime original body's pitch did not follow local look");
+                    require(mc.player.position().subtract(previousOwnBody).horizontalDistance()<.4,
+                            "Mime original body jumped during movement");
+                    ownBodyTravel+=mc.player.position().subtract(previousOwnBody).horizontalDistance();
+                    previousOwnBody=mc.player.position();
+                    if(mc.player.getPosition(.25F).distanceToSqr(mc.player.getPosition(.75F))>1E-5)ownBodyLerpFrames++;
+                    if(mc.player.walkAnimation.speed()>.01)ownBodyWalkFrames++;
+                }
             }
             if(!ownerView && scenario==7 && stage==4) {
                 require(com.goosethings.tools.client.mime.MimeControlClient.followsBody(),"victim did not enter body-follow camera");
@@ -168,7 +203,7 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
             ticks = 0;
             if (!initialized) { initialized = true;installPack(mc);return; }
             if (stage == 0) {
-                ownerBodyFrames=0;renderWaits=0;idleAnimationError=null;ownerView=scenario<4 || scenario>=8;
+                ownerBodyFrames=0;renderWaits=0;idleAnimationError=null;victimControllerFrames=0;ownerView=scenario<4 || scenario>=8;
                 // Enter while the native walk cycle is active. Suspending aiStep must
                 // not freeze this phase and replay its partial-tick limb motion forever.
                 if(ownerView)mc.player.walkAnimation.update(.8F,1,1);
@@ -202,11 +237,16 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
             if (stage == 3) {
                 movementCamera=mc.getCameraEntity();movementStart=previousCameraPosition=movementCamera.position();movementSamples=0;
                 walkingFrames=bodyWalkingFrames=0;
+                ownBodyStart=previousOwnBody=mc.player.position();ownBodyLerpFrames=ownBodyWalkFrames=0;
+                cameraTravel=ownBodyTravel=0;
+                previousOwnBodyYaw=mc.player.yBodyRot;
+                if(ownerView && scenario%4==3)DreamAvatarClient.turn(
+                        (137-movementCamera.getYRot())/.15,(25-movementCamera.getXRot())/.15);
                 if(ownerView) {
                     trackedWalker=mc.level.getEntity(walkerEntityId);
                     require(trackedWalker instanceof RemotePlayer,"detached view did not track the walking player");
                 }
-                corrections.set(0);countCorrections=!ownerView && scenario==7;
+                corrections.set(0);countCorrections=!ownerView && scenario==7 || ownerView && scenario%4==3;
                 server(mc,p->{
                     if(scenario%4==3)require(source(p).getX()>entry.x+.1,"Mime real body did not mirror plausible remote movement");
                     if(ownerView)ServerPlayNetworking.send(p,new GooseToolsPayloads.MimeControlS2C(true,fakeId));
@@ -217,14 +257,23 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
             if(stage==4) {
                 if(ownerView) {
                     require(movementSamples>=20,"not enough continuous camera samples");
-                    require(mc.getCameraEntity().position().distanceTo(movementStart)>.5,"native movement left the projection stuck at its origin: role="+ROLES[scenario%4]);
+                    require(scenario%4==3?cameraTravel>1:mc.getCameraEntity().position().distanceTo(movementStart)>.5,
+                            "native movement left the projection stuck at its origin: role="+ROLES[scenario%4]+", travel="+cameraTravel);
                     require(walkingFrames>10,"tracked remote player slid without walking animation");
-                    if(scenario%4==3)require(bodyWalkingFrames>10,"predicted Mime model slid without walking animation");
+                    if(scenario%4==3) {
+                        countCorrections=false;
+                        require(corrections.get()==0,"Mime original body received repeated TP packets: "+corrections.get());
+                        require(bodyWalkingFrames>10,"predicted Mime model slid without walking animation");
+                        require(ownBodyTravel>.8,"original Mime body did not mirror the forward/reverse movement: "+ownBodyTravel);
+                        require(ownBodyLerpFrames>5,"original Mime body did not interpolate between rendered positions");
+                        require(ownBodyWalkFrames>5,"original Mime body moved without a continuous walk cycle");
+                    }
                 }
                 if(!ownerView && scenario==7) {
                     countCorrections=false;
                     require(corrections.get()==0,"victim received continuous position teleports: "+corrections.get());
                     require(movementCamera.position().distanceTo(movementStart)>1,"victim's spectator-style body camera did not follow movement");
+                    require(victimControllerFrames>0,"controlled victim saw controller nameplate but no actual rendered controller model");
                 }
                 DreamTestLatency.enabled=false;mc.options.keyUp.setDown(false);
                 server(mc,p->{

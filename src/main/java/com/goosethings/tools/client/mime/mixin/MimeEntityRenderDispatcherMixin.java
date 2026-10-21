@@ -20,7 +20,8 @@ public abstract class MimeEntityRenderDispatcherMixin {
             float partialTick, CallbackInfoReturnable<Boolean> callback) {
         UUID controllerId = MimeControlClient.controllerId();
         if (MimeControlClient.isControlled()
-                && (controllerId != null && controllerId.equals(entity.getUUID())
+                && (!MimeControlClient.followsBody()
+                && controllerId != null && controllerId.equals(entity.getUUID())
                 || MimeControlClient.followsBody()
                 && entity == net.minecraft.client.Minecraft.getInstance().player)) {
             callback.setReturnValue(false);

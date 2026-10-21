@@ -21,4 +21,9 @@ public abstract class DreamLocalPlayerMixin {
         player.fallDistance = 0;
         callback.cancel();
     }
+
+    @Inject(method = "sendPosition", at = @At("HEAD"), cancellable = true)
+    private void dream$noBodyFeedback(CallbackInfo callback) {
+        if (DreamAvatarClient.active()) callback.cancel();
+    }
 }
