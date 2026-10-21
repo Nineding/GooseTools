@@ -16,16 +16,16 @@ GooseTools is the required Fabric client/server foundation for the Whoiskiller G
 - Fabric API 0.161.0+26.3
 - Xaero's Minimap 26.5.3
 - Xaero's World Map 1.46.4
-- GooseTools 1.14.0+Alpha0.33 on both the server and every client
+- GooseTools 1.15.0 on both the server and every client
 
-服务端和所有客户端必须安装完全相同的 GooseTools 版本。当前网络协议版本为 30；缺少模组、版本不同或协议不兼容的客户端会被服务器拒绝。
+服务端和所有客户端必须安装完全相同的 GooseTools 版本。当前网络协议版本为 41；缺少模组、版本不同或协议不兼容的客户端会被服务器拒绝。
 
-The server and every connecting client must use the exact same GooseTools version. The current network protocol is 30; clients with a missing, mismatched, or incompatible mod are rejected during login.
+The server and every connecting client must use the exact same GooseTools version. The current network protocol is 41; clients with a missing, mismatched, or incompatible mod are rejected during login.
 
 ## 安装 / Installation
 
 1. 安装 Minecraft 26.3、Fabric Loader 和上方列出的依赖。
-2. 从 [Releases](https://github.com/Nineding/GooseTools/releases) 下载 `goosetools-1.14.0+Alpha0.33.jar`。
+2. 从 [Releases](https://github.com/Nineding/GooseTools/releases) 下载 `goosetools-1.15.0.jar`。
 3. 将 GooseTools 及依赖 JAR 放入服务端和每位玩家客户端的 `mods` 目录。
 
 Install Minecraft 26.3 with Fabric Loader and the dependencies listed above, then place the GooseTools JAR in the `mods` directory on both the server and every client.
