@@ -128,7 +128,7 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
             g.pose().pushMatrix();
             g.pose().translate(width * .5F, height * .35F + i * 12 * descriptionScale);
             g.pose().scale(descriptionScale, descriptionScale);
-            g.text(font, line, -font.width(line) / 2, 0, 0xFFEFEFEF, true);
+            g.text(font, line, -font.width(line) / 2, 0, role.faction() == 2 ? 0xFF000000 | role.color() : 0xFFEFEFEF, true);
             g.pose().popMatrix();
         }
     }
@@ -212,7 +212,7 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
         if (textureReady) return;
         NativeImage image = new NativeImage(512, 288, false);
         for (int y = 0; y < 288; y++) for (int x = 0; x < 512; x++) {
-            image.setPixel(x, y, RoleIntroScene.stagePixel(payload.theme(), x / 511.0, y / 287.0));
+            image.setPixel(x, y, RoleIntroScene.stagePixel(payload.theme(), payload.role(), x / 511.0, y / 287.0));
         }
         minecraft.getTextureManager().register(STAGE, new DynamicTexture(() -> "GooseTools role stage", image));
         textureReady = true;

@@ -39,6 +39,11 @@ public final class MatchResultPolicy {
             default -> "info.line." + outcome + "win.subtitle";
         };
     }
+    public static int neutralColor(String outcome) {
+        return com.goosethings.tools.intro.RoleIntroCatalog.findByStoredId(outcome)
+                .filter(role -> role.faction() == 2).map(com.goosethings.tools.intro.RoleIntroCatalog.Role::color)
+                .orElse(0xDBC34A);
+    }
     public static int columns(int count) { return Math.min(10, Math.max(1, count)); }
     public static int rows(int count) { return (count + columns(count) - 1) / columns(count); }
 }

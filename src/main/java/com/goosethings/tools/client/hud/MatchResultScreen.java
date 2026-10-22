@@ -66,7 +66,7 @@ public final class MatchResultScreen extends Screen implements ProtectedInputScr
         String fallback = theme == 0 ? "Goose Victory" : theme == 1 ? "Duck Victory"
                 : theme == 3 ? "Lover Victory" : payload.outcome().substring(0, 1).toUpperCase()+payload.outcome().substring(1)+" Victory";
         Component title = Component.translatableWithFallback(MatchResultPolicy.victoryKey(payload.outcome()), fallback);
-        int color = theme == 0 ? 0xFF5EFF36 : theme == 1 ? 0xFFFF9898 : theme == 3 ? 0xFFFFB6D7 : 0xFFFFFF9B;
+        int color = theme == 0 ? 0xFF5EFF36 : theme == 1 ? 0xFFFF9898 : theme == 3 ? 0xFFFFB6D7 : 0xFF000000 | MatchResultPolicy.neutralColor(payload.outcome());
         centered(g, title, width*.5F, height*.305F, Math.min(4.8F*ui(), width*.9F/Math.max(1, font.width(title))), color);
         Component reason = Component.translatableWithFallback(MatchResultPolicy.reasonKey(payload.outcome()), "");
         drawReason(g, reason);
@@ -89,7 +89,8 @@ public final class MatchResultScreen extends Screen implements ProtectedInputScr
             g.pose().pushMatrix();
             g.pose().translate(width*.5F, height*.425F+i*11*scale);
             g.pose().scale(scale, scale);
-            g.text(font, line, -font.width(line)/2, 0, 0xFFE8E8E8, true);
+            g.text(font, line, -font.width(line)/2, 0, MatchResultPolicy.theme(payload.outcome()) == 2
+                    ? 0xFF000000 | MatchResultPolicy.neutralColor(payload.outcome()) : 0xFFE8E8E8, true);
             g.pose().popMatrix();
         }
     }
@@ -167,7 +168,7 @@ public final class MatchResultScreen extends Screen implements ProtectedInputScr
     private void ensureBackground() {
         if (textureReady) return;
         int tint = switch(MatchResultPolicy.theme(payload.outcome())) {
-            case 1 -> 0xC10B18; case 2 -> 0xDBC34A; case 3 -> 0xE85C99; default -> 0xD9DEE6;
+            case 1 -> 0xC10B18; case 2 -> MatchResultPolicy.neutralColor(payload.outcome()); case 3 -> 0xE85C99; default -> 0xD9DEE6;
         };
         NativeImage image = new NativeImage(512,288,false);
         for (int y=0;y<288;y++) for(int x=0;x<512;x++) {

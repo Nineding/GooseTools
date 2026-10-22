@@ -11,7 +11,7 @@ class RoleIntroCatalogTest {
         assertEquals("role.neutral.sparrow", role.key());
         assertEquals("role.neutral.sparrow.subtitle", role.descriptionKey());
         assertEquals(RoleIntroPolicy.BIRD, role.faction());
-        assertEquals(RoleIntroCatalog.byTag("Seagull").color(), role.color());
+        assertEquals(0xB58A62, role.color());
         assertEquals(role, RoleIntroCatalog.byTag("Sparrow"));
         assertEquals(role, RoleIntroCatalog.findByStoredId("sparrow").orElseThrow());
     }
