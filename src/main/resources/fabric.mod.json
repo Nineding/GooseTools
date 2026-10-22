@@ -50,8 +50,9 @@
   "depends": {
     "fabricloader": ">=0.19.5",
     "minecraft": "26.3",
-    "fabric-api": "*",
-    "xaerominimap": "26.5.3",
-    "xaeroworldmap": "1.46.4"
+    "java": ">=25",
+    "fabric-api": ">=0.161.0+26.3",
+    "xaerominimap": ">=26.5.3",
+    "xaeroworldmap": ">=1.46.4"
   }
 }

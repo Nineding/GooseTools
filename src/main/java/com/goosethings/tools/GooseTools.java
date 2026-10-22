@@ -71,7 +71,7 @@ public final class GooseTools implements ModInitializer {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 GooseToolsCommands.register(dispatcher));
         LOGGER.info(
-                "GooseTools {} initialized (required protocol {}, exact version lock rejects older clients)",
+                "GooseTools {} initialized (required protocol {}, explicit release compatibility)",
                 VERSION,
                 PROTOCOL_VERSION);
     }
