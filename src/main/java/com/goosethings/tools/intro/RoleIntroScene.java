@@ -34,6 +34,15 @@ public final class RoleIntroScene {
             case RoleIntroPolicy.LOVER -> 0xFF8AC4;
             default -> 0xFFFFFF;
         };
+        return tintedStagePixel(tint, x, y);
+    }
+
+    public static int stagePixel(int theme, String role, double x, double y) {
+        return theme == RoleIntroPolicy.BIRD
+                ? tintedStagePixel(RoleIntroCatalog.byTag(role).color(), x, y) : stagePixel(theme, x, y);
+    }
+
+    private static int tintedStagePixel(int tint, double x, double y) {
         double halfWidth = .065 + y * .53;
         double edge = Math.clamp((halfWidth - Math.abs(x - .5)) / .18, 0, 1);
         edge = edge * edge * (3 - 2 * edge);
