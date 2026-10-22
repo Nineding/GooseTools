@@ -26,7 +26,6 @@ public final class GooseToolsPayloads {
     }
 
     public static void registerTypes() {
-        PayloadTypeRegistry.clientboundPlay().register(com.goosethings.tools.death.DeathScenePayload.TYPE, com.goosethings.tools.death.DeathScenePayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(com.goosethings.tools.appearance.preview.SkinPreviewPayloads.Request.TYPE, com.goosethings.tools.appearance.preview.SkinPreviewPayloads.Request.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(com.goosethings.tools.appearance.preview.SkinPreviewPayloads.Chunk.TYPE, com.goosethings.tools.appearance.preview.SkinPreviewPayloads.Chunk.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(com.goosethings.tools.result.SummaryPayload.TYPE, com.goosethings.tools.result.SummaryPayload.CODEC);
