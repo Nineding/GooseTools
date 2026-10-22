@@ -86,4 +86,33 @@ class GitHubUpdateClientTest {
         new UpdatePreferences(false, false).save(settings);
         assertEquals(new UpdatePreferences(false, false), UpdatePreferences.load(settings));
     }
+
+    @Test void releaseDependenciesAcceptSupportedAndNewerVersionsWithoutUpperBounds(@TempDir Path temp) throws Exception {
+        var metadata = JsonParser.parseString(Files.readString(
+                Path.of("src/main/resources/fabric.mod.json"))).getAsJsonObject();
+        metadata.addProperty("version", "1.15.1");
+        Path jar = temp.resolve("runtime.jar");
+        try (var zip = new ZipOutputStream(Files.newOutputStream(jar))) {
+            zip.putNextEntry(new ZipEntry("fabric.mod.json"));
+            zip.write(metadata.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            zip.closeEntry();
+        }
+        var supported = Map.of("minecraft", "26.3", "fabricloader", "0.19.5", "java", "25",
+                "fabric-api", "0.161.0+26.3", "xaerominimap", "26.5.3", "xaeroworldmap", "1.46.4");
+        assertTrue(GitHubUpdateClient.compatible(jar, "1.15.1", 41, supported));
+        var newer = new java.util.HashMap<>(supported);
+        newer.putAll(Map.of("fabricloader", "0.19.6", "java", "26", "fabric-api", "0.164.0+26.3",
+                "xaerominimap", "26.6.1", "xaeroworldmap", "1.47.1"));
+        assertTrue(GitHubUpdateClient.compatible(jar, "1.15.1", 41, newer));
+        newer.putAll(Map.of("fabricloader", "1.0.0", "fabric-api", "1.0.0+26.3",
+                "xaerominimap", "99.0.0", "xaeroworldmap", "99.0.0"));
+        assertTrue(GitHubUpdateClient.compatible(jar, "1.15.1", 41, newer));
+        for (var belowMinimum : Map.of("fabricloader", "0.19.4", "java", "24",
+                "fabric-api", "0.160.0+26.3", "xaerominimap", "26.5.2", "xaeroworldmap", "1.46.3").entrySet()) {
+            var invalid = new java.util.HashMap<>(supported);
+            invalid.put(belowMinimum.getKey(), belowMinimum.getValue());
+            assertFalse(GitHubUpdateClient.compatible(jar, "1.15.1", 41, invalid), belowMinimum.getKey());
+        }
+        assertFalse(GitHubUpdateClient.compatible(jar, "1.15.1", 40, supported));
+    }
 }
