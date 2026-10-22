@@ -172,6 +172,7 @@ public final class DreamAvatarRegression implements ClientModInitializer {
             if(stage==6) {checkGroundControls(mc);return;}
             if (stage == 0) {
                 if (scenario == 0 && mc.player.tickCount < 30) return;
+                mc.player.walkAnimation.update(.8F,1,1);
                 pending = server(mc, p -> {
                     require(MandatoryHandshake.isVerified(p), "handshake not ready");
                     var dreamLevel = scenario == 0 ? p.level() : p.level().getServer().getLevel(net.minecraft.world.level.Level.END);
@@ -227,6 +228,9 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                 DreamRemotePlayer body = DreamStandInClient.liveAvatar(mc.player.getUUID());
                 if (body == null || mc.getCameraEntity() != body || !mc.player.connection.hasClientLoaded()) return;
                 require(body.getX() > 500 && mc.player.getX() < 10, "camera/body not separated");
+                for(float partial:new float[]{0,.5F,1})
+                    require(mc.player.walkAnimation.speed(partial)==0,
+                            "seated meeting body retained its pre-dream walk animation");
                 if (!body.getMainHandItem().is(Items.CARROT_ON_A_STICK)) return;
                 require(body.getSkin() != null, "dream skin missing");
                 require(com.goosethings.tools.xaero.GgdMapState.effectiveMapPosition(mc).equals(body.position()), "map followed meeting body");
@@ -500,6 +504,9 @@ public final class DreamAvatarRegression implements ClientModInitializer {
     private void checkGroundControls(Minecraft mc) {
         Entity camera=mc.getCameraEntity();
         if(groundPhase==0) {
+            // Let the previous scenario's delayed key releases reach authority
+            // before establishing this geometry fixture's exact teleport origin.
+            if(++groundTicks<12)return;
             pending=server(mc,p->{
                 Entity actor=DreamAvatarServer.actor(p);
                 for(int x=519;x<=522;x++)for(int y=101;y<=103;y++)
@@ -511,7 +518,8 @@ public final class DreamAvatarRegression implements ClientModInitializer {
             groundPhase=1;groundTicks=0;return;
         }
         if(groundPhase==1 || groundPhase==3) {
-            require(++groundTicks<100,"ground fixture target/chunk did not arrive");
+            require(++groundTicks<100,"ground fixture target/chunk did not arrive: phase="+groundPhase
+                    +", camera="+camera.position()+", block="+mc.level.getBlockState(new BlockPos(520,101,groundPhase==1?3:2)));
             if(camera.position().distanceTo(new Vec3(520.5,101,.5))>.05)return;
             var block=mc.level.getBlockState(new BlockPos(520,101,groundPhase==1?3:2));
             if(!block.is(groundPhase==1?Blocks.STONE:Blocks.SMOOTH_STONE_SLAB))return;

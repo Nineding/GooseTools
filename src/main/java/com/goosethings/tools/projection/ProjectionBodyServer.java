@@ -1138,7 +1138,12 @@ public final class ProjectionBodyServer {
     private static void applyRealBody(ServerPlayer player, Session session) {
         BodySnapshot body = session.body;
         if (player.level() != body.level) return;
-        if (player.position().distanceToSqr(body.position) > MOTION_EPSILON) {
+        if (DreamAvatarServer.syncRetainedBody(player,body.position,body.yRot,body.xRot,
+                body.bodyRot,body.headRot,body.pose,session.bodyOnGround)) {
+            // The client renders this body independently; the real damage target
+            // remains server-authoritative without a stream of native camera TPs.
+            player.absSnapTo(body.position.x,body.position.y,body.position.z,body.yRot,body.xRot);
+        } else if (player.position().distanceToSqr(body.position) > MOTION_EPSILON) {
             player.connection.teleport(body.position.x, body.position.y, body.position.z,
                     body.yRot, body.xRot);
         }

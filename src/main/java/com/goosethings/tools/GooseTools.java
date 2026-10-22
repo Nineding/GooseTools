@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 
 public final class GooseTools implements ModInitializer {
     public static final String MOD_ID = "goosetools";
-    public static final int PROTOCOL_VERSION = 40;
+    public static final int PROTOCOL_VERSION = 41;
     public static final String VERSION = FabricLoader.getInstance()
             .getModContainer(MOD_ID)
             .map(container -> container.getMetadata().getVersion().getFriendlyString())
@@ -72,7 +72,7 @@ public final class GooseTools implements ModInitializer {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 GooseToolsCommands.register(dispatcher));
         LOGGER.info(
-                "GooseTools {} initialized (required protocol {}, exact version lock rejects older clients)",
+                "GooseTools {} initialized (required protocol {}, explicit release compatibility)",
                 VERSION,
                 PROTOCOL_VERSION);
     }

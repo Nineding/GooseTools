@@ -86,6 +86,14 @@ public final class DreamAvatarServer {
         Session s=SESSIONS.get(owner.getUUID());return s==null?null:s.body;
     }
     public static boolean active(ServerPlayer owner) { return SESSIONS.containsKey(owner.getUUID()); }
+    public static boolean syncRetainedBody(ServerPlayer owner, Vec3 position, float yaw, float pitch,
+                                          float bodyYaw, float headYaw, Pose pose, boolean onGround) {
+        Session s=SESSIONS.get(owner.getUUID());
+        if(s==null || s.projectionKind<0 || !ServerPlayNetworking.canSend(owner,DreamAvatarPackets.Body.TYPE))return false;
+        ServerPlayNetworking.send(owner,new DreamAvatarPackets.Body(s.id,owner.level().getServer().getTickCount(),
+                position,yaw,pitch,bodyYaw,headYaw,pose,onGround));
+        return true;
+    }
     public static boolean retainsProjectionBody(ServerPlayer owner) {
         Session session=SESSIONS.get(owner.getUUID());return session!=null && session.projectionKind>=0;
     }

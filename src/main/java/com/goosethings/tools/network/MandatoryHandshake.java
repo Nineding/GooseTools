@@ -18,7 +18,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** Enforces that every joining player has the matching GooseTools protocol and version. */
+/** Enforces the matching protocol and an explicitly compatible GooseTools release. */
 public final class MandatoryHandshake {
     private static final int TIMEOUT_TICKS = 200;
     private static final Map<UUID, Integer> PENDING = new ConcurrentHashMap<>();
@@ -96,7 +96,7 @@ public final class MandatoryHandshake {
                     payload.protocol()));
             return;
         }
-        if (!sameVersion(payload.version(), GooseTools.VERSION)) {
+        if (!ClientVersionCompatibility.allows(GooseTools.VERSION, payload.version())) {
             clear(playerId);
             player.connection.disconnect(Component.translatableWithFallback(
                     "disconnect.goosetools.version_mismatch",
@@ -118,14 +118,6 @@ public final class MandatoryHandshake {
                 player.getGameProfile().name(),
                 payload.version(),
                 payload.protocol());
-    }
-
-    private static boolean sameVersion(String clientVersion, String serverVersion) {
-        return normalizeVersion(clientVersion).equals(normalizeVersion(serverVersion));
-    }
-
-    private static String normalizeVersion(String version) {
-        return version == null ? "" : version.trim();
     }
 
     private static void clear(UUID playerId) {
