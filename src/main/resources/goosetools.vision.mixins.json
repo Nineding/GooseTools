@@ -9,7 +9,8 @@
     "SodiumLevelSliceMixin",
     "VisionEntityRenderDispatcherMixin",
     "VisionTerrainParticleMixin",
-    "VisionCameraMixin"
+    "VisionCameraMixin",
+    "InvisibilityWorldMixin"
   ],
   "injectors": {
     "defaultRequire": 1

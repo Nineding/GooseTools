@@ -49,6 +49,7 @@ public final class GooseTools implements ModInitializer {
         com.goosethings.tools.task.GuiTaskBridge.register();
         AdventureNoClipService.register();
         ForcedFlightSync.register();
+        com.goosethings.tools.movement.InvisibilityMovement.register();
         AiReportServer.register();
         AiDebugTraceServer.register();
         AiReviewFlowServer.register();

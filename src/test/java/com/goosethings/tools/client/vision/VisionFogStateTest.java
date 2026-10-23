@@ -11,6 +11,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class VisionFogStateTest {
 
+    @Test
+    void zeroSkillVisionIsImmediateAndDoesNotLeakIntoNormalFogOrMeetings() {
+        VisionFogState.apply(true, 0, 0, false);
+        assertTrue(VisionFogState.totalBlindness());
+        VisionFogState.apply(true, 1, 2, true);
+        assertFalse(VisionFogState.totalBlindness());
+        VisionFogState.apply(true, 0, 0, false);
+        VisionFogState.apply(false, 12, 16, false);
+        assertFalse(VisionFogState.totalBlindness());
+        VisionFogState.apply(true, 0, 0.5F, false);
+        assertFalse(VisionFogState.totalBlindness());
+    }
+
     @BeforeEach
     void setUp() {
         VisionFogState.apply(false, 12.0F, 16.0F, false);

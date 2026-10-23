@@ -6,7 +6,10 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 
 @Mixin(AvatarRenderState.class)
-public class CelebrationRenderStateMixin implements CelebrationState, com.goosethings.tools.client.animation.IntroOpacity {
+public class CelebrationRenderStateMixin implements CelebrationState, com.goosethings.tools.client.animation.IntroOpacity, com.goosethings.tools.client.animation.ResultOutline {
+    @Unique private int goosetools$resultOutline;
+    @Override public int goosetools$resultOutline() { return goosetools$resultOutline; }
+    @Override public void goosetools$resultOutline(int color) { goosetools$resultOutline = color; }
     @Unique private float goosetools$introOpacity=1;
     @Override public void goosetools$introOpacity(float alpha) {goosetools$introOpacity=alpha;}
     @Override public float goosetools$introOpacity() {return goosetools$introOpacity;}

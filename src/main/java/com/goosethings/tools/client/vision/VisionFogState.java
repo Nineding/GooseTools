@@ -27,6 +27,7 @@ public final class VisionFogState {
     private static float targetClearRadius = 12.0F;
     private static float targetFullFogRadius = 16.0F;
     private static boolean horizontalCylinder;
+    private static volatile boolean totalBlindness;
 
     private VisionFogState() {
     }
@@ -166,7 +167,10 @@ public final class VisionFogState {
         ShaderVisionMask.register();
     }
 
+    public static boolean totalBlindness() { return totalBlindness; }
+
     public static void apply(boolean active, float clear, float fullFog, boolean useHorizontalCylinder) {
+        totalBlindness = active && clear <= 0.0F && fullFog <= 0.0F;
         targetStrength = active ? 1.0F : 0.0F;
         // Normal settings are still authored as 4..32 blocks. Emergency overrides may
         // intentionally use a smaller player-centred radius, such as GooseShip's 2 blocks.
@@ -259,6 +263,7 @@ public final class VisionFogState {
     }
 
     private static void reset() {
+        totalBlindness = false;
         strength = 0.0F;
         targetStrength = 0.0F;
         clearRadius = 12.0F;
