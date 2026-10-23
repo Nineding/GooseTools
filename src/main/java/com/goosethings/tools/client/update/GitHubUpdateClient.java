@@ -74,10 +74,20 @@ public final class GitHubUpdateClient {
         if (json.get("draft").getAsBoolean()) return Optional.empty();
         String version = json.get("tag_name").getAsString().replaceFirst("^v", "");
         UpdateVersion parsed = UpdateVersion.parse(version);
-        if ((!alpha && (json.get("prerelease").getAsBoolean() || parsed.alphaMajor() != null))
-                || version.equals(current)
-                || (required == null && parsed.compareTo(UpdateVersion.parse(current)) <= 0)
-                || (required != null && !version.equals(required))) return Optional.empty();
+        if (version.equals(current)) return Optional.empty();
+        if (required != null) {
+            // A server's exact version is independent of the player's automatic update channel.
+            if (!version.equals(required)) return Optional.empty();
+        } else {
+            boolean prerelease = json.get("prerelease").getAsBoolean() || parsed.alphaMajor() != null;
+            if (prerelease != alpha) return Optional.empty();
+            UpdateVersion installed = UpdateVersion.parse(current);
+            // Switching channels may select a lower base version (1.15.1 -> 1.15.0+Alpha).
+            // Within the selected channel, never reinstall or downgrade an existing version.
+            if ((installed.alphaMajor() != null) == alpha && parsed.compareTo(installed) <= 0) {
+                return Optional.empty();
+            }
+        }
         for (JsonElement element : json.getAsJsonArray("assets")) {
             JsonObject asset = element.getAsJsonObject();
             if (!("goosetools-" + version + ".jar").equals(asset.get("name").getAsString())) continue;

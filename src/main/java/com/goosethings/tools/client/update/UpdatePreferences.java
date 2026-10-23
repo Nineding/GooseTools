@@ -5,7 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
 
-/** Separate from map settings so saving either feature preserves the other one's options. */
+/** includeAlpha is the persisted legacy key: true selects Alpha, false selects stable. */
 public record UpdatePreferences(boolean enabled, boolean includeAlpha) {
     public static UpdatePreferences load(Path file) throws IOException {
         Properties properties = new Properties();
@@ -13,14 +13,10 @@ public record UpdatePreferences(boolean enabled, boolean includeAlpha) {
             try (var input = Files.newInputStream(file)) { properties.load(input); }
         }
         UpdatePreferences result = new UpdatePreferences(
-                read(properties, "enabled"), read(properties, "includeAlpha"));
+                !"false".equalsIgnoreCase(properties.getProperty("enabled")),
+                "true".equalsIgnoreCase(properties.getProperty("includeAlpha")));
         if (!Files.exists(file)) result.save(file);
         return result;
-    }
-
-    private static boolean read(Properties properties, String key) {
-        // Missing/invalid settings preserve the explicit default: both options are enabled.
-        return !"false".equalsIgnoreCase(properties.getProperty(key));
     }
 
     public void save(Path file) throws IOException {

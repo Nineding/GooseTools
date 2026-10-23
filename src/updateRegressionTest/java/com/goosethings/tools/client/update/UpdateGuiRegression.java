@@ -1,16 +1,21 @@
 package com.goosethings.tools.client.update;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.MouseButtonInfo;
+import net.fabricmc.fabric.api.client.screen.v1.Screens;
 import java.nio.file.Files;
 
 /** Exercises actual localized screens and GPU draws in an isolated game directory. */
 public final class UpdateGuiRegression implements ClientModInitializer {
-    private int scenario, frame, screenshots;
+    private int scenario, frame, screenshots, titleTicks;
     private boolean finished;
     private Screen parent;
     private final UpdateMonitor monitor = new UpdateMonitor();
@@ -26,13 +31,19 @@ public final class UpdateGuiRegression implements ClientModInitializer {
         try {
             if (parent == null) {
                 if (!(mc.gui.screen() instanceof TitleScreen)) return;
+                // The vanilla title fades its widgets in over two seconds before accepting input.
+                if (++titleTicks < 50) return;
                 parent = mc.gui.screen(); mc.options.pauseOnLostFocus = false;
+                AutoUpdateManager.settings(true, false);
+                openSettings();
+                ((UpdateSettingsScreen) mc.gui.screen()).onClose();
+                if (mc.gui.screen() != parent) throw new AssertionError("Settings did not return to title");
                 var field = AutoUpdateManager.class.getDeclaredField("monitor");
                 field.setAccessible(true); field.set(null, monitor);
             }
             if (scenario >= PHASES.length) {
-                if (screenshots < PHASES.length + 1) return;
-                finish(mc, "PASS localized checking/download/verification/failure/result/settings screens and cancellation; " + screenshots + " GPU captures"); return;
+                if (screenshots < PHASES.length + 3) return;
+                finish(mc, "PASS title menu entry, stable/Alpha selection, saved channel, pending update cancellation, localized progress screens; " + screenshots + " GPU captures"); return;
             }
             if (frame == 0) {
                 var phase = PHASES[scenario];
@@ -50,11 +61,58 @@ public final class UpdateGuiRegression implements ClientModInitializer {
             if (frame == 22) {
                 ((UpdateProgressScreen) mc.gui.screen()).onClose();
                 if (mc.gui.screen() != parent) throw new AssertionError("Continue did not return to parent");
-                if (scenario == PHASES.length - 1) mc.setScreenAndShow(new UpdateSettingsScreen(parent));
+                if (scenario == PHASES.length - 1) openSettings();
             }
-            if (frame == 30 && scenario == PHASES.length - 1) capture(mc, "settings");
-            if (frame >= 34) { scenario++; frame = 0; }
+            if (scenario == PHASES.length - 1) {
+                if (frame == 25) capture(mc, "settings-stable");
+                if (frame == 28) {
+                    var pendingType = Class.forName(AutoUpdateManager.class.getName() + "$Pending");
+                    var constructor = pendingType.getDeclaredConstructor(java.nio.file.Path.class, String.class);
+                    constructor.setAccessible(true);
+                    var pending = AutoUpdateManager.class.getDeclaredField("pending");
+                    pending.setAccessible(true);
+                    pending.set(null, constructor.newInstance(mc.gameDirectory.toPath().resolve("unused.properties"), "1.15.1"));
+                    var server = AutoUpdateManager.class.getDeclaredField("serverVersion");
+                    server.setAccessible(true); server.set(null, "1.15.1");
+                    var generation = AutoUpdateManager.class.getDeclaredField("generation");
+                    generation.setAccessible(true); long previous = generation.getLong(null);
+                    Screen settings = mc.gui.screen();
+                    var channel = Screens.getWidgets(settings).get(1);
+                    click(settings, channel);
+                    if (!AutoUpdateManager.preferences().includeAlpha() || !AutoUpdateManager.preferences().enabled()) {
+                        throw new AssertionError("Channel did not switch to Alpha or changed automatic updates");
+                    }
+                    var saved = UpdatePreferences.load(mc.gameDirectory.toPath().resolve("config/goosetools/auto-update.properties"));
+                    if (!saved.equals(AutoUpdateManager.preferences())) throw new AssertionError("Channel not saved");
+                    if (pending.get(null) != null || server.get(null) != null || generation.getLong(null) != previous + 1
+                            || AutoUpdateManager.progress().phase() != UpdateMonitor.Phase.CANCELLED) {
+                        throw new AssertionError("Old channel lookup/download/install state survived channel switch");
+                    }
+                    click(settings, channel);
+                    if (AutoUpdateManager.preferences().includeAlpha()) throw new AssertionError("Could not return to stable");
+                    click(settings, channel);
+                }
+                if (frame == 32) capture(mc, "settings-alpha");
+                if (frame == 35) ((UpdateSettingsScreen) mc.gui.screen()).onClose();
+                if (frame == 38) capture(mc, "title");
+            }
+            if (frame >= (scenario == PHASES.length - 1 ? 42 : 34)) { scenario++; frame = 0; }
         } catch (Throwable failure) { finish(mc, "FAIL " + failure); }
+    }
+    private void openSettings() {
+        var buttons = Screens.getWidgets(parent).stream().filter(button -> button.getMessage().equals(
+                AutoUpdateManager.text("settings", "GooseTools Update Settings"))).toList();
+        if (buttons.size() != 1) throw new AssertionError("Missing or duplicated title update settings button");
+        click(parent, buttons.getFirst());
+        if (!(Minecraft.getInstance().gui.screen() instanceof UpdateSettingsScreen)) {
+            throw new AssertionError("Title button did not open settings");
+        }
+    }
+    private static void click(Screen screen, AbstractWidget button) {
+        var event = new MouseButtonEvent(button.getX() + button.getWidth() / 2.0,
+                button.getY() + button.getHeight() / 2.0, new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0));
+        screen.mouseClicked(event, false);
+        screen.mouseReleased(event);
     }
     private void capture(Minecraft mc, String name) {
         Screenshot.takeScreenshot(mc.gameRenderer.mainRenderTarget(), image -> {

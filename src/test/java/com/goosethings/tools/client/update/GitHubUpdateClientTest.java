@@ -47,6 +47,44 @@ class GitHubUpdateClientTest {
         assertTrue(GitHubUpdateClient.release(release, "1.14.0", true, "1.14.0+Alpha0.20").isEmpty());
     }
 
+    private static com.google.gson.JsonObject release(String version, boolean prerelease) {
+        var json = JsonParser.parseString(RELEASE.replace("1.14.0+Alpha0.22", version)).getAsJsonObject();
+        json.addProperty("prerelease", prerelease);
+        return json;
+    }
+
+    @Test void channelsNeverCompeteDespiteTheHigherStableBaseVersion() {
+        var stable = release("1.15.1", false);
+        var alpha = release("1.15.0+Alpha0.7", true);
+        assertTrue(GitHubUpdateClient.release(stable, "1.15.0+Alpha0.6", true, null).isEmpty());
+        assertTrue(GitHubUpdateClient.release(alpha, "1.15.0+Alpha0.6", true, null).isPresent());
+        assertTrue(GitHubUpdateClient.release(alpha, "1.15.0", false, null).isEmpty());
+        assertTrue(GitHubUpdateClient.release(stable, "1.15.0", false, null).isPresent());
+        // A mislabeled Alpha tag is still never offered to the stable channel.
+        alpha.addProperty("prerelease", false);
+        assertTrue(GitHubUpdateClient.release(alpha, "1.15.0", false, null).isEmpty());
+    }
+
+    @Test void channelSwitchCanLowerTheBaseVersionButSameChannelCannotDowngrade() {
+        var alpha = release("1.15.0+Alpha0.6", true);
+        var stable = release("1.15.0", false);
+        assertTrue(GitHubUpdateClient.release(alpha, "1.15.1", true, null).isPresent());
+        assertTrue(GitHubUpdateClient.release(stable, "1.15.0+Alpha0.6", false, null).isPresent());
+        assertTrue(GitHubUpdateClient.release(alpha, "1.15.0+Alpha0.7", true, null).isEmpty());
+        assertTrue(GitHubUpdateClient.release(stable, "1.15.1", false, null).isEmpty());
+        assertTrue(GitHubUpdateClient.release(alpha, "1.15.0+Alpha0.6", true, null).isEmpty());
+    }
+
+    @Test void exactServerVersionBypassesEitherAutomaticChannel() {
+        var alpha = release("1.15.0+Alpha0.6", true);
+        var stable = release("1.15.1", false);
+        assertTrue(GitHubUpdateClient.release(alpha, "1.15.1", false, "1.15.0+Alpha0.6").isPresent());
+        assertTrue(GitHubUpdateClient.release(stable, "1.15.0+Alpha0.6", true, "1.15.1").isPresent());
+        assertTrue(GitHubUpdateClient.release(alpha, "1.15.1", false, "1.15.0+Alpha0.5").isEmpty());
+        alpha.addProperty("draft", true);
+        assertTrue(GitHubUpdateClient.release(alpha, "1.15.1", false, "1.15.0+Alpha0.6").isEmpty());
+    }
+
     @Test void rejectsForeignRepositoriesAndNonHttpsAddresses() {
         var release = JsonParser.parseString(RELEASE.replace("Nineding/GooseTools", "attacker/GooseTools")).getAsJsonObject();
         assertTrue(GitHubUpdateClient.release(release, "1.14.0", true, null).isEmpty());
@@ -80,11 +118,33 @@ class GitHubUpdateClientTest {
                 Map.of("minecraft", "26.2", "fabricloader", "0.19.5", "java", "25", "xaerominimap", "26.5.3")));
     }
 
-    @Test void firstInstallEnablesBothUpdatesAndAlphaAndPersistsOptOut(@TempDir Path temp) throws Exception {
+    @Test void firstInstallDefaultsToStableAndPersistsOptOut(@TempDir Path temp) throws Exception {
         Path settings = temp.resolve("auto-update.properties");
-        assertEquals(new UpdatePreferences(true, true), UpdatePreferences.load(settings));
+        assertEquals(new UpdatePreferences(true, false), UpdatePreferences.load(settings));
+        assertEquals(new UpdatePreferences(true, false), UpdatePreferences.load(settings));
         new UpdatePreferences(false, false).save(settings);
         assertEquals(new UpdatePreferences(false, false), UpdatePreferences.load(settings));
+    }
+
+    @Test void preservesExistingAlphaAndDisabledSettingsAcrossUpgrades(@TempDir Path temp) throws Exception {
+        Path settings = temp.resolve("auto-update.properties");
+        Files.writeString(settings, "enabled=true\nincludeAlpha=true\n");
+        assertEquals(new UpdatePreferences(true, true), UpdatePreferences.load(settings));
+        Files.writeString(settings, "enabled=false\nincludeAlpha=TRUE\n");
+        var saved = UpdatePreferences.load(settings);
+        assertEquals(new UpdatePreferences(false, true), saved);
+        saved.save(settings);
+        assertEquals(saved, UpdatePreferences.load(settings));
+        Files.writeString(settings, "enabled=false\nincludeAlpha=false\n");
+        assertEquals(new UpdatePreferences(false, false), UpdatePreferences.load(settings));
+    }
+
+    @Test void missingOrInvalidChannelUsesStableWithoutEnablingDisabledUpdates(@TempDir Path temp) throws Exception {
+        Path settings = temp.resolve("auto-update.properties");
+        Files.writeString(settings, "enabled=false\n");
+        assertEquals(new UpdatePreferences(false, false), UpdatePreferences.load(settings));
+        Files.writeString(settings, "includeAlpha=invalid\n");
+        assertEquals(new UpdatePreferences(true, false), UpdatePreferences.load(settings));
     }
 
     @Test void releaseDependenciesAcceptSupportedAndNewerVersionsWithoutUpperBounds(@TempDir Path temp) throws Exception {
