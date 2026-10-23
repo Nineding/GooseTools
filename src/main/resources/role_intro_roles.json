@@ -594,6 +594,15 @@
     "faction": 2
   },
   {
+    "tag": "SinEater",
+    "key": "role.evil.sineater",
+    "fallback": "Sin Eater",
+    "descriptionKey": "role.evil.sineater.subtitle",
+    "descriptionFallback": "Collect coins and self-destruct",
+    "color": 16741235,
+    "faction": 1
+  },
+  {
     "tag": "Seagull",
     "key": "role.neutral.seagull",
     "fallback": "Seagull",
@@ -601,5 +610,14 @@
     "descriptionFallback": "Take one complete ability and win when 3 or fewer remain",
     "color": 12904187,
     "faction": 2
-  }
+  },
+{
+  "tag": "Swordman",
+  "key": "role.evil.swordman",
+  "fallback": "Swordman",
+  "descriptionKey": "role.evil.swordman.subtitle",
+  "descriptionFallback": "Charge, dash and slash",
+  "color": 16741235,
+  "faction": 1
+}
 ]

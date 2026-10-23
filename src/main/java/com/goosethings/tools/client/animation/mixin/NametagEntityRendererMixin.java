@@ -32,6 +32,7 @@ public abstract class NametagEntityRendererMixin {
             // Ordinary projection bodies stay still; Mime receives the controller's bounded
             // walk phase and speed through the same retained-body render path.
             ProjectionBodyClient.applyAnimationState(entity, humanoid);
+            com.goosethings.tools.client.swordman.SwordmanClient.bind(entity, humanoid);
             if (DreamStandInClient.isMeetingProxy(entity)
                     || ProjectionBodyClient.isDreamMeetingBody(entity)) {
                 // A meeting chair is not a client entity, so the visual body cannot actually

@@ -66,6 +66,25 @@ public final class GgdSpeakingIcon {
         }
     }
 
+    /** Result models use real roster UUIDs, independent of gameplay phase and icon preferences. */
+    public static boolean speakingInResults(UUID sourcePlayerId) {
+        if (sourcePlayerId == null || !FabricLoader.getInstance().isModLoaded("voicechat")) return false;
+        SvcAccess svc = access();
+        if (svc == null) return false;
+        try {
+            Object client = svc.getClient.invoke(null);
+            if (client == null) return false;
+            Object connection = svc.getConnection.invoke(client);
+            if (connection == null || !Boolean.TRUE.equals(svc.isInitialized.invoke(connection))) return false;
+            Object cache = svc.getTalkCache.invoke(client);
+            return Boolean.TRUE.equals(svc.isTalking.invoke(cache, sourcePlayerId))
+                    || Boolean.TRUE.equals(svc.isWhispering.invoke(cache, sourcePlayerId));
+        } catch (ReflectiveOperationException | LinkageError exception) {
+            logFailure(exception);
+            return false;
+        }
+    }
+
     private static SvcAccess access() {
         if (LOGGED_FAILURE.get()) {
             return null;
