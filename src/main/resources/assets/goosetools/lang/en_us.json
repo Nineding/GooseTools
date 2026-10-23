@@ -885,5 +885,11 @@
   "screen.goosetools.ai.view_settlement": "View settlement",
   "screen.goosetools.ai.rewards": "Match rewards · %s XP · %s Goose Coins",
   "screen.goosetools.ai.award.mvp": "Match award: MVP",
-  "screen.goosetools.ai.award.smvp": "Match award: SMVP"
+  "screen.goosetools.ai.award.smvp": "Match award: SMVP",
+  "intro.goosetools.act2.colleagues": "Your “Colleagues”",
+  "intro.goosetools.act2.solo": "Let Blood Flow",
+  "intro.goosetools.act2.together": "Together, Onward",
+  "intro.goosetools.act2.friends": "“Friends”",
+  "intro.goosetools.act2.neutral": "Walk Your Own Path",
+  "intro.goosetools.act2.duel": "Let the Best Dodo Win"
 }

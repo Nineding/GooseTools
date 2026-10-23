@@ -99,19 +99,19 @@ class GitHubUpdateClientTest {
         }
         var supported = Map.of("minecraft", "26.3", "fabricloader", "0.19.5", "java", "25",
                 "fabric-api", "0.161.0+26.3", "xaerominimap", "26.5.3", "xaeroworldmap", "1.46.4");
-        assertTrue(GitHubUpdateClient.compatible(jar, "1.15.1", 41, supported));
+        assertTrue(GitHubUpdateClient.compatible(jar, "1.15.1", com.goosethings.tools.GooseTools.PROTOCOL_VERSION, supported));
         var newer = new java.util.HashMap<>(supported);
         newer.putAll(Map.of("fabricloader", "0.19.6", "java", "26", "fabric-api", "0.164.0+26.3",
                 "xaerominimap", "26.6.1", "xaeroworldmap", "1.47.1"));
-        assertTrue(GitHubUpdateClient.compatible(jar, "1.15.1", 41, newer));
+        assertTrue(GitHubUpdateClient.compatible(jar, "1.15.1", com.goosethings.tools.GooseTools.PROTOCOL_VERSION, newer));
         newer.putAll(Map.of("fabricloader", "1.0.0", "fabric-api", "1.0.0+26.3",
                 "xaerominimap", "99.0.0", "xaeroworldmap", "99.0.0"));
-        assertTrue(GitHubUpdateClient.compatible(jar, "1.15.1", 41, newer));
+        assertTrue(GitHubUpdateClient.compatible(jar, "1.15.1", com.goosethings.tools.GooseTools.PROTOCOL_VERSION, newer));
         for (var belowMinimum : Map.of("fabricloader", "0.19.4", "java", "24",
                 "fabric-api", "0.160.0+26.3", "xaerominimap", "26.5.2", "xaeroworldmap", "1.46.3").entrySet()) {
             var invalid = new java.util.HashMap<>(supported);
             invalid.put(belowMinimum.getKey(), belowMinimum.getValue());
-            assertFalse(GitHubUpdateClient.compatible(jar, "1.15.1", 41, invalid), belowMinimum.getKey());
+            assertFalse(GitHubUpdateClient.compatible(jar, "1.15.1", com.goosethings.tools.GooseTools.PROTOCOL_VERSION, invalid), belowMinimum.getKey());
         }
         assertFalse(GitHubUpdateClient.compatible(jar, "1.15.1", 40, supported));
     }
