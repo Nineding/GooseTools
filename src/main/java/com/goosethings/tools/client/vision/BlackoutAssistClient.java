@@ -43,7 +43,8 @@ public final class BlackoutAssistClient {
     }
 
     public static boolean isWallGuideActive() {
-        return blackoutActive && eligible && GgdClientPreferences.blackoutWallGuide();
+        return blackoutActive && eligible && !VisionFogState.totalBlindness()
+                && GgdClientPreferences.blackoutWallGuide();
     }
 
     public static boolean isInLobby() {

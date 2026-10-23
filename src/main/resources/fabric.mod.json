@@ -35,6 +35,7 @@
     "goosetools.mime.mixins.json",
     "goosetools.screen.mixins.json",
     "goosetools.vision.mixins.json",
+    "goosetools.invisibility.mixins.json",
     "goosetools.xaero.mixins.json",
     "goosetools.voicechat.mixins.json",
     {

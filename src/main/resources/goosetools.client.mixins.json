@@ -11,7 +11,9 @@
     "EntityRenderDispatcherMixin",
     "KeyboardInputMeetingAlertMixin",
     "LocalPlayerMeetingAlertMixin",
-    "NametagEntityRendererMixin"
+    "NametagEntityRendererMixin",
+    "GuiRenderPipelinesAccessor",
+    "ResultPictureOutlineMixin"
   ],
   "injectors": {
     "defaultRequire": 1

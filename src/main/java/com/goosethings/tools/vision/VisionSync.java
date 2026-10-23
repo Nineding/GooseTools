@@ -75,18 +75,24 @@ public final class VisionSync {
 
     static VisionSnapshot snapshot(MinecraftServer server, ServerPlayer player) {
         ServerPlayer source = VisionViewpoint.resolve(player);
+        boolean invisibility = source.entityTags().contains("invs");
+        if (invisibility && isActive(server, source, false, true)) {
+            // Zero/zero is an immediate complete-world blackout, independent of optional fog.
+            return new VisionSnapshot(true, 0.0F, 0.0F, false);
+        }
         boolean powerBlackout = isPowerBlackoutTarget(server, source);
         float radius = powerBlackout ? POWER_BLACKOUT_CLEAR_RADIUS : configuredRadius(server, source);
         float fadeDistance = powerBlackout ? POWER_BLACKOUT_FADE_DISTANCE : FADE_DISTANCE;
         return new VisionSnapshot(
-                isActive(server, source, powerBlackout),
+                isActive(server, source, powerBlackout, false),
                 radius,
                 radius + fadeDistance,
                 powerBlackout);
     }
 
-    private static boolean isActive(MinecraftServer server, ServerPlayer player, boolean powerBlackout) {
-        if (readSetting(server, DLC_SCORE, 0) != 1 || readSetting(server, ENABLED_SCORE, 0) != 1) {
+    private static boolean isActive(MinecraftServer server, ServerPlayer player, boolean powerBlackout, boolean invisibility) {
+        if (readSetting(server, DLC_SCORE, 0) != 1
+                || !invisibility && readSetting(server, ENABLED_SCORE, 0) != 1) {
             return false;
         }
         Set<String> tags = player.entityTags();
@@ -104,7 +110,7 @@ public final class VisionSync {
         }
         // Normal limited vision is disabled while travelling through a sewer.
         // Power sabotages explicitly affect engineers in pipes too.
-        if (tags.contains("chapelInSewer") && !powerBlackout) {
+        if (tags.contains("chapelInSewer") && !powerBlackout && !invisibility) {
             return false;
         }
         return true;

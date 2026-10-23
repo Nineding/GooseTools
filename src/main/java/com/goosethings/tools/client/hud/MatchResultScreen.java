@@ -128,16 +128,9 @@ public final class MatchResultScreen extends Screen implements ProtectedInputScr
                 var state = minecraft.getEntityRenderDispatcher().getRenderer(model).createRenderState(model, 1);
                 boolean speaking = com.goosethings.tools.client.voice.GgdSpeakingIcon.speakingInResults(appearance.id());
                 state.nameTag = null;
-                state.outlineColor = speaking ? 0xFF66FF99 : 0;
-                if (speaking) {
-                    // GUI entity textures do not run the world outline post-process.
-                    // A layered frame remains visible for translucent deceased models too.
-                    int bx = Math.round(center - scale * .58F), by = Math.round(modelTop);
-                    int bw = Math.max(8, Math.round(scale * 1.16F)), bh = Math.round(floor - modelTop);
-                    g.outline(bx - 2, by - 2, bw + 4, bh + 4, 0x3066FF99);
-                    g.outline(bx - 1, by - 1, bw + 2, bh + 2, 0x8066FF99);
-                    g.outline(bx, by, bw, bh, 0xFF99FFBB);
-                }
+                state.outlineColor = 0;
+                if (state instanceof com.goosethings.tools.client.animation.ResultOutline outline)
+                    outline.goosetools$resultOutline(speaking ? 0xFF66FF99 : 0);
                 state.shadowPieces.clear();
                 if (state instanceof LivingEntityRenderState living) {
                     living.bodyRot = 180; living.yRot = 0; living.xRot = 0;
