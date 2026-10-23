@@ -38,8 +38,16 @@ public final class RoleIntroScene {
     }
 
     public static int stagePixel(int theme, String role, double x, double y) {
-        return theme == RoleIntroPolicy.BIRD
-                ? tintedStagePixel(RoleIntroCatalog.byTag(role).color(), x, y) : stagePixel(theme, x, y);
+        return tintedStagePixel(stageTint(theme, role), x, y);
+    }
+
+    public static int stageTint(int theme, String role) {
+        return switch (theme) {
+            case RoleIntroPolicy.DUCK -> 0xFF4148;
+            case RoleIntroPolicy.BIRD -> RoleIntroCatalog.byTag(role).color();
+            case RoleIntroPolicy.LOVER -> 0xFF8AC4;
+            default -> 0xFFFFFF;
+        };
     }
 
     private static int tintedStagePixel(int tint, double x, double y) {

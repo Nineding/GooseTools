@@ -2,6 +2,8 @@ package com.goosethings.tools.client.hud;
 
 import com.goosethings.tools.client.input.ProtectedInputScreen;
 import com.goosethings.tools.intro.RoleIntroCatalog;
+import com.goosethings.tools.intro.RoleIntroArtwork;
+import com.goosethings.tools.GooseTools;
 import com.goosethings.tools.intro.RoleIntroPayload;
 import com.goosethings.tools.intro.RoleIntroPolicy;
 import com.goosethings.tools.intro.RoleIntroScene;
@@ -29,6 +31,10 @@ import java.util.UUID;
 /** DLC-only, non-interactive opening stage. The server has already filtered its roster. */
 public final class RoleIntroScreen extends Screen implements ProtectedInputScreen {
     private static final Identifier STAGE = Identifier.fromNamespaceAndPath("goosetools", "role_intro_stage");
+    private static final Identifier ARTWORK = Identifier.fromNamespaceAndPath("goosetools", "role_intro_artwork");
+    private int artworkWidth, artworkHeight;
+    private int artworkScreenWidth = -1, artworkScreenHeight = -1;
+    private RoleIntroArtwork.Bounds artworkBounds;
     private final RoleIntroPayload payload;
     private final long started = System.nanoTime();
     private final Map<UUID, RemotePlayer> models = new HashMap<>();
@@ -68,6 +74,7 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
     }
     @Override public void removed() {
         models.clear();
+        if (artworkWidth > 0) { minecraft.getTextureManager().release(ARTWORK); artworkWidth = artworkHeight = 0; }
         if (textureReady) { minecraft.getTextureManager().release(STAGE); textureReady = false; }
     }
 
@@ -78,6 +85,7 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
         g.blit(STAGE, 0, 0, width, height, 0, 1, 0, 1);
         if (minecraft.level != null) {
             MeetingAlertTrueSkinCache.capture(minecraft);
+            drawArtwork(g);
             drawText(g);
             List<RoleIntroPayload.Appearance> main = payload.roster().stream().filter(p -> !p.small()).toList();
             List<RoleIntroPayload.Appearance> small = payload.roster().stream().filter(RoleIntroPayload.Appearance::small).toList();
@@ -208,6 +216,53 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
         g.pose().pushMatrix(); g.pose().translate(x, y); g.pose().scale(scale, scale);
         g.text(font, text, -font.width(text) / 2, 0, color, true); g.pose().popMatrix();
     }
+    private void drawArtwork(GuiGraphicsExtractor g) {
+        if (artworkWidth <= 0) return;
+        if (artworkBounds == null || artworkScreenWidth != width || artworkScreenHeight != height) {
+            var role = RoleIntroCatalog.byTag(payload.role());
+            var description = Component.translatableWithFallback(role.descriptionKey(), role.descriptionFallback());
+            float descriptionScale = .96F * uiScale();
+            int lines = font.split(description, Math.max(30, (int) (width * .82F / descriptionScale))).size();
+            double descriptionBottom = height * .35 + lines * 12 * descriptionScale;
+            artworkBounds = RoleIntroArtwork.bounds(width, height, artworkWidth, artworkHeight, descriptionBottom);
+            artworkScreenWidth = width; artworkScreenHeight = height;
+        }
+        var box = artworkBounds;
+        if (box.width() > 0 && box.height() > 0)
+            // This overload takes x0/y0/x1/y1, not x/y/width/height.
+            g.blit(ARTWORK, box.left(), box.top(), box.right(), box.bottom(), 0, 1, 0, 1);
+    }
+
+    private void prepareArtwork() {
+        var sprite = RoleIntroArtwork.sprite(payload.role());
+        if (sprite.isEmpty()) return;
+        String file = sprite.get();
+        // Honor the selected resource pack, with the identical bundled image as a fallback.
+        var preferred = Identifier.fromNamespaceAndPath("minecraft", "duck".equals(file)
+                ? "textures/item/ggd/duck.png" : "textures/gui/sprites/custom/ggdrole/" + file + ".png");
+        var fallback = Identifier.fromNamespaceAndPath("goosetools", "textures/gui/role_intro/" + file + ".png");
+        for (var location : List.of(preferred, fallback)) {
+            var resource = minecraft.getResourceManager().getResource(location);
+            if (resource.isEmpty()) continue;
+            NativeImage image = null;
+            try (var input = resource.get().open()) {
+                image = NativeImage.read(input);
+                int imageWidth = image.getWidth(), imageHeight = image.getHeight();
+                int tint = RoleIntroScene.stageTint(payload.theme(), payload.role());
+                for (int y = 0; y < imageHeight; y++) for (int x = 0; x < imageWidth; x++)
+                    image.setPixel(x, y, RoleIntroArtwork.litPixel(image.getPixel(x, y), tint));
+                minecraft.getTextureManager().register(ARTWORK, new DynamicTexture(() -> "GooseTools role artwork", image));
+                image = null; // The texture manager owns the image from this point.
+                artworkWidth = imageWidth; artworkHeight = imageHeight;
+                return;
+            } catch (java.io.IOException | RuntimeException error) {
+                GooseTools.LOGGER.warn("Unable to load role intro artwork {}: {}", location, error.getMessage());
+            } finally {
+                if (image != null) image.close();
+            }
+        }
+    }
+
     private void ensureStage() {
         if (textureReady) return;
         NativeImage image = new NativeImage(512, 288, false);
@@ -216,5 +271,6 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
         }
         minecraft.getTextureManager().register(STAGE, new DynamicTexture(() -> "GooseTools role stage", image));
         textureReady = true;
+        prepareArtwork();
     }
 }

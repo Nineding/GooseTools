@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.15.0+Alpha0.5 - 2026-10-23
+
+- Blend the original role artwork into the opening stage while preserving source colors, transparency and the stage lighting.
+- Include the Swordman and Sin Eater fallback sprites so every registered role has readable bundled artwork after the latest role catalog is merged.
+- Install this version on the server and every client. Network protocol remains 42; no packet format changes are included in this artwork update.
+
 ## 1.15.0+Alpha0.4 - 2026-10-23
 
 - 合并剑客按键/尸体姿势同步与食罪者入场、结算及旁观者自爆动画图标，两角色目录同时保留。
