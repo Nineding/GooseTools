@@ -214,6 +214,17 @@ loom {
             runDir 'build/camera-render-test'
             vmArg '-Dgoosetools.cameraRenderTest=true'
         }
+        swordmanRegressionTest {
+            client()
+            source sourceSets.flightRegressionTest
+            runDir 'build/swordman-regression-test'
+            vmArg '-Dgoosetools.swordmanRegressionTest=true'
+            vmArg '-Dgoosetools.swordmanDatapack=' + file(providers.gradleProperty('swordmanDatapack').getOrElse('../../GooseGooseDuck/datapack')).absolutePath
+            programArg '--width'
+            programArg '1000'
+            programArg '--height'
+            programArg '700'
+        }
         flightRegressionTest {
             client()
             source sourceSets.flightRegressionTest
@@ -769,6 +780,20 @@ tasks.named('runArtisanRegressionTest') {
     doLast {
         def result = file('build/artisan-regression-test/result.txt')
         if(!result.isFile() || !result.text.startsWith('PASS ')) throw new GradleException('Artisan regression failed; inspect result.txt and logs/latest.log')
+        logger.lifecycle(result.text)
+    }
+}
+
+tasks.named('runSwordmanRegressionTest') {
+    timeout = java.time.Duration.ofMinutes(4)
+    doFirst {
+        def run = file('build/swordman-regression-test'); run.mkdirs()
+        file('build/swordman-regression-test/options.txt').text = 'lang:en_us\nrenderDistance:4\nsimulationDistance:4\npauseOnLostFocus:false\ntutorialStep:none\n'
+        file('build/swordman-regression-test/swordman-result.txt').delete()
+    }
+    doLast {
+        def result = file('build/swordman-regression-test/swordman-result.txt')
+        if (!result.isFile() || !result.text.startsWith('PASS ')) throw new GradleException('Swordman regression failed; inspect swordman-result.txt')
         logger.lifecycle(result.text)
     }
 }

@@ -48,6 +48,10 @@ public abstract class CelebrationModelMixin {
         rightLeg.xRot=pose.rightLegX(); leftLeg.xRot=pose.leftLegX();
         body.zRot=0; head.zRot=pose.headZ();
     }
+    @Inject(method="setupAnim(Lnet/minecraft/client/renderer/entity/state/HumanoidRenderState;)V",at=@At("RETURN"),order=1100)
+    private void goosetools$frozenSwordPose(HumanoidRenderState state,CallbackInfo ci) {
+        com.goosethings.tools.client.swordman.SwordmanClient.apply(state,head,body,rightArm,leftArm,rightLeg,leftLeg);
+    }
     private static void goosetools$rotation(ModelPart part,Quaternionf q) {
         var euler=q.getEulerAnglesZYX(new Vector3f());
         part.setRotation(euler.x,euler.y,euler.z);

@@ -1,10 +1,22 @@
 # Changelog
 
+## 1.15.0+Alpha0.4 - 2026-10-23
+
+- 合并剑客按键/尸体姿势同步与食罪者入场、结算及旁观者自爆动画图标，两角色目录同时保留。
+- 网络协议为 42：兼容剑客同步格式，Alpha0.3 的协议 41 客户端需升级。
+- 服务端与所有客户端须同步更新至 1.15.0+Alpha0.4，并配套合并后的数据包及房主/服务端侧 GooseThings 1.15.0+Alpha0.4；退出后替换旧 JAR 并重启。
+
 ## 1.15.0+Alpha0.3 - 2026-10-23
 
 - Register Sin Eater opening and match result identity, and its spectator-only blast warning icon.
 - Install the matching GooseTools version on the server and every client; network protocol is unchanged.
 
+## 1.15.0+Alpha0.2 - 2026-10-23
+
+- 新增剑客长按/松开输入同步和斩杀尸体肢体姿势定格、倒地同步。
+- 蓄力时间、路径及击杀由服务端验证；客户端只提交按键和受限外观快照。
+- 安装要求：服务端及所有客户端均更新至本版本，配套剑客数据包及 GooseThings 1.15.0+Alpha0.2。
+- 网络协议由 41 升至 42，旧客户端将收到版本/协议不兼容提示。
 
 ## 1.15.0+Alpha0.1 - 2026-10-22
 

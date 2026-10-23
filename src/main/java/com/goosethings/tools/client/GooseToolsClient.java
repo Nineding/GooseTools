@@ -56,6 +56,7 @@ public final class GooseToolsClient implements ClientModInitializer {
         com.goosethings.tools.client.camera.CameraClient.register();
         ClientTaskMarkers.register();
         PlayerArmAnimationContinuity.register();
+        com.goosethings.tools.client.swordman.SwordmanClient.register();
         VisionFogState.register();
         BlackoutAssistClient.register();
         BlackoutWallGuide.register();
