@@ -45,7 +45,9 @@ public final class SwordmanRegression implements ClientModInitializer {
     @Override public void onInitializeClient() {
         if(!Boolean.getBoolean("goosetools.swordmanRegressionTest"))return;
         ClientTickEvents.START_CLIENT_TICK.register(mc->{if(installed&&!finished)mc.options.keyUse.setDown(wantUse);});
-        ClientTickEvents.END_CLIENT_TICK.register(this::tick);
+        var checkPhase=net.minecraft.resources.Identifier.fromNamespaceAndPath("goosetools","swordman_checks");
+        ClientTickEvents.END_CLIENT_TICK.addPhaseOrdering(net.fabricmc.fabric.api.event.Event.DEFAULT_PHASE,checkPhase);
+        ClientTickEvents.END_CLIENT_TICK.register(checkPhase,this::tick);
     }
     private void tick(Minecraft mc) {
         if(finished||!mc.isGameLoadFinished())return;
