@@ -895,4 +895,8 @@
   "screen.goosetools.update.channel_stable": "更新通道：正式版",
   "screen.goosetools.update.channel_alpha": "更新通道：Alpha 预发布版",
   "screen.goosetools.update.channel_hint": "正式版通道只更新正式发布，Alpha 通道只更新预发布。点击切换，立即保存。"
+  "intro.goosetools.counts.players": "当局玩家",
+  "intro.goosetools.counts.geese": "鹅阵营",
+  "intro.goosetools.counts.ducks": "鸭阵营",
+  "intro.goosetools.counts.birds": "鸟阵营"
 }

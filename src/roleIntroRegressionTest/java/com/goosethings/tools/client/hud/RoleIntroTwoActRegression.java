@@ -43,7 +43,7 @@ final class RoleIntroTwoActRegression {
                 var labels=RoleIntroRegression.class.getDeclaredMethod("labels",List.class,boolean.class);
                 labels.setAccessible(true);labels.invoke(null,roster,scenario==6||scenario==7);
                 RoleIntroScreen.apply(new RoleIntroPayload(true,scenario<3?"Goose":scenario==6?"Detective":scenario==8?"Raven":scenario==9?"DuelingDodos":"Assassin",
-                    scenario<3?0:scenario==6||scenario==7?3:scenario>=8?2:1,1,scenario==0?9:11,scenario==2,scenario==4||scenario==5,roster));
+                    scenario<3?0:scenario==6||scenario==7?3:scenario>=8?2:1,1,scenario==0?9:11,scenario==2,scenario==4||scenario==5,new MatchCounts(21,5,3),roster));
                 screen=(RoleIntroScreen)mc.gui.screen();phase=1;setTime(1.2);return;
             }
             if(screen != null && mc.gui.screen()==screen && phase<4) {

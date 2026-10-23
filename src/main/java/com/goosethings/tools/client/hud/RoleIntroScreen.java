@@ -111,9 +111,42 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
             drawSecondBackdrop(g,movement);
             drawText(g);
             drawCast(g, movement, expansion, elapsed/1_000_000_000.0);
+            drawMatchCounts(g);
         }
         // An opaque stage stays in place throughout both fades; the game never flashes through.
         if (brightness < 1) g.fill(0, 0, width, height, ((int) ((1 - brightness) * 255)) << 24);
+    }
+
+    private void drawMatchCounts(GuiGraphicsExtractor g) {
+        if (rosterOpacity <= .01F || payload.counts().players() == 0) return;
+        var counts = payload.counts();
+        String[] keys = {"players","geese","ducks","birds"};
+        String[] fallback = {"Players","Geese","Ducks","Birds"};
+        int[] values = {counts.players(),counts.geese(),counts.ducks(),counts.birds()};
+        int[] colors = {0xE6FAFF,0xA9EDB7,0xFF8585,0xFFED94};
+        Component[] labels = new Component[4];
+        float content = 0;
+        for (int i=0;i<4;i++) {
+            labels[i] = Component.translatableWithFallback("intro.goosetools.counts."+keys[i],fallback[i]);
+            content += 20 + font.width(labels[i]) + 8 + font.width(Integer.toString(values[i])) + 20;
+        }
+        float scale = Math.min(uiScale(),width*.90F/content);
+        g.pose().pushMatrix();
+        g.pose().translate((width-content*scale)/2,height*.92F);
+        g.pose().scale(scale,scale);
+
+        int x=0;
+        for (int i=0;i<4;i++) {
+            Identifier icon = Identifier.fromNamespaceAndPath("goosetools","textures/gui/match_counts/"+keys[i]+".png");
+            g.blit(RenderPipelines.GUI_TEXTURED,icon,x,-2,0,0,14,14,16,16,16,16,alphaColor(0xFFFFFF,rosterOpacity));
+            x+=20;
+            g.text(font,labels[i],x,1,alphaColor(0xDBE6DE,rosterOpacity),true);
+            x+=font.width(labels[i])+8;
+            String value=Integer.toString(values[i]);
+            g.text(font,Component.literal(value),x,1,alphaColor(colors[i],rosterOpacity),true);
+            x+=font.width(value)+20;
+        }
+        g.pose().popMatrix();
     }
 
     private void drawText(GuiGraphicsExtractor g) {
@@ -167,7 +200,7 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
     private List<RoleIntroScene.Slot> slots(List<RoleIntroPayload.Appearance> group, float left, float right, boolean small) {
         float nameScale = .8F*uiScale();
         float widest = group.stream().mapToInt(p -> MeetingNameTagHud.introWidth(minecraft,p.id(),p.name())).max().orElse(40)*nameScale;
-        var result = RoleIntroScene.grid(width*left,width*right,height*.34F,height*.91F,group.size(),widest,nameScale);
+        var result = RoleIntroScene.grid(width*left,width*right,height*.34F,height*.86F,group.size(),widest,nameScale);
         if (!small) return result;
         return result.stream().map(p -> new RoleIntroScene.Slot(p.center(),p.floor(),p.scale()*.65F,p.step(),p.nameScale())).toList();
     }
