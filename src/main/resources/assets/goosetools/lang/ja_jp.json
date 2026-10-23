@@ -65,5 +65,11 @@
   "command.goosetools.web.closed": "%s 人のページを閉じました。",
   "screen.goosetools.web.zoom_out": "ページ内容を縮小",
   "screen.goosetools.web.zoom_in": "ページ内容を拡大",
-  "screen.goosetools.web.close": "ページを閉じる"
+  "screen.goosetools.web.close": "ページを閉じる",
+  "intro.goosetools.act2.colleagues": "あなたの「同僚」",
+  "intro.goosetools.act2.solo": "血の海へ",
+  "intro.goosetools.act2.together": "手を取り合って",
+  "intro.goosetools.act2.friends": "「仲間たち」",
+  "intro.goosetools.act2.neutral": "己の道を行く",
+  "intro.goosetools.act2.duel": "勝負を決めよう"
 }

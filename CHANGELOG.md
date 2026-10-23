@@ -2,9 +2,11 @@
 
 ## 1.15.0+Alpha0.5 - 2026-10-23
 
-- Blend the original role artwork into the opening stage while preserving source colors, transparency and the stage lighting.
-- Include the Swordman and Sin Eater fallback sprites so every registered role has readable bundled artwork after the latest role catalog is merged.
-- Install this version on the server and every client. Network protocol remains 42; no packet format changes are included in this artwork update.
+- Add the original role artwork behind the opening character, retaining its colors, transparency and stage lighting. Include the Swordman and Sin Eater fallback sprites so all registered roles have bundled artwork.
+- Present the opening in two acts: show the viewer's role first, then reveal the server-filtered roster in numbered order with smooth model, armor, nameplate and shadow fades. Add faction-specific stages and larger introductory text.
+- Preserve the latest Swordman and Sin Eater gameplay integration and updater compatibility checks while combining the artwork and two-act opening changes.
+- Network protocol is now 43 and the role-intro payload is v4. Install GooseTools 1.15.0+Alpha0.5 on the server and every client; older GooseTools clients are incompatible.
+- Requires Minecraft 26.3 and Java 25 or later, with the existing compatible Fabric and Xaero dependencies. Use the matching twelve-second opening flow from the current MinecraftGooseGooseDuck datapack and resource pack.
 
 ## 1.15.0+Alpha0.4 - 2026-10-23
 

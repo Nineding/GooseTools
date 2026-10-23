@@ -885,5 +885,11 @@
   "screen.goosetools.ai.view_settlement": "查看结算",
   "screen.goosetools.ai.rewards": "本局奖励 · %s 经验 · %s 鹅鹅币",
   "screen.goosetools.ai.award.mvp": "本局荣誉：MVP",
-  "screen.goosetools.ai.award.smvp": "本局荣誉：SMVP"
+  "screen.goosetools.ai.award.smvp": "本局荣誉：SMVP",
+  "intro.goosetools.act2.colleagues": "你的“同僚”",
+  "intro.goosetools.act2.solo": "血流成河",
+  "intro.goosetools.act2.together": "携手共进",
+  "intro.goosetools.act2.friends": "“朋友们”",
+  "intro.goosetools.act2.neutral": "独行其道",
+  "intro.goosetools.act2.duel": "决出胜负"
 }

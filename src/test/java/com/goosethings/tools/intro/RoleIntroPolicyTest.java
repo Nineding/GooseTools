@@ -75,13 +75,30 @@ class RoleIntroPolicyTest {
         assertFalse(RoleIntroPolicy.eligible(true,Set.of("good"),1));
     }
 
-    @Test void twentyOnePlayersRemainVisibleAndSelfIsCentered() {
+    @Test void twentyOnePlayersRemainVisibleInSeatOrderIncludingTheHero() {
         List<RoleIntroPolicy.Player> all = new ArrayList<>();
         for (int i=1;i<=21;i++) all.add(player(i,i%2==0?"evil":"good"));
         var viewer = all.get(20); var roster = RoleIntroPolicy.roster(viewer,all);
-        assertEquals(21,roster.size()); assertEquals(viewer.id(),roster.get(10).id());
+        assertEquals(21,roster.size()); assertEquals(viewer.id(),roster.get(20).id());
         assertEquals(21, RoleIntroPolicy.seat(viewer.tags()));
         assertEquals(21,roster.stream().map(RoleIntroPolicy.Member::id).distinct().count());
+    }
+
+    @Test void duelOnlyDisclosesOtherDuelingDodosToThePair() {
+        var a=player(3,"neutral","DuelingDodos","dueling"); var b=player(9,"neutral","DuelingDodos","dueling");
+        var bird=player(4,"neutral","Raven"); var goose=player(1,"good"); var dodo=player(2,"neutral","Dodo");
+        var all=List.of(b,bird,a,goose,dodo);
+        assertEquals(List.of(3,9),seats(RoleIntroPolicy.roster(a,all),false));
+        assertEquals(List.of(3,9),seats(RoleIntroPolicy.roster(b,all),false));
+        assertEquals(a.id(),RoleIntroPolicy.roster(a,all).getFirst().id());
+        assertEquals(List.of(4),seats(RoleIntroPolicy.roster(bird,all),false));
+        assertEquals(List.of(2),seats(RoleIntroPolicy.roster(dodo,all),false));
+        assertEquals(List.of(3),seats(RoleIntroPolicy.roster(a,List.of(a,bird,dodo)),false));
+        assertTrue(RoleIntroAct.duel(2,"DuelingDodos",2));
+        assertFalse(RoleIntroAct.duel(2,"DuelingDodos",1));
+        assertFalse(RoleIntroAct.duel(2,"Dodo",2));
+        assertEquals("duel",RoleIntroAct.title(2,false,"DuelingDodos",2));
+        assertEquals("neutral",RoleIntroAct.title(2,false,"DuelingDodos",1));
     }
 
     @Test void catalogCoversExistingRolesAndKeepsEnglishFallbacks() {
@@ -106,11 +123,11 @@ class RoleIntroPolicyTest {
         assertTrue((pink&255)>(pink>>8&255));
         assertEquals(0,RoleIntroScene.brightness(0));
         assertEquals(1,RoleIntroScene.brightness(600_000_000L));
-        assertEquals(140,RoleIntroScene.DURATION_TICKS);
-        assertEquals(7_000_000_000L,RoleIntroScene.DURATION_NANOS);
+        assertEquals(200,RoleIntroScene.DURATION_TICKS);
+        assertEquals(10_000_000_000L,RoleIntroScene.DURATION_NANOS);
         assertEquals(1,RoleIntroScene.brightness(4_000_000_000L));
         assertEquals(1,RoleIntroScene.brightness(6_400_000_000L));
-        assertEquals(0,RoleIntroScene.brightness(7_000_000_000L));
+        assertEquals(0,RoleIntroScene.brightness(10_000_000_000L));
         assertEquals(0,RoleIntroScene.brightness(Long.MAX_VALUE));
     }
 

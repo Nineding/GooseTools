@@ -68,7 +68,9 @@ public final class RoleIntroServer {
                     }).toList();
             ServerPlayNetworking.send(viewer, new RoleIntroPayload(true,
                     RoleIntroCatalog.resolve(viewer.entityTags()).tag(), RoleIntroPolicy.theme(viewer.entityTags()),
-                    Math.clamp(score(server, "ggdadv", ScoreHolder.forNameOnly("HowRole")), 0, 2), roster));
+                    Math.clamp(score(server, "ggdadv", ScoreHolder.forNameOnly("HowRole")), 0, 2),
+                    Math.clamp(score(server, "gamesetting", ScoreHolder.forNameOnly("map")), 0, 11),
+                    score(server, "eagleton", ScoreHolder.forNameOnly("#Full")) == 1, participants.stream().filter(p -> p.entityTags().contains("evil")).count() == 1, roster));
             ACTIVE.put(viewer.getUUID(), new Session(server.getTickCount() + RoleIntroScene.DURATION_TICKS,
                     roster.stream().map(RoleIntroPayload.Appearance::id).toList()));
             sent++;

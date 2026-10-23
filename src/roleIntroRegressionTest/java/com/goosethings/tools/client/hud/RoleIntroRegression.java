@@ -35,6 +35,10 @@ public final class RoleIntroRegression implements ClientModInitializer {
     private long since;
     private CompletableFuture<Void> pending;
     @Override public void onInitializeClient() {
+        if (Boolean.getBoolean("goosetools.twoActRegression")) {
+            ClientTickEvents.END_CLIENT_TICK.register(new RoleIntroTwoActRegression()::tick);
+            return;
+        }
         if (Boolean.getBoolean("goosetools.artworkRegression")) {
             ClientTickEvents.END_CLIENT_TICK.register(new RoleIntroArtworkRegression()::tick);
             return;
@@ -126,7 +130,7 @@ public final class RoleIntroRegression implements ClientModInitializer {
                     if (captured && now()-since>RoleIntroScene.DURATION_NANOS/1_000_000L+500) { next(); return; }
                     return;
                 }
-                if (now()-since<1400) return;
+                if (now()-since<5600) return;
                 int expectedTheme=scenario==4?0:scenario==5?3:scenario>=10?1:scenario;
                 require(screen.payload().theme()==expectedTheme,"wrong theme");
                 require(GuiMovementGuard.blocks(screen),"input ownership missing");
