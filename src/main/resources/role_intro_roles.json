@@ -491,7 +491,7 @@
     "fallback": "Dodo",
     "descriptionKey": "role.neutral.dodo.subtitle",
     "descriptionFallback": "You only win by being voted out",
-    "color": 16646003,
+    "color": 15974717,
     "faction": 2
   },
   {
@@ -500,7 +500,7 @@
     "fallback": "Dueling Dodos",
     "descriptionKey": "role.neutral.duelingdodos.subtitle",
     "descriptionFallback": "Kill the other Dueling Dodo, then get voted out to win",
-    "color": 16646003,
+    "color": 15974717,
     "faction": 2
   },
   {
@@ -509,7 +509,7 @@
     "fallback": "Vulture",
     "descriptionKey": "role.neutral.vulture.subtitle",
     "descriptionFallback": "Win by eating bodies",
-    "color": 16646003,
+    "color": 5470374,
     "faction": 2
   },
   {
@@ -518,7 +518,7 @@
     "fallback": "Pigeon",
     "descriptionKey": "role.neutral.pigeon.subtitle",
     "descriptionFallback": "Infect every living player to win",
-    "color": 16646003,
+    "color": 15430667,
     "faction": 2
   },
   {
@@ -527,7 +527,7 @@
     "fallback": "Falcon",
     "descriptionKey": "role.neutral.falcon.subtitle",
     "descriptionFallback": "Survive to the end — while you live, Geese can only win by tasks",
-    "color": 16646003,
+    "color": 2668749,
     "faction": 2
   },
   {
@@ -536,7 +536,7 @@
     "fallback": "Pelican",
     "descriptionKey": "role.neutral.pelican.subtitle",
     "descriptionFallback": "Win as the last survivor. You can swallow players whole",
-    "color": 16646003,
+    "color": 8112546,
     "faction": 2
   },
   {
@@ -554,7 +554,7 @@
     "fallback": "Raven",
     "descriptionKey": "role.neutral.raven.subtitle",
     "descriptionFallback": "Find the assigned identity in a dream and let the dream rewrite reality",
-    "color": 16646003,
+    "color": 11367110,
     "faction": 2
   },
   {
@@ -563,7 +563,7 @@
     "fallback": "Cuckoo",
     "descriptionKey": "role.neutral.cuckoo.subtitle",
     "descriptionFallback": "Hatch your eggs and let your children hunt everyone",
-    "color": 16646003,
+    "color": 6671803,
     "faction": 2
   },
   {
@@ -572,7 +572,7 @@
     "fallback": "Phoenix",
     "descriptionKey": "role.neutral.phoenix.subtitle",
     "descriptionFallback": "Rise from ashes and hunt before the flame dies",
-    "color": 16646072,
+    "color": 15887183,
     "faction": 2
   },
   {
@@ -581,7 +581,7 @@
     "fallback": "Magpie",
     "descriptionKey": "role.neutral.magpie.subtitle",
     "descriptionFallback": "Identify the required number of roles in one meeting",
-    "color": 16646072,
+    "color": 3233422,
     "faction": 2
   },
   {
@@ -590,8 +590,17 @@
     "fallback": "Sparrow",
     "descriptionKey": "role.neutral.sparrow.subtitle",
     "descriptionFallback": "Keep making sound and obstruct every other living player",
-    "color": 16774043,
+    "color": 11897442,
     "faction": 2
+  },
+  {
+    "tag": "SinEater",
+    "key": "role.evil.sineater",
+    "fallback": "Sin Eater",
+    "descriptionKey": "role.evil.sineater.subtitle",
+    "descriptionFallback": "Collect coins and self-destruct",
+    "color": 16741235,
+    "faction": 1
   },
   {
     "tag": "Seagull",
@@ -599,7 +608,16 @@
     "fallback": "Seagull",
     "descriptionKey": "role.neutral.seagull.subtitle",
     "descriptionFallback": "Take one complete ability and win when 3 or fewer remain",
-    "color": 16774043,
+    "color": 12904187,
     "faction": 2
-  }
+  },
+{
+  "tag": "Swordman",
+  "key": "role.evil.swordman",
+  "fallback": "Swordman",
+  "descriptionKey": "role.evil.swordman.subtitle",
+  "descriptionFallback": "Charge, dash and slash",
+  "color": 16741235,
+  "faction": 1
+}
 ]
