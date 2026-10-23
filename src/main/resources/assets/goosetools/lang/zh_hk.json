@@ -4,5 +4,9 @@
   "intro.goosetools.act2.together": "攜手共進",
   "intro.goosetools.act2.friends": "「朋友們」",
   "intro.goosetools.act2.neutral": "獨行其道",
-  "intro.goosetools.act2.duel": "決出勝負"
+  "intro.goosetools.act2.duel": "決出勝負",
+  "intro.goosetools.counts.players": "當局玩家",
+  "intro.goosetools.counts.geese": "鵝陣營",
+  "intro.goosetools.counts.ducks": "鴨陣營",
+  "intro.goosetools.counts.birds": "鳥陣營"
 }

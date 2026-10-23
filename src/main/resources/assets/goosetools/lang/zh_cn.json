@@ -891,5 +891,9 @@
   "intro.goosetools.act2.together": "携手共进",
   "intro.goosetools.act2.friends": "“朋友们”",
   "intro.goosetools.act2.neutral": "独行其道",
-  "intro.goosetools.act2.duel": "决出胜负"
+  "intro.goosetools.act2.duel": "决出胜负",
+  "intro.goosetools.counts.players": "当局玩家",
+  "intro.goosetools.counts.geese": "鹅阵营",
+  "intro.goosetools.counts.ducks": "鸭阵营",
+  "intro.goosetools.counts.birds": "鸟阵营"
 }

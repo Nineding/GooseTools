@@ -71,5 +71,9 @@
   "intro.goosetools.act2.together": "手を取り合って",
   "intro.goosetools.act2.friends": "「仲間たち」",
   "intro.goosetools.act2.neutral": "己の道を行く",
-  "intro.goosetools.act2.duel": "勝負を決めよう"
+  "intro.goosetools.act2.duel": "勝負を決めよう",
+  "intro.goosetools.counts.players": "参加者",
+  "intro.goosetools.counts.geese": "ガチョウ陣営",
+  "intro.goosetools.counts.ducks": "アヒル陣営",
+  "intro.goosetools.counts.birds": "中立陣営"
 }

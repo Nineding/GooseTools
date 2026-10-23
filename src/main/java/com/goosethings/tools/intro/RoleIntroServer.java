@@ -54,6 +54,10 @@ public final class RoleIntroServer {
                 .sorted(Comparator.comparingInt(player -> RoleIntroPolicy.seat(player.entityTags())))
                 .limit(RoleIntroPolicy.MAX_PLAYERS).toList();
         List<RoleIntroPolicy.Player> identities = participants.stream().map(RoleIntroServer::identity).toList();
+        int total = Math.clamp(score(server, "gameGGD", ScoreHolder.forNameOnly("#RosterPlayers")),0,1024);
+        int ducks = Math.clamp(score(server, "gameGGD", ScoreHolder.forNameOnly("#RosterEvil")),0,total);
+        int birds = Math.clamp(score(server, "gameGGD", ScoreHolder.forNameOnly("#RosterBird")),0,total-ducks);
+        MatchCounts counts = new MatchCounts(total,ducks,birds);
         int sent = 0;
         for (ServerPlayer viewer : viewers) {
             if (!participants.contains(viewer) || !openingLocked(server, viewer)
@@ -70,7 +74,7 @@ public final class RoleIntroServer {
                     RoleIntroCatalog.resolve(viewer.entityTags()).tag(), RoleIntroPolicy.theme(viewer.entityTags()),
                     Math.clamp(score(server, "ggdadv", ScoreHolder.forNameOnly("HowRole")), 0, 2),
                     Math.clamp(score(server, "gamesetting", ScoreHolder.forNameOnly("map")), 0, 11),
-                    score(server, "eagleton", ScoreHolder.forNameOnly("#Full")) == 1, participants.stream().filter(p -> p.entityTags().contains("evil")).count() == 1, roster));
+                    score(server, "eagleton", ScoreHolder.forNameOnly("#Full")) == 1, participants.stream().filter(p -> p.entityTags().contains("evil")).count() == 1, counts, roster));
             ACTIVE.put(viewer.getUUID(), new Session(server.getTickCount() + RoleIntroScene.DURATION_TICKS,
                     roster.stream().map(RoleIntroPayload.Appearance::id).toList()));
             sent++;

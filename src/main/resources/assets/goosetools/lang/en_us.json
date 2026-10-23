@@ -891,5 +891,9 @@
   "intro.goosetools.act2.together": "Together, Onward",
   "intro.goosetools.act2.friends": "“Friends”",
   "intro.goosetools.act2.neutral": "Walk Your Own Path",
-  "intro.goosetools.act2.duel": "Let the Best Dodo Win"
+  "intro.goosetools.act2.duel": "Let the Best Dodo Win",
+  "intro.goosetools.counts.players": "Players",
+  "intro.goosetools.counts.geese": "Geese",
+  "intro.goosetools.counts.ducks": "Ducks",
+  "intro.goosetools.counts.birds": "Birds"
 }
