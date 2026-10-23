@@ -6,6 +6,14 @@
 - 服务端与全部客户端同步升级至 1.15.0+Alpha0.6，配套 GooseThings 1.15.0+Alpha0.6；网络协议升至 44（Alpha0.5 的开场协议为 43）。
 - 退出游戏后替换旧 JAR 并重启；保留剑客和食罪者现有玩法与设置。
 
+## 1.15.0+Alpha0.5 - 2026-10-23
+
+- Add the original role artwork behind the opening character, retaining its colors, transparency and stage lighting. Include the Swordman and Sin Eater fallback sprites so all registered roles have bundled artwork.
+- Present the opening in two acts: show the viewer's role first, then reveal the server-filtered roster in numbered order with smooth model, armor, nameplate and shadow fades. Add faction-specific stages and larger introductory text.
+- Preserve the latest Swordman and Sin Eater gameplay integration and updater compatibility checks while combining the artwork and two-act opening changes.
+- Network protocol is now 43 and the role-intro payload is v4. Install GooseTools 1.15.0+Alpha0.5 on the server and every client; older GooseTools clients are incompatible.
+- Requires Minecraft 26.3 and Java 25 or later, with the existing compatible Fabric and Xaero dependencies. Use the matching twelve-second opening flow from the current MinecraftGooseGooseDuck datapack and resource pack.
+
 ## 1.15.0+Alpha0.4 - 2026-10-23
 
 - 合并剑客按键/尸体姿势同步与食罪者入场、结算及旁观者自爆动画图标，两角色目录同时保留。

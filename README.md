@@ -16,20 +16,20 @@ GooseTools is the required Fabric client/server foundation for the Whoiskiller G
 - Fabric API 0.161.0+26.3 or newer for Minecraft 26.3
 - Xaero's Minimap 26.5.3 or newer for Minecraft 26.3 / Fabric
 - Xaero's World Map 1.46.4 or newer for Minecraft 26.3 / Fabric
-- GooseTools 1.15.1 on the server; clients may use 1.15.0 or 1.15.1
+- GooseTools 1.15.0+Alpha0.5 on the server and every client
 
-当前网络协议版本为 41。GooseTools 1.15.1 服务端和本地联机房间允许 1.15.0、1.15.1 客户端加入；缺少模组、协议不同或不在明确兼容范围内的版本仍会被拒绝。旧 1.15.0 服务端仍要求客户端使用 1.15.0。
+当前网络协议版本为 43。服务端、本地联机房主和所有客户端均须使用 GooseTools 1.15.0+Alpha0.5；旧版本客户端无法加入。两幕职业入场需配套当前数据包和资源包的 12 秒开场流程。
 
-Protocol remains 41. GooseTools 1.15.1 dedicated servers and LAN hosts accept 1.15.0 and 1.15.1 clients. Missing mods, incompatible protocols and releases outside the explicit compatibility policy are rejected. Older 1.15.0 servers still require 1.15.0 clients.
+The network protocol is 43. Dedicated servers, LAN hosts and every client must use GooseTools 1.15.0+Alpha0.5; older clients are incompatible. The two-act opening requires the current datapack and resource pack with the twelve-second opening flow.
 
-1.15.1 的前置版本声明只设最低版本、不设上限；需要使用 Minecraft 26.3 / Fabric 对应的前置文件，前置之间也须互相兼容。未来依赖若发生 API 破坏仍可能需要适配。1.15.0 客户端继续使用该版本自身可加载的前置组合，自动更新仍遵循玩家原有设置。
+前置版本声明只设最低版本、不设上限；需要使用 Minecraft 26.3 / Fabric 对应且彼此兼容的前置文件。未来依赖若发生 API 破坏仍可能需要适配，自动更新继续遵循玩家原有设置。
 
-Dependency requirements in 1.15.1 have minimum versions with no upper bounds. Use dependencies for Minecraft 26.3 / Fabric that are compatible with one another; future breaking APIs may require an integration update. Existing 1.15.0 clients retain their own dependency constraints and automatic-update preferences.
+Dependency requirements have minimum versions with no upper bounds. Use compatible dependencies for Minecraft 26.3 / Fabric; future breaking APIs may require an integration update. Automatic updates retain each player's preferences.
 
 ## 安装 / Installation
 
 1. 安装 Minecraft 26.3、Fabric Loader 和上方列出的依赖。
-2. 从 [Releases](https://github.com/Nineding/GooseTools/releases) 下载 `goosetools-1.15.1.jar`。
+2. 从 [Releases](https://github.com/Nineding/GooseTools/releases) 下载 `goosetools-1.15.0+Alpha0.5.jar`。
 3. 将 GooseTools 及依赖 JAR 放入服务端和每位玩家客户端的 `mods` 目录。
 
 Install Minecraft 26.3 with Fabric Loader and the dependencies listed above, then place the GooseTools JAR in the `mods` directory on both the server and every client.

@@ -42,6 +42,12 @@ final class MeetingNameTagHud {
     static void drawIntro(GuiGraphicsExtractor graphics, Minecraft minecraft,
                            UUID playerId, String snapshotName, float centerX, float top,
                            float scale, int maxWidth) {
+        drawIntro(graphics,minecraft,playerId,snapshotName,centerX,top,scale,maxWidth,1);
+    }
+
+    static void drawIntro(GuiGraphicsExtractor graphics, Minecraft minecraft, UUID playerId, String snapshotName,
+                          float centerX, float top, float scale, int maxWidth, float alpha) {
+        if(alpha<=.001F) return;
         GooseToolsPayloads.NameTagEntry preview = NameTagClientState.entry(
                 com.goosethings.tools.intro.RoleIntroScene.modelId(playerId));
         MeetingAlertIdentityPolicy.Label data = preview == null ? resolve(playerId, snapshotName)
@@ -57,9 +63,16 @@ final class MeetingNameTagHud {
         graphics.pose().pushMatrix();
         graphics.pose().translate(centerX, top);
         graphics.pose().scale(scale, scale);
-        graphics.fill(RenderPipelines.GUI, -width / 2 - 2, -2, -width / 2 + width + 2, 12, 0x57000000);
-        graphics.text(minecraft.font, label, -width / 2, 1, 0xffffffff, false);
+        graphics.fill(RenderPipelines.GUI, -width / 2 - 2, -2, -width / 2 + width + 2, 12, argb(0,alpha*87/255));
+        graphics.text(minecraft.font, label, -width / 2, 1, argb(0xffffff,alpha), false);
         graphics.pose().popMatrix();
+    }
+
+    static int introWidth(Minecraft minecraft, UUID id, String snapshotName) {
+        GooseToolsPayloads.NameTagEntry preview = NameTagClientState.entry(com.goosethings.tools.intro.RoleIntroScene.modelId(id));
+        var data = preview == null ? resolve(id,snapshotName) : MeetingAlertIdentityPolicy.nametag(snapshotName,id,
+                preview.identityPlayerId(),preview.name(),preview.rgb(),preview.serialNumber(),preview.attachmentFlags(),null,0xffffff,0,0);
+        return minecraft.font.width(label(data,data.name())) + 4;
     }
 
     private static MeetingAlertIdentityPolicy.Label resolve(UUID playerId, String snapshotName) {

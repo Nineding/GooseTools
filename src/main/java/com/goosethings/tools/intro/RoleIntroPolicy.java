@@ -29,23 +29,28 @@ public final class RoleIntroPolicy {
 
     public static List<Member> roster(Player viewer, List<Player> participants) {
         List<Member> result = new ArrayList<>();
-        // Put self in the middle, rather than sorting the public Goose roster by faction.
+        // Seat order is spatially stable: the hero joins their numbered slot in act two.
         List<Player> main = new ArrayList<>();
         int theme = theme(viewer.tags());
+        boolean duel = theme == BIRD && viewer.tags().contains("DuelingDodos")
+                && participants.stream().filter(p -> p.tags().contains("DuelingDodos")).count() >= 2;
         for (Player target : participants) {
             if (target.id().equals(viewer.id())) continue;
             boolean show = switch (theme) {
                 case GOOSE -> true;
                 case DUCK -> target.tags().contains("evil") || target.tags().contains("Mimic");
                 case LOVER -> partners(viewer, target, participants);
+                case BIRD -> duel && target.tags().contains("DuelingDodos");
                 default -> false;
             };
             if (show) main.add(target);
         }
-        main.add(main.size() / 2, viewer);
+        main.add(viewer);
+        main.sort(java.util.Comparator.comparingInt(Player::seat).thenComparing(Player::id));
         for (Player player : main) result.add(new Member(player.id(), false));
         if (theme == LOVER && viewer.tags().contains("evil")) {
-            for (Player target : participants) {
+            for (Player target : participants.stream().sorted(java.util.Comparator.comparingInt(Player::seat)
+                    .thenComparing(Player::id)).toList()) {
                 // Match show_duck_teammates: non-Lover ducks plus Mimic, without duplicates.
                 boolean teammate = target.tags().contains("evil") && !target.tags().contains("Lover")
                         || target.tags().contains("Mimic");
