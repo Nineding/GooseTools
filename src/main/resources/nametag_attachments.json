@@ -4,10 +4,22 @@
     {
       "id": "detective_angel",
       "texture": "minecraft:textures/item/angelring.png",
-      "viewer_tags_all": ["Detective"],
-      "viewer_tags_none": ["inTutorial"],
-      "target_tags_all": ["players", "detectiveCheckedAngel"],
-      "target_tags_none": ["spectator", "inPelican", "inTalk", "endGame"],
+      "viewer_tags_all": [
+        "Detective"
+      ],
+      "viewer_tags_none": [
+        "inTutorial"
+      ],
+      "target_tags_all": [
+        "players",
+        "detectiveCheckedAngel"
+      ],
+      "target_tags_none": [
+        "spectator",
+        "inPelican",
+        "inTalk",
+        "endGame"
+      ],
       "hide_self": true,
       "tag_source": "rendered",
       "requires_full_blood": true,
@@ -18,10 +30,22 @@
     {
       "id": "detective_demon",
       "texture": "minecraft:textures/item/demonring.png",
-      "viewer_tags_all": ["Detective"],
-      "viewer_tags_none": ["inTutorial"],
-      "target_tags_all": ["players", "detectiveCheckedDemon"],
-      "target_tags_none": ["spectator", "inPelican", "inTalk", "endGame"],
+      "viewer_tags_all": [
+        "Detective"
+      ],
+      "viewer_tags_none": [
+        "inTutorial"
+      ],
+      "target_tags_all": [
+        "players",
+        "detectiveCheckedDemon"
+      ],
+      "target_tags_none": [
+        "spectator",
+        "inPelican",
+        "inTalk",
+        "endGame"
+      ],
       "hide_self": true,
       "tag_source": "rendered",
       "requires_full_blood": true,
@@ -32,10 +56,20 @@
     {
       "id": "magpie_guessed",
       "texture": "minecraft:textures/item/fan_true.png",
-      "viewer_tags_all": ["Magpie"],
+      "viewer_tags_all": [
+        "Magpie"
+      ],
       "viewer_tags_none": [],
-      "target_tags_all": ["players", "inTalk", "magpieGuessedThisMeeting"],
-      "target_tags_none": ["spectator", "deadInMap", "endGame"],
+      "target_tags_all": [
+        "players",
+        "inTalk",
+        "magpieGuessedThisMeeting"
+      ],
+      "target_tags_none": [
+        "spectator",
+        "deadInMap",
+        "endGame"
+      ],
       "hide_self": true,
       "tag_source": "rendered",
       "requires_full_blood": true,
@@ -46,10 +80,22 @@
     {
       "id": "broker_shackled",
       "texture": "minecraft:textures/item/shackles.png",
-      "viewer_tags_all": ["Broker"],
-      "viewer_tags_none": ["inTutorial"],
-      "target_tags_all": ["players", "inTalk", "brokerShackled"],
-      "target_tags_none": ["spectator", "deadInMap", "endGame"],
+      "viewer_tags_all": [
+        "Broker"
+      ],
+      "viewer_tags_none": [
+        "inTutorial"
+      ],
+      "target_tags_all": [
+        "players",
+        "inTalk",
+        "brokerShackled"
+      ],
+      "target_tags_none": [
+        "spectator",
+        "deadInMap",
+        "endGame"
+      ],
       "hide_self": true,
       "tag_source": "rendered",
       "requires_full_blood": true,
@@ -60,10 +106,22 @@
     {
       "id": "silencer_pending",
       "texture": "minecraft:textures/item/ggd/silencer.png",
-      "viewer_tags_all": ["Silencer"],
-      "viewer_tags_none": ["inTutorial"],
-      "target_tags_all": ["players", "silencedPending"],
-      "target_tags_none": ["spectator", "deadInMap", "inPelican", "endGame"],
+      "viewer_tags_all": [
+        "Silencer"
+      ],
+      "viewer_tags_none": [
+        "inTutorial"
+      ],
+      "target_tags_all": [
+        "players",
+        "silencedPending"
+      ],
+      "target_tags_none": [
+        "spectator",
+        "deadInMap",
+        "inPelican",
+        "endGame"
+      ],
       "hide_self": true,
       "tag_source": "rendered",
       "requires_full_blood": true,
@@ -74,13 +132,52 @@
     {
       "id": "silencer_active",
       "texture": "minecraft:textures/item/ggd/silencer.png",
-      "viewer_tags_all": ["Silencer"],
-      "viewer_tags_none": ["inTutorial"],
-      "target_tags_all": ["players", "silencedActive"],
-      "target_tags_none": ["spectator", "deadInMap", "inPelican", "endGame"],
+      "viewer_tags_all": [
+        "Silencer"
+      ],
+      "viewer_tags_none": [
+        "inTutorial"
+      ],
+      "target_tags_all": [
+        "players",
+        "silencedActive"
+      ],
+      "target_tags_none": [
+        "spectator",
+        "deadInMap",
+        "inPelican",
+        "endGame"
+      ],
       "hide_self": true,
       "tag_source": "rendered",
       "requires_full_blood": true,
+      "width": 10.0,
+      "height": 10.0,
+      "color": "#FFFFFF"
+    },
+    {
+      "id": "sineater_blast",
+      "texture": "minecraft:textures/item/self_boom.png",
+      "viewer_tags_all": [
+        "spectator"
+      ],
+      "viewer_tags_none": [
+        "inPelican"
+      ],
+      "target_tags_all": [
+        "players",
+        "sinEaterThreatened"
+      ],
+      "target_tags_none": [
+        "spectator",
+        "deadInMap",
+        "inPelican",
+        "inTalk",
+        "endGame"
+      ],
+      "hide_self": true,
+      "tag_source": "rendered",
+      "requires_full_blood": false,
       "width": 10.0,
       "height": 10.0,
       "color": "#FFFFFF"

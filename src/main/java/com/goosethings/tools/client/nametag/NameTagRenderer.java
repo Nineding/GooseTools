@@ -13,6 +13,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 import net.minecraft.client.Camera;
+import net.minecraft.data.AtlasIds;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.SubmitNodeCollector;
@@ -350,6 +351,18 @@ public final class NameTagRenderer {
                                  int colour) {
         float right = x + width;
         float bottom = y + height;
+        if (texture.equals(Identifier.withDefaultNamespace("textures/item/self_boom.png"))) {
+            var atlas = Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(AtlasIds.ITEMS);
+            var sprite = atlas.getSprite(Identifier.withDefaultNamespace("item/self_boom"));
+            destination.submitCustomGeometry(poses, RenderTypes.text(atlas.location()), (pose, out) -> {
+                Matrix4fc matrix = pose.pose();
+                out.addVertex(matrix, x, bottom, ICON_DEPTH).setColor(colour).setUv(sprite.getU0(), sprite.getV1()).setLight(FULL_BRIGHT);
+                out.addVertex(matrix, right, bottom, ICON_DEPTH).setColor(colour).setUv(sprite.getU1(), sprite.getV1()).setLight(FULL_BRIGHT);
+                out.addVertex(matrix, right, y, ICON_DEPTH).setColor(colour).setUv(sprite.getU1(), sprite.getV0()).setLight(FULL_BRIGHT);
+                out.addVertex(matrix, x, y, ICON_DEPTH).setColor(colour).setUv(sprite.getU0(), sprite.getV0()).setLight(FULL_BRIGHT);
+            });
+            return;
+        }
         destination.submitCustomGeometry(poses, RenderTypes.text(texture), (pose, out) -> {
             Matrix4fc matrix = pose.pose();
             out.addVertex(matrix, x, bottom, ICON_DEPTH).setColor(colour).setUv(0, 1).setLight(FULL_BRIGHT);
