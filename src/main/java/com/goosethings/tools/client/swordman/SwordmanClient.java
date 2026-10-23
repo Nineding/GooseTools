@@ -9,6 +9,7 @@ import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.entity.state.HumanoidRenderState;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.Vec3;
 import java.util.*;
 
 public final class SwordmanClient {
@@ -17,11 +18,15 @@ public final class SwordmanClient {
     private static final Map<UUID,float[]> FROZEN=new HashMap<>();
     private static boolean held;
     private static long sequence,tick;
+    private static Vec3 motionTarget, motionPrevious;
+    private static net.minecraft.client.multiplayer.ClientLevel motionLevel;
+    private static long motionTick;
     private SwordmanClient() { }
     public static void register() {
         ClientTickEvents.END_CLIENT_TICK.register(mc->{
             tick++;
             if(mc.player==null||mc.level==null){clear();return;}
+            applyMotion(mc);
             snapshotLocal(mc);
             var data=mc.player.getMainHandItem().get(DataComponents.CUSTOM_DATA);
             boolean canHold=mc.gui.screen()==null&&data!=null&&data.copyTag().getBooleanOr("SwordmanSkill",false);
@@ -42,9 +47,28 @@ public final class SwordmanClient {
                     ClientPlayNetworking.send(new SwordmanPackets.PoseReply(packet.corpse(),source.parts));
             }
         }));
+        ClientPlayNetworking.registerGlobalReceiver(SwordmanPackets.Motion.TYPE,(packet,context)->context.client().execute(()->{
+            Minecraft mc=context.client();
+            if (!packet.active() || mc.player==null || mc.level==null) { clearMotion(); return; }
+            if (motionTarget==null || motionLevel!=mc.level) motionPrevious=mc.player.position();
+            motionLevel=mc.level; motionTarget=new Vec3(packet.x(),packet.y(),packet.z()); motionTick=tick;
+        }));
         ClientPlayConnectionEvents.DISCONNECT.register((handler,mc)->clear());
     }
     public static void bind(Entity entity,HumanoidRenderState state) { ENTITIES.put(state,entity.getUUID()); }
+    static boolean isDashing() { return motionTarget!=null; }
+    private static void applyMotion(Minecraft mc) {
+        if (motionTarget==null) return;
+        if (motionLevel!=mc.level || tick-motionTick>20) { clearMotion(); return; }
+        var player=mc.player;
+        player.setPos(motionTarget);
+        // Preserve the last approved sample for vanilla camera/model interpolation between frames.
+        // Repeated vanilla teleport packets reset these fields and turn a smooth curve into 20 Hz snaps.
+        player.xo=motionPrevious.x; player.yo=motionPrevious.y; player.zo=motionPrevious.z;
+        player.setDeltaMovement(Vec3.ZERO); player.fallDistance=0;
+        motionPrevious=motionTarget;
+    }
+    private static void clearMotion() { motionTarget=null; motionPrevious=null; motionLevel=null; }
     /** First-person players also contribute a recent pose, even when nobody else was rendering them. */
     @SuppressWarnings({"rawtypes","unchecked"})
     private static void snapshotLocal(Minecraft client) {
@@ -74,6 +98,6 @@ public final class SwordmanClient {
             else RECENT.put(id,new Snapshot(values,tick));
         }
     }
-    private static void clear(){held=false;ENTITIES.clear();RECENT.clear();FROZEN.clear();}
+    private static void clear(){held=false;clearMotion();ENTITIES.clear();RECENT.clear();FROZEN.clear();}
     private record Snapshot(float[] parts,long tick) { }
 }

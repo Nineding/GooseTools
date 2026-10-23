@@ -14,5 +14,7 @@ public abstract class MimeCameraPacketsMixin {
     private void count(ClientboundPlayerPositionPacket packet, CallbackInfo callback) {
         if(RetainedProjectionRegression.countCorrections)
             RetainedProjectionRegression.corrections.incrementAndGet();
+        if(com.goosethings.tools.client.swordman.SwordmanRegression.countCorrections)
+            com.goosethings.tools.client.swordman.SwordmanRegression.corrections.incrementAndGet();
     }
 }
