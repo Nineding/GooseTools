@@ -17,6 +17,7 @@ public final class SwordmanPackets {
     public static void register() {
         PayloadTypeRegistry.serverboundPlay().register(Input.TYPE, Input.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(Corpse.TYPE, Corpse.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(Motion.TYPE, Motion.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(PoseReply.TYPE, PoseReply.CODEC);
     }
     public record Input(boolean held, boolean cancelled, long sequence) implements CustomPacketPayload {
@@ -25,6 +26,18 @@ public final class SwordmanPackets {
                 (b,p) -> { b.writeBoolean(p.held); b.writeBoolean(p.cancelled); b.writeLong(p.sequence); },
                 b -> new Input(b.readBoolean(), b.readBoolean(), b.readLong()));
         @Override public Type<Input> type() { return TYPE; }
+    }
+    /** Only server-approved positions are sent; clients never submit dash geometry. */
+    public record Motion(double x, double y, double z, boolean active) implements CustomPacketPayload {
+        public static final Type<Motion> TYPE = SwordmanPackets.type("swordman_motion_v1");
+        public static final StreamCodec<RegistryFriendlyByteBuf, Motion> CODEC = StreamCodec.of(
+                (b,p) -> { b.writeDouble(p.x); b.writeDouble(p.y); b.writeDouble(p.z); b.writeBoolean(p.active); },
+                b -> new Motion(b.readDouble(), b.readDouble(), b.readDouble(), b.readBoolean()));
+        public Motion {
+            if (!Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(z))
+                throw new IllegalArgumentException("Non-finite Swordman position");
+        }
+        @Override public Type<Motion> type() { return TYPE; }
     }
     public record Corpse(UUID corpse, UUID owner, boolean frozen, float[] parts) implements CustomPacketPayload {
         public static final Type<Corpse> TYPE = SwordmanPackets.type("swordman_corpse_v1");

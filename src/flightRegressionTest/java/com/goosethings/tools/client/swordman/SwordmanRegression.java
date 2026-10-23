@@ -35,6 +35,9 @@ import java.util.regex.Pattern;
 
 /** Exercises the real input packets, host authority, datapack and corpse renderer in a new isolated save. */
 public final class SwordmanRegression implements ClientModInitializer {
+    public static volatile boolean countCorrections;
+    public static final java.util.concurrent.atomic.AtomicInteger corrections=new java.util.concurrent.atomic.AtomicInteger();
+    private int interpolatedSamples;
     private boolean opened,finished,installed,wantUse;
     private int stage,ticks,checks,celebrityNotices;
     private UUID victimId,upperId,shieldId,behindId;
@@ -42,7 +45,9 @@ public final class SwordmanRegression implements ClientModInitializer {
     @Override public void onInitializeClient() {
         if(!Boolean.getBoolean("goosetools.swordmanRegressionTest"))return;
         ClientTickEvents.START_CLIENT_TICK.register(mc->{if(installed&&!finished)mc.options.keyUse.setDown(wantUse);});
-        ClientTickEvents.END_CLIENT_TICK.register(this::tick);
+        var checkPhase=net.minecraft.resources.Identifier.fromNamespaceAndPath("goosetools","swordman_checks");
+        ClientTickEvents.END_CLIENT_TICK.addPhaseOrdering(net.fabricmc.fabric.api.event.Event.DEFAULT_PHASE,checkPhase);
+        ClientTickEvents.END_CLIENT_TICK.register(checkPhase,this::tick);
     }
     private void tick(Minecraft mc) {
         if(finished||!mc.isGameLoadFinished())return;
@@ -64,8 +69,21 @@ public final class SwordmanRegression implements ClientModInitializer {
             if(stage==1){if(++ticks==5)wantUse=true;if(ticks==15)wantUse=false;
                 if(ticks<22)return;server(mc,p->{require(score(p,"ggdSwordCD")==0,"short release spent cooldown");require(p.getZ()<1,"short release dashed");});stage++;ticks=0;return;}
             if(stage==2){wantUse=true;++ticks;
-                if(ticks<65)return;wantUse=false;stage++;ticks=0;return;}
-            if(stage==3){++ticks;if(ticks==5){server(mc,p->{require(p.entityTags().contains("swordmanDashing"),"dash ended before its floating phase");require(Math.abs(p.getY()-101)<0.05,"dash dropped while active");});return;}if(ticks<22)return;server(mc,p->{
+                if(ticks<65)return;wantUse=false;corrections.set(0);countCorrections=true;stage++;ticks=0;return;}
+            if(stage==3 && SwordmanClient.isDashing()) {
+                var p=mc.player;
+                var previous=new net.minecraft.world.phys.Vec3(p.xo,p.yo,p.zo);
+                if(p.position().distanceToSqr(previous)>1.0E-8) {
+                    interpolatedSamples++;
+                    require(p.getPosition(0.5F).distanceTo(previous.lerp(p.position(),0.5))<1.0E-6,"camera interpolation did not retain approved endpoints");
+                    require(p.getZ()>=p.zo,"dash interpolated backwards");
+                }
+            }
+            if(stage==3){++ticks;if(ticks==5){server(mc,p->{require(p.entityTags().contains("swordmanDashing"),"dash ended before its floating phase");require(Math.abs(p.getY()-101)<0.05,"dash dropped while active");});return;}if(ticks<22)return;
+                countCorrections=false;
+                require(corrections.get()<=2,"dash still sends repeated position corrections: "+corrections.get());
+                require(interpolatedSamples>=4,"dash lacked interpolated movement samples: "+interpolatedSamples);
+                server(mc,p->{
                 require(Math.abs(p.getZ()-14.5)<0.12,"full charge did not travel 14 blocks: "+p.position());
                 require(target(p,victimId).entityTags().contains("beingKill"),"path target survived");
                 require(target(p,upperId).entityTags().contains("beingKill"),"vertical distance incorrectly excluded target");
@@ -106,7 +124,7 @@ public final class SwordmanRegression implements ClientModInitializer {
                 require(p.getZ()<7.8,"dash crossed wall");require(!target(p,behindId).entityTags().contains("beingKill"),"victim behind wall died");
                 require(score(p,"ggdSwordCD")==30,"wall-ended dash did not cool down");
             });stage++;ticks=0;return;}
-            finish(mc,"PASS "+checks+" checks: real hold/release, short cancellation, linear capped distance, floating dash, vertical sweep, death/corpse pose, delayed Canadian reporter and Celebrity notice, post-dash approach, shield consumption and interception, wall collision, cooldown.");
+            finish(mc,"PASS "+checks+" checks: camera interpolation, single endpoint correction, real hold/release, short cancellation, linear capped distance, floating dash, vertical sweep, death/corpse pose, delayed Canadian reporter and Celebrity notice, post-dash approach, shield consumption and interception, wall collision, cooldown.");
         }catch(Throwable error){GooseTools.LOGGER.error("Swordman regression failed",error);finish(mc,"FAIL "+error);}
     }
     private void install(Minecraft mc) throws Exception {
@@ -180,5 +198,5 @@ public final class SwordmanRegression implements ClientModInitializer {
     private void server(Minecraft mc,Consumer<ServerPlayer> action){pending=CompletableFuture.runAsync(()->action.accept(mc.getSingleplayerServer().getPlayerList().getPlayer(mc.player.getUUID())),mc.getSingleplayerServer());}
     private void command(ServerPlayer p,String command){var srv=p.level().getServer();srv.getCommands().performPrefixedCommand(srv.createCommandSourceStack().withEntity(p).withLevel(p.level()).withPosition(p.position()).withSuppressedOutput(),command);}
     private void require(boolean value,String message){checks++;if(!value)throw new AssertionError(message);}
-    private void finish(Minecraft mc,String result){finished=true;wantUse=false;try{Files.writeString(mc.gameDirectory.toPath().resolve("swordman-result.txt"),result);}catch(Exception e){throw new RuntimeException(e);}GooseTools.LOGGER.info(result);mc.stop();}
+    private void finish(Minecraft mc,String result){finished=true;wantUse=false;countCorrections=false;try{Files.writeString(mc.gameDirectory.toPath().resolve("swordman-result.txt"),result);}catch(Exception e){throw new RuntimeException(e);}GooseTools.LOGGER.info(result);mc.stop();}
 }

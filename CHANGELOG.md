@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.15.0+Alpha0.6 - 2026-10-23
+
+- 剑客冲刺改为同步服务端已验证的位移，保留客户端帧间插值，减少逐 tick 强制传送造成的顿挫；障碍、护盾、路径斩杀与慢快慢曲线保持原规则。
+- 服务端与全部客户端同步升级至 1.15.0+Alpha0.6，配套 GooseThings 1.15.0+Alpha0.6；网络协议升至 44（Alpha0.5 的开场协议为 43）。
+- 退出游戏后替换旧 JAR 并重启；保留剑客和食罪者现有玩法与设置。
+
 ## 1.15.0+Alpha0.5 - 2026-10-23
 
 - Add the original role artwork behind the opening character, retaining its colors, transparency and stage lighting. Include the Swordman and Sin Eater fallback sprites so all registered roles have bundled artwork.

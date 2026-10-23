@@ -26,6 +26,14 @@ public final class SwordmanSync {
                 (BiConsumer<UUID,UUID>) SwordmanSync::freeze);
         FabricLoader.getInstance().getObjectShare().put("goosetools:swordman_unfreeze",
                 (Consumer<UUID>) SwordmanSync::unfreeze);
+        FabricLoader.getInstance().getObjectShare().put("goosetools:swordman_motion",
+                (BiConsumer<UUID,double[]>) (id, values) -> {
+                    if (server == null || values.length != 4) return;
+                    ServerPlayer player = server.getPlayerList().getPlayer(id);
+                    if (player != null && MandatoryHandshake.isVerified(player))
+                        ServerPlayNetworking.send(player, new SwordmanPackets.Motion(
+                                values[0], values[1], values[2], values[3] != 0));
+                });
         ServerPlayNetworking.registerGlobalReceiver(SwordmanPackets.Input.TYPE,(packet,context)->
                 context.server().execute(()->input(context.player(),packet)));
         ServerPlayNetworking.registerGlobalReceiver(SwordmanPackets.PoseReply.TYPE,(packet,context)->
