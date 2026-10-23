@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.15.0+Alpha0.3 - 2026-10-23
+
+- Register Sin Eater opening and match result identity, and its spectator-only blast warning icon.
+- Install the matching GooseTools version on the server and every client; network protocol is unchanged.
+
+
 ## 1.15.0+Alpha0.1 - 2026-10-22
 
 - 中立角色的入场介绍、胜利聚光灯、角色文字及内置身份网页改用各自角色颜色，覆盖渡鸦、猎鹰、喜鹊、鹈鹕、秃鹫、鸽子、呆呆鸟、决斗呆呆鸟、布谷鸟、麻雀、海鸥与凤凰；鹅、鸭及恋人舞台沿用原有配色。
