@@ -594,6 +594,15 @@
     "faction": 2
   },
   {
+    "tag": "SinEater",
+    "key": "role.evil.sineater",
+    "fallback": "Sin Eater",
+    "descriptionKey": "role.evil.sineater.subtitle",
+    "descriptionFallback": "Collect coins and self-destruct",
+    "color": 16741235,
+    "faction": 1
+  },
+  {
     "tag": "Seagull",
     "key": "role.neutral.seagull",
     "fallback": "Seagull",

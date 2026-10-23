@@ -219,7 +219,7 @@ loom {
             source sourceSets.flightRegressionTest
             runDir 'build/swordman-regression-test'
             vmArg '-Dgoosetools.swordmanRegressionTest=true'
-            vmArg '-Dgoosetools.swordmanDatapack=' + file('../../GooseGooseDuck/datapack').absolutePath
+            vmArg '-Dgoosetools.swordmanDatapack=' + file(providers.gradleProperty('swordmanDatapack').getOrElse('../../GooseGooseDuck/datapack')).absolutePath
             programArg '--width'
             programArg '1000'
             programArg '--height'
