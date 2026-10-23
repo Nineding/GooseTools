@@ -248,7 +248,7 @@
   "presence.goosetools.server.address": "Server: %s",
   "presence.goosetools.server.address_players": "Server: %1$s · %2$s/%3$s players",
   "screen.goosetools.update.title": "GooseTools update",
-  "screen.goosetools.update.settings": "Update settings",
+  "screen.goosetools.update.settings": "GooseTools Update Settings",
   "screen.goosetools.update.later": "Later",
   "screen.goosetools.update.countdown": "GooseTools %s is verified. Installing and restarting in %s seconds.",
   "screen.goosetools.update.restart_hint": "If automatic launch is unavailable, reopen your launcher.",
@@ -306,7 +306,7 @@
   "command.goosetools.tasks.busy": "%s cannot start a trial while dead or in a meeting",
   "command.goosetools.tasks.completed": "%s completed in %s s (trial)",
   "screen.goosetools.update.bootstrap_title": "GooseTools - update before launch",
-  "screen.goosetools.update.bootstrap_hint": "Updates finish before Minecraft loads. Alpha releases are included by default.",
+  "screen.goosetools.update.bootstrap_hint": "Updates finish before Minecraft loads, using your selected update channel. New settings default to Stable.",
   "screen.goosetools.update.phase_checking": "Checking GitHub for updates...",
   "screen.goosetools.update.phase_downloading": "Downloading update...",
   "screen.goosetools.update.phase_verifying": "Verifying checksum and compatibility...",
@@ -891,5 +891,8 @@
   "intro.goosetools.act2.together": "Together, Onward",
   "intro.goosetools.act2.friends": "“Friends”",
   "intro.goosetools.act2.neutral": "Walk Your Own Path",
-  "intro.goosetools.act2.duel": "Let the Best Dodo Win"
+  "intro.goosetools.act2.duel": "Let the Best Dodo Win",
+  "screen.goosetools.update.channel_stable": "Update channel: Stable",
+  "screen.goosetools.update.channel_alpha": "Update channel: Alpha / Pre-release",
+  "screen.goosetools.update.channel_hint": "Stable follows official releases; Alpha follows pre-releases. Your choice is saved immediately."
 }

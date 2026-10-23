@@ -34,7 +34,7 @@ public final class AutoUpdateManager {
         thread.setDaemon(true);
         return thread;
     });
-    private static UpdatePreferences preferences = new UpdatePreferences(true, true);
+    private static UpdatePreferences preferences = new UpdatePreferences(true, false);
     private static Pending pending;
     private static boolean checking;
     private static boolean postponed;
@@ -52,6 +52,7 @@ public final class AutoUpdateManager {
     public static void register() {
         try { preferences = UpdatePreferences.load(SETTINGS); }
         catch (IOException failure) { GooseTools.LOGGER.warn("Could not load automatic update settings", failure); }
+        UpdateSettingsScreen.registerTitleButton();
         // Development launches must never replace class directories or fetch production updates.
         if (FabricLoader.getInstance().isDevelopmentEnvironment()) return;
         Path game = FabricLoader.getInstance().getGameDir().toAbsolutePath().normalize();
@@ -108,7 +109,9 @@ public final class AutoUpdateManager {
         status = text("checking", "Checking for updates...");
         long request = generation;
         String required = serverVersion != null && !serverVersion.equals(GooseTools.VERSION) ? serverVersion : null;
-        int protocol = required == null ? GooseTools.PROTOCOL_VERSION : serverProtocol;
+        // Ordinary channel updates take effect after restart, just like the HMCL updater.
+        // Only a server-requested update must match that server's protocol before staging.
+        int protocol = required == null ? -1 : serverProtocol;
         boolean alpha = preferences.includeAlpha();
         Map<String, String> installed = new HashMap<>();
         FabricLoader.getInstance().getAllMods().forEach(mod -> installed.put(mod.getMetadata().getId(),
@@ -191,6 +194,11 @@ public final class AutoUpdateManager {
     public static Component status() { return status; }
 
     public static void settings(boolean enabled, boolean alpha) {
+        if (alpha != preferences.includeAlpha()) {
+            // An explicit channel change also cancels an earlier server-version lookup.
+            serverVersion = null;
+            serverProtocol = GooseTools.PROTOCOL_VERSION;
+        }
         preferences = new UpdatePreferences(enabled, alpha);
         generation++;
         monitor.cancel();

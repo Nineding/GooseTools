@@ -16,11 +16,11 @@ GooseTools is the required Fabric client/server foundation for the Whoiskiller G
 - Fabric API 0.161.0+26.3 or newer for Minecraft 26.3
 - Xaero's Minimap 26.5.3 or newer for Minecraft 26.3 / Fabric
 - Xaero's World Map 1.46.4 or newer for Minecraft 26.3 / Fabric
-- GooseTools 1.15.0+Alpha0.5 on the server and every client
+- GooseTools 1.15.0+Alpha0.7 on the server and every client
 
-当前网络协议版本为 43。服务端、本地联机房主和所有客户端均须使用 GooseTools 1.15.0+Alpha0.5；旧版本客户端无法加入。两幕职业入场需配套当前数据包和资源包的 12 秒开场流程。
+当前网络协议版本为 44，与 Alpha0.6 相同。服务端、本地联机房主和所有客户端均须使用 GooseTools 1.15.0+Alpha0.7；旧版本仍受版本握手限制。两幕职业入场需配套当前数据包和资源包的 12 秒开场流程。
 
-The network protocol is 43. Dedicated servers, LAN hosts and every client must use GooseTools 1.15.0+Alpha0.5; older clients are incompatible. The two-act opening requires the current datapack and resource pack with the twelve-second opening flow.
+The network protocol remains 44, as in Alpha0.6. Dedicated servers, LAN hosts and every client must use GooseTools 1.15.0+Alpha0.7; release handshake restrictions still apply to older versions. The two-act opening requires the current datapack and resource pack with the twelve-second opening flow.
 
 前置版本声明只设最低版本、不设上限；需要使用 Minecraft 26.3 / Fabric 对应且彼此兼容的前置文件。未来依赖若发生 API 破坏仍可能需要适配，自动更新继续遵循玩家原有设置。
 
@@ -29,7 +29,7 @@ Dependency requirements have minimum versions with no upper bounds. Use compatib
 ## 安装 / Installation
 
 1. 安装 Minecraft 26.3、Fabric Loader 和上方列出的依赖。
-2. 从 [Releases](https://github.com/Nineding/GooseTools/releases) 下载 `goosetools-1.15.0+Alpha0.5.jar`。
+2. 从 [Releases](https://github.com/Nineding/GooseTools/releases) 下载 `goosetools-1.15.0+Alpha0.7.jar`。
 3. 将 GooseTools 及依赖 JAR 放入服务端和每位玩家客户端的 `mods` 目录。
 
 Install Minecraft 26.3 with Fabric Loader and the dependencies listed above, then place the GooseTools JAR in the `mods` directory on both the server and every client.
@@ -144,13 +144,13 @@ These commands create public icons visible to every client allowed to see that n
 
 ## 版本与更新 / Versions and changes
 
-客户端默认自动检查并安装官方 GitHub Release，Alpha / Pre-release 更新也默认开启。Minecraft 加载后会单独显示检查、实际下载量、百分比和校验进度；失败时可以重试或继续游戏。更新设置可从客户端设置面板或 `/goosetools-update` 打开，也可以编辑 `config/goosetools/auto-update.properties` 中的 `enabled` 与 `includeAlpha`。对局中的后台检查不会打断界面或替换正在使用的模组。
+客户端默认自动检查并安装官方 GitHub Release，新配置默认使用正式版通道。主菜单左上角的「GooseTools 更新设置」可切换正式版 / Alpha 预发布通道；两个通道只选择各自的发布，主动切换时允许选择基础版本号较低的目标通道版本，同一通道不会自动降级。已有 `includeAlpha=true` 的配置继续使用 Alpha 通道，已有关闭自动更新的设置继续保留。Minecraft 加载后会单独显示检查、实际下载量、百分比和校验进度；失败时可以重试或继续游戏。设置也可从客户端设置面板或 `/goosetools-update` 打开，或编辑 `config/goosetools/auto-update.properties`：`enabled` 控制自动更新，`includeAlpha=false` 选择正式版，`includeAlpha=true` 选择 Alpha。切换通道取消旧下载与待安装状态；对局中的后台检查不会打断界面或替换正在使用的模组。
 
 HMCL 独立实例首次运行后会自动接入启动前更新，设置页也提供接入按钮。更新器包含在发布 JAR 中，无需另外下载；接入后 HMCL 会先打开独立进度窗口，检查、下载和安装完成才启动 Minecraft，新版在这次启动直接生效。原有启动前命令会保留，已有命令的实例需要自行合并；可以从 `.hmcl/config/instance-game-settings.before-goosetools.json` 恢复原配置。启动前命令使用 HMCL 的 `$INST_JAVA` 和 `$INST_MC_DIR`，仅连接当前实例。
 
 未接入启动器或进入游戏后才发布的更新，仍在安全状态显示可取消的 10 秒倒计时，退出游戏后安装并重启。启动前更新保留旧 JAR，正常进入首个界面后确认成功；若新版未能完成启动，下次启动回退并跳过该版本。首次使用须安装一次带更新器的版本；专用服务器仍由管理员安排停服更新，客户端与服务端版本必须完全一致。
 
-Clients check compatible official GitHub releases, including Alpha / Pre-release versions by default. A dedicated Minecraft screen displays checking, actual transfer progress, verification and results. HMCL instances with no existing pre-launch command connect automatically after their first run, or through the update settings button. The embedded standalone updater opens its own progress window and installs before HMCL starts Minecraft, so the new mod loads on that launch. Existing custom commands are preserved. Network failures offer retry or continuing with the installed version; unconfirmed startup rolls back on the following launch. Updates discovered after the game loads retain the cancellable restart flow. Dedicated servers remain administrator-managed, and the exact client/server version lock is preserved.
+Clients check compatible official GitHub releases. New settings default to Stable; existing `includeAlpha=true` settings retain Alpha, and disabled automatic updates stay disabled. Open GooseTools Update Settings in the upper-left corner of the main menu to select Stable or Alpha / Pre-release. Each channel only follows its own releases; switching channels can lower the base version, while updates within a channel never downgrade. Switching cancels the previous lookup and pending installation. The legacy `includeAlpha` property remains supported (`false` for Stable, `true` for Alpha). A dedicated Minecraft screen displays checking, actual transfer progress, verification and results. HMCL instances with no existing pre-launch command connect automatically after their first run, or through the update settings button. The embedded standalone updater uses the same channel selection and installs before HMCL starts Minecraft. Existing custom commands are preserved. Network failures offer retry or continuing with the installed version; unconfirmed startup rolls back on the following launch. Updates discovered after the game loads retain the cancellable restart flow and may change protocol after restart. Dedicated servers remain administrator-managed. Server-requested exact versions are independent of the automatic channel; the client/server handshake remains enforced.
 
 Each release uses a matching `v<mod_version>` tag and only the runtime JAR attachment. Tags containing `Alpha` publish as Pre-release, and the release body contains only that version's entry from `CHANGELOG.md`.
 
