@@ -4,14 +4,17 @@
   "version": "1.0.0",
   "name": "GooseTools flight regression test",
   "environment": "client",
-  "mixins": ["goosetools.dream.test.mixins.json"],
+  "mixins": [
+    "goosetools.dream.test.mixins.json"
+  ],
   "entrypoints": {
     "client": [
       "com.goosethings.tools.client.noclip.FlightRegression",
       "com.goosethings.tools.client.projection.ProjectionBodyRegression",
       "com.goosethings.tools.client.projection.RetainedProjectionRegression",
       "com.goosethings.tools.client.dream.DreamAvatarRegression",
-      "com.goosethings.tools.client.parasite.GhostSpectatorRegression"
+      "com.goosethings.tools.client.parasite.GhostSpectatorRegression",
+      "com.goosethings.tools.client.swordman.SwordmanRegression"
     ]
   },
   "depends": {
