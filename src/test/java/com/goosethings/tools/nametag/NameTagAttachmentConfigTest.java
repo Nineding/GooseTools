@@ -20,7 +20,7 @@ final class NameTagAttachmentConfigTest {
     @Test
     void detectiveIconsArePrivateFullBloodSnapshots() {
         var config = NameTagAttachmentConfig.defaults();
-        assertEquals(6, config.attachments().size());
+        assertEquals(7, config.attachments().size());
         var angel = config.attachments().getFirst();
 
         assertTrue(angel.visible(
@@ -180,7 +180,7 @@ final class NameTagAttachmentConfigTest {
         var repository = new NameTagAttachmentRepository(file);
         var original = repository.reload();
         assertTrue(Files.isRegularFile(file));
-        assertEquals(6, original.attachments().size());
+        assertEquals(7, original.attachments().size());
 
         Files.writeString(file, Files.readString(file).replace("\"width\": 10.0", "\"width\": 12.0"));
         var updated = repository.reload();
