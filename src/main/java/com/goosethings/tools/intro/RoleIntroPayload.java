@@ -13,10 +13,10 @@ import java.util.List;
 import java.util.UUID;
 
 /** Only the viewer's role and the filtered public appearance roster are transmitted. */
-public record RoleIntroPayload(boolean active, String role, int theme, int mode, int map, boolean fullMap, boolean loneDuck, List<Appearance> roster)
+public record RoleIntroPayload(boolean active, String role, int theme, int mode, int map, boolean fullMap, boolean loneDuck, MatchCounts counts, List<Appearance> roster)
         implements CustomPacketPayload {
     public static final Type<RoleIntroPayload> TYPE = new Type<>(
-            Identifier.fromNamespaceAndPath("goosetools", "role_intro_s2c_v4"));
+            Identifier.fromNamespaceAndPath("goosetools", "role_intro_s2c_v5"));
     public static final StreamCodec<RegistryFriendlyByteBuf, RoleIntroPayload> CODEC =
             StreamCodec.of(RoleIntroPayload::write, RoleIntroPayload::read);
     public static final RoleIntroPayload CLOSE = new RoleIntroPayload(false, "", 0, 0, List.of());
@@ -29,10 +29,15 @@ public record RoleIntroPayload(boolean active, String role, int theme, int mode,
         this(active, role, theme, mode, map, fullMap, false, roster);
     }
 
+    public RoleIntroPayload(boolean active, String role, int theme, int mode, int map, boolean fullMap, boolean loneDuck, List<Appearance> roster) {
+        this(active, role, theme, mode, map, fullMap, loneDuck, new MatchCounts(0,0,0), roster);
+    }
+
     public RoleIntroPayload {
         if (role == null || role.length() > 64 || theme < 0 || theme > 3 || mode < 0 || mode > 2 || map < 0 || map > 11) {
             throw new IllegalArgumentException("Invalid role intro header");
         }
+        java.util.Objects.requireNonNull(counts);
         roster = List.copyOf(roster);
         if (roster.size() > RoleIntroPolicy.MAX_PLAYERS || active && roster.isEmpty()) {
             throw new IllegalArgumentException("Invalid role intro roster size");
@@ -54,6 +59,9 @@ public record RoleIntroPayload(boolean active, String role, int theme, int mode,
         buffer.writeByte(payload.map());
         buffer.writeBoolean(payload.fullMap());
         buffer.writeBoolean(payload.loneDuck());
+        buffer.writeVarInt(payload.counts().players());
+        buffer.writeVarInt(payload.counts().ducks());
+        buffer.writeVarInt(payload.counts().birds());
         buffer.writeVarInt(payload.roster().size());
         for (Appearance player : payload.roster()) {
             buffer.writeUUID(player.id());
@@ -70,6 +78,7 @@ public record RoleIntroPayload(boolean active, String role, int theme, int mode,
         int map = buffer.readUnsignedByte();
         boolean fullMap = buffer.readBoolean();
         boolean loneDuck = buffer.readBoolean();
+        MatchCounts counts = new MatchCounts(buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt());
         int count = buffer.readVarInt();
         if (count < 0 || count > RoleIntroPolicy.MAX_PLAYERS) {
             throw new IllegalArgumentException("Role intro roster exceeds limit");
@@ -83,7 +92,7 @@ public record RoleIntroPayload(boolean active, String role, int theme, int mode,
             for (EquipmentSlot slot : EquipmentSlot.values()) equipment.add(ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer));
             roster.add(new Appearance(id, name, small, equipment));
         }
-        return new RoleIntroPayload(active, role, theme, mode, map, fullMap, loneDuck, roster);
+        return new RoleIntroPayload(active, role, theme, mode, map, fullMap, loneDuck, counts, roster);
     }
 
     @Override public Type<RoleIntroPayload> type() { return TYPE; }
