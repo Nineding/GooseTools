@@ -1,7 +1,7 @@
 package com.goosethings.tools.task;
 
 import com.goosethings.tools.network.MandatoryHandshake;
-import com.goosethings.tools.presence.GamePresencePhase;
+import com.goosethings.tools.dream.DreamSpatialContext;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
@@ -95,7 +95,7 @@ public final class TaskServer {
         com.goosethings.tools.game.GameServer.close(player);
         close(player);
         TaskSession session = new TaskSession(IDS.getAndIncrement(), type, ThreadLocalRandom.current().nextLong(), PurificationStation.time(player, type));
-        SESSIONS.put(player.getUUID(), new Trial(session, player.level().dimension()));
+        SESSIONS.put(player.getUUID(), new Trial(session, dimension(player)));
         ServerPlayNetworking.send(player, new TaskPackets.Open(session.id, type.ordinal(), session.seed));
         return session.id;
     }
@@ -115,7 +115,7 @@ public final class TaskServer {
             if (trial.session.complete()) open(player, trial.session.type);
             return;
         }
-        if (!PurificationStation.valid(player, trial.session.type) || !player.isAlive() || !trial.dimension.equals(player.level().dimension())
+        if (!PurificationStation.valid(player, trial.session.type) || !player.isAlive() || !sameDimension(player, trial)
                 || meeting(player.level().getServer(), player)) { close(player); return; }
         if (trial.session.apply(packet.sequence(), packet.action(), packet.item(), packet.x(), packet.y(), packet.elapsed(),
                 PurificationStation.time(player, trial.session.type), player.connection.latency())) sendState(player, trial);
@@ -127,7 +127,7 @@ public final class TaskServer {
             Trial trial = SESSIONS.get(id);
             ServerPlayer player = server.getPlayerList().getPlayer(id);
             if (player == null) { SESSIONS.remove(id); continue; }
-            if (!PurificationStation.valid(player, trial.session.type) || !player.isAlive() || !trial.dimension.equals(player.level().dimension()) || meeting(server, player)
+            if (!PurificationStation.valid(player, trial.session.type) || !player.isAlive() || !sameDimension(player, trial) || meeting(server, player)
                     || PurificationStation.time(player, trial.session.type) - trial.session.createdAt > (trial.session.type == TaskType.POWERSTATION || trial.session.type.profession() ? 3_600_000 : 600_000)
                     || (!trial.session.started() && PurificationStation.time(player, trial.session.type) - trial.session.createdAt > 15_000)) { close(player); continue; }
             if (trial.session.tick(PurificationStation.time(player, trial.session.type))) sendState(player, trial);
@@ -164,7 +164,7 @@ public final class TaskServer {
         if (!packet.valid() || !MandatoryHandshake.isVerified(player)) return;
         Trial trial = SESSIONS.get(player.getUUID());
         if (trial == null || trial.session.id != packet.sessionId() || trial.session.station() == null) return;
-        if (!PurificationStation.valid(player, trial.session.type) || !player.isAlive() || !trial.dimension.equals(player.level().dimension()) || meeting(player.level().getServer(), player)) { close(player); return; }
+        if (!PurificationStation.valid(player, trial.session.type) || !player.isAlive() || !sameDimension(player, trial) || meeting(player.level().getServer(), player)) { close(player); return; }
         if (trial.session.station().apply(packet.sequence(), packet.action(), packet.item(), packet.a(), packet.b(), now())) sendState(player, trial);
     }
 
@@ -172,15 +172,24 @@ public final class TaskServer {
         if (!packet.valid() || !MandatoryHandshake.isVerified(player)) return;
         Trial trial = SESSIONS.get(player.getUUID());
         if (trial == null || trial.session.id != packet.sessionId() || trial.session.profession() == null) return;
-        if (!PurificationStation.valid(player, trial.session.type) || !player.isAlive() || !trial.dimension.equals(player.level().dimension()) || meeting(player.level().getServer(), player)) { close(player); return; }
+        if (!PurificationStation.valid(player, trial.session.type) || !player.isAlive() || !sameDimension(player, trial) || meeting(player.level().getServer(), player)) { close(player); return; }
         if (trial.session.profession().apply(packet.sequence(), packet.stage(), packet.action(), packet.slot(), packet.a(), packet.b(), packet.c(), now())) sendState(player, trial);
+    }
+
+    /** Authoritative task location also applies to callbacks outside datapack execution. */
+    public static net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension(ServerPlayer player) {
+        return DreamSpatialContext.runFor(player, () -> player.level().dimension());
+    }
+
+    private static boolean sameDimension(ServerPlayer player, Trial trial) {
+        return trial.dimension.equals(dimension(player));
     }
 
     public static boolean meeting(MinecraftServer server, ServerPlayer player) {
         Objective objective = server.getScoreboard().getObjective("ggdSession");
         ReadOnlyScoreInfo score = objective == null ? null : server.getScoreboard()
                 .getPlayerScoreInfo(ScoreHolder.forNameOnly("#MeetingPhase"), objective);
-        return GamePresencePhase.resolve(player.entityTags(), score == null ? 0 : score.value()) == GamePresencePhase.MEETING;
+        return GuiTaskEligibility.meetingBlocked(player.entityTags(), score == null ? 0 : score.value());
     }
 
     private static Component message(String key, String fallback, Object... args) {

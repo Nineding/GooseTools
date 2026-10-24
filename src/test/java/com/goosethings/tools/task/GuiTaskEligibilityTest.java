@@ -8,6 +8,33 @@ import static org.junit.jupiter.api.Assertions.*;
 class GuiTaskEligibilityTest {
     private static final Set<String> GHOST = Set.of("players", "spectator", "deadInMap", "dlcGhostActive");
 
+    @Test void lucidDreamCanWorkButItsBodyAndInvalidDreamsCannot() {
+        var valid = Set.of("players", "gamingGGD", "LucidDreamer", "inDream", "dreamMeetingParticipant");
+        assertTrue(GuiTaskEligibility.eligible(valid, 11, false));
+        for (int phase : new int[]{1, 2}) assertFalse(GuiTaskEligibility.meetingBlocked(valid, phase));
+        for (int phase : new int[]{0, 3}) assertTrue(GuiTaskEligibility.meetingBlocked(valid, phase));
+        for (String missing : Set.of("players", "LucidDreamer", "dreamMeetingParticipant")) {
+            var tags = new HashSet<>(valid); tags.remove(missing);
+            assertFalse(GuiTaskEligibility.eligible(tags, 11, false));
+            assertTrue(GuiTaskEligibility.meetingBlocked(tags, 1));
+        }
+        for (String blocked : Set.of("dreamTaskCap", "inTalk", "spectator", "deadInMap", "dlcGhostActive",
+                "endGame", "inPelican", "astralProjected", "sniperScoped", "esperPossessing", "ggdGhostFollowing")) {
+            var tags = new HashSet<>(valid); tags.add(blocked);
+            assertFalse(GuiTaskEligibility.eligible(tags, 11, false), blocked);
+            assertTrue(GuiTaskEligibility.meetingBlocked(tags, 1), blocked);
+        }
+        assertTrue(GuiTaskEligibility.meetingBlocked(Set.of("players", "gamingGGD", "inTalk"), 1));
+        assertFalse(GuiTaskEligibility.meetingBlocked(Set.of("players", "gamingGGD"), 0));
+        for (String kind : Set.of("civil", "foodsafety", "nuclear", "powerstation", "telecom")) {
+            var tags = new HashSet<>(valid);
+            assertFalse(GuiTaskEligibility.kindAllowed(tags, kind, 11));
+            tags.addAll(Set.of("inTaskArtisan", "artisan.assigned", "task.artisan.available", "task.artisan_" + kind + ".available"));
+            assertTrue(GuiTaskEligibility.kindAllowed(tags, kind, 11));
+            assertFalse(GuiTaskEligibility.kindAllowed(tags, kind, 8));
+        }
+    }
+
     @Test void ghostNeedsTheSupportedMapAndDlc() {
         assertTrue(GuiTaskEligibility.eligible(GHOST, 11, true));
         assertFalse(GuiTaskEligibility.eligible(GHOST, 11, false));

@@ -41,6 +41,11 @@ public abstract class DreamInteractionMixin {
         DreamSpatialContext.runFor(player,()-> {original.call(packet);return null;});
         if(DreamAvatarServer.active(player)) {player.setYRot(yaw);player.setXRot(pitch);}
     }
+    // Since 26.3, entity attacks use a separate packet from right-click interactions.
+    @WrapMethod(method="handleAttack")
+    private void dream$attack(ServerboundAttackPacket packet, Operation<Void> original) {
+        DreamSpatialContext.runFor(player, () -> { original.call(packet); return null; });
+    }
     @WrapMethod(method="handleInteract")
     private void dream$entity(ServerboundInteractPacket packet,Operation<Void> original) {
         DreamSpatialContext.runFor(player,()-> {original.call(packet);return null;});

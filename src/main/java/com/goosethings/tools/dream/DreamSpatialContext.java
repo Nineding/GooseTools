@@ -23,6 +23,20 @@ public final class DreamSpatialContext {
                 && (!Boolean.TRUE.equals(PROJECTION_ORIGIN.get()) || !owner.getUUID().equals(EXECUTOR.get()))) return null;
         return DreamAvatarServer.actor(owner);
     }
+    /** Only spatial NBT is projected. Role tags, UUID, scores and SelectedItem belong to the owner. */
+    public static void projectData(Entity entity, net.minecraft.nbt.CompoundTag data) {
+        Entity body = actor(entity);
+        if (body == null) return;
+        var pos = new net.minecraft.nbt.ListTag();
+        pos.add(net.minecraft.nbt.DoubleTag.valueOf(body.getX()));
+        pos.add(net.minecraft.nbt.DoubleTag.valueOf(body.getY()));
+        pos.add(net.minecraft.nbt.DoubleTag.valueOf(body.getZ()));
+        var rot = new net.minecraft.nbt.ListTag();
+        rot.add(net.minecraft.nbt.FloatTag.valueOf(body.getYRot()));
+        rot.add(net.minecraft.nbt.FloatTag.valueOf(body.getXRot()));
+        data.put("Pos", pos); data.put("Rotation", rot);
+        data.putBoolean("OnGround", body.onGround());
+    }
     public static <T> T run(boolean active, Supplier<T> operation) {
         Boolean previous = CURRENT.get(); CURRENT.set(active);
         try { return operation.get(); } finally { restore(CURRENT, previous); }

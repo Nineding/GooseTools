@@ -1,6 +1,7 @@
 package com.goosethings.tools.task;
 
 import java.util.Set;
+import com.goosethings.tools.presence.GamePresencePhase;
 
 /** Shared admission rules for authoritative task sessions and their callbacks. */
 final class GuiTaskEligibility {
@@ -12,9 +13,25 @@ final class GuiTaskEligibility {
         return tags.contains("players")
                 && ((!tags.contains("spectator") && !tags.contains("deadInMap")) || ghost)
                 && !tags.contains("inTalk") && !tags.contains("endGame") && !tags.contains("inPelican")
-                && !tags.contains("inDream") && !tags.contains("astralProjected")
+                && (!tags.contains("inDream") || lucidDream(tags)) && !tags.contains("astralProjected")
                 && !tags.contains("sniperScoped") && !tags.contains("esperPossessing")
                 && !tags.contains("ggdGhostFollowing");
+    }
+
+    static boolean lucidDream(Set<String> tags) {
+        return tags.contains("players") && tags.contains("LucidDreamer") && tags.contains("inDream")
+                && tags.contains("dreamMeetingParticipant") && !tags.contains("dreamTaskCap")
+                && !tags.contains("spectator") && !tags.contains("deadInMap") && !tags.contains("dlcGhostActive")
+                && !tags.contains("inTalk") && !tags.contains("endGame") && !tags.contains("inPelican")
+                && !tags.contains("astralProjected") && !tags.contains("sniperScoped")
+                && !tags.contains("esperPossessing") && !tags.contains("ggdGhostFollowing");
+    }
+
+    static boolean meetingBlocked(Set<String> tags, int phase) {
+        // The body remains in the meeting, but a valid lucid dream may complete assigned tasks.
+        // Recheck on input and tick: waking, death or reaching the cap closes the session.
+        if (tags.contains("inDream")) return phase < 1 || phase > 2 || !lucidDream(tags);
+        return GamePresencePhase.resolve(tags, phase) == GamePresencePhase.MEETING;
     }
 
     static boolean kindAllowed(Set<String> tags, String kind) {

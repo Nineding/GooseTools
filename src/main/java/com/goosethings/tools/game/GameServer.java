@@ -74,7 +74,7 @@ public final class GameServer {
         TaskServer.close(player); close(player);
         GameSession game = new GameSession(ids.getAndIncrement(), type, ThreadLocalRandom.current().nextLong(), TaskServer.now());
         if (challenge) game.startChallenge(TaskServer.now());
-        Playing p = new Playing(game, player.level().dimension(), station); sessions.put(player.getUUID(), p);
+        Playing p = new Playing(game, TaskServer.dimension(player), station); sessions.put(player.getUUID(), p);
         ServerPlayNetworking.send(player, new GamePackets.Open(game.id, type.ordinal())); send(player, p);
         return game;
     }
@@ -83,7 +83,7 @@ public final class GameServer {
         if (!input.valid() || !MandatoryHandshake.isVerified(player)) return;
         Playing p = sessions.get(player.getUUID()); if (p == null || p.game.id != input.sessionId()) return;
         if (input.action() == GameSession.CANCEL) { close(player); return; }
-        if (!available(player) || !p.dimension.equals(player.level().dimension())) { close(player); return; }
+        if (!available(player) || !p.dimension.equals(TaskServer.dimension(player))) { close(player); return; }
         if (p.game.challenge() && input.action() == GameSession.RETRY) { close(player); return; }
         record(player, p);
         if (p.game.apply(input.sequence(), input.action(), input.value(), input.x(), input.y(), TaskServer.now())) { activity(player, p); record(player, p); send(player, p); }
@@ -93,7 +93,7 @@ public final class GameServer {
         for (UUID uuid : List.copyOf(sessions.keySet())) {
             Playing p = sessions.get(uuid); ServerPlayer player = server.getPlayerList().getPlayer(uuid);
             if (player == null) { sessions.remove(uuid); continue; }
-            if (!available(player) || !p.dimension.equals(player.level().dimension())) { close(player); continue; }
+            if (!available(player) || !p.dimension.equals(TaskServer.dimension(player))) { close(player); continue; }
             int previousPhase = p.game.phase();
             p.game.tick(now); activity(player, p); record(player, p);
             boolean realtime = p.game.type == GameType.FLAPPY || p.game.type == GameType.PONG || p.game.type == GameType.WHACK || p.game.type == GameType.TRAFFIC;

@@ -16,6 +16,9 @@
     "DreamMeetingPoseMixin",
     "DreamEntityDataMixin",
     "DreamLevelPlayersMixin",
+    "DreamEntitySelectorMixin",
+    "DreamSelectorNbtMixin",
+    "DreamEntitySelectorNbtMixin",
     "DreamSwingMixin",
     "DreamHorseMixin",
     "DreamBoatMixin"
