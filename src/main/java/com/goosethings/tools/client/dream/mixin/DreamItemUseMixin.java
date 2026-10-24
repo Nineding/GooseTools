@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Dream toolbar buttons must reach item use even when the camera points at an interactive block. */
+/** Task tools must reach item use before distant block/entity prediction can reject the click. */
 @Mixin(Minecraft.class)
 public abstract class DreamItemUseMixin {
     @Shadow private int rightClickDelay;
@@ -19,8 +19,10 @@ public abstract class DreamItemUseMixin {
     @Inject(method = "startUseItem", at = @At("HEAD"), cancellable = true)
     private void dream$useToolbar(CallbackInfo callback) {
         Minecraft client = (Minecraft) (Object) this;
-        if (!DreamAvatarClient.active() || client.player == null || client.gameMode == null
-                || !client.player.getMainHandItem().is(Items.CARROT_ON_A_STICK)) return;
+        if (!DreamAvatarClient.active() || client.player == null || client.gameMode == null) return;
+        var held = client.player.getMainHandItem();
+        if (!held.is(Items.CARROT_ON_A_STICK) && held.getUseDuration(client.player) <= 0
+                && !held.is(Items.FISHING_ROD)) return;
         rightClickDelay = 4;
         AimClaimClient.captureBeforeItemUse(client);
         client.gameMode.useItem(client.player, InteractionHand.MAIN_HAND);
