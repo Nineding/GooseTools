@@ -17,6 +17,7 @@
     "DreamEntityDataMixin",
     "DreamLevelPlayersMixin",
     "DreamSwingMixin",
+    "DreamUsingItemMixin",
     "DreamHorseMixin",
     "DreamBoatMixin"
   ],

@@ -19,6 +19,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  @Inject(method="getYRot()F",at=@At("HEAD"),cancellable=true) private void dream$yaw(CallbackInfoReturnable<Float> c){Entity a=dream$actor();if(a!=null)c.setReturnValue(a.getYRot());}
  @Inject(method="getXRot()F",at=@At("HEAD"),cancellable=true) private void dream$pitch(CallbackInfoReturnable<Float> c){Entity a=dream$actor();if(a!=null)c.setReturnValue(a.getXRot());}
  @Inject(method="getEyePosition()Lnet/minecraft/world/phys/Vec3;",at=@At("HEAD"),cancellable=true) private void dream$eyes(CallbackInfoReturnable<Vec3> c){Entity a=dream$actor();if(a!=null)c.setReturnValue(a.getEyePosition());}
+ @Inject(method="getEyeY",at=@At("HEAD"),cancellable=true) private void dream$eyeY(CallbackInfoReturnable<Double> c){Entity a=dream$actor();if(a!=null)c.setReturnValue(a.getEyeY());}
  @Inject(method="blockPosition",at=@At("HEAD"),cancellable=true) private void dream$block(CallbackInfoReturnable<BlockPos> c){Entity a=dream$actor();if(a!=null)c.setReturnValue(a.blockPosition());}
  @Inject(method="chunkPosition",at=@At("HEAD"),cancellable=true) private void dream$chunk(CallbackInfoReturnable<ChunkPos> c){Entity a=dream$actor();if(a!=null)c.setReturnValue(a.chunkPosition());}
  @Inject(method="getBoundingBox",at=@At("HEAD"),cancellable=true) private void dream$bounds(CallbackInfoReturnable<AABB> c){Entity a=dream$actor();if(a!=null)c.setReturnValue(a.getBoundingBox());}
