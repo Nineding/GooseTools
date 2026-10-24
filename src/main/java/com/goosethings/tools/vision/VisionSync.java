@@ -77,8 +77,8 @@ public final class VisionSync {
         ServerPlayer source = VisionViewpoint.resolve(player);
         boolean invisibility = source.entityTags().contains("invs");
         if (invisibility && isActive(server, source, false, true)) {
-            // Zero/zero is an immediate complete-world blackout, independent of optional fog.
-            return new VisionSnapshot(true, 0.0F, 0.0F, false);
+            // Temporarily override only the clear radius; retain the ordinary fog gradient.
+            return new VisionSnapshot(true, 0.0F, FADE_DISTANCE, false);
         }
         boolean powerBlackout = isPowerBlackoutTarget(server, source);
         float radius = powerBlackout ? POWER_BLACKOUT_CLEAR_RADIUS : configuredRadius(server, source);

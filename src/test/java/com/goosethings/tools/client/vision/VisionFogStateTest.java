@@ -13,15 +13,32 @@ class VisionFogStateTest {
 
     @Test
     void zeroSkillVisionIsImmediateAndDoesNotLeakIntoNormalFogOrMeetings() {
-        VisionFogState.apply(true, 0, 0, false);
-        assertTrue(VisionFogState.totalBlindness());
+        VisionFogState.apply(true, 0, 4, false);
+        assertTrue(VisionFogState.zeroClearRange());
         VisionFogState.apply(true, 1, 2, true);
-        assertFalse(VisionFogState.totalBlindness());
-        VisionFogState.apply(true, 0, 0, false);
+        assertFalse(VisionFogState.zeroClearRange());
+        VisionFogState.apply(true, 0, 4, false);
         VisionFogState.apply(false, 12, 16, false);
-        assertFalse(VisionFogState.totalBlindness());
-        VisionFogState.apply(true, 0, 0.5F, false);
-        assertFalse(VisionFogState.totalBlindness());
+        assertFalse(VisionFogState.zeroClearRange());
+        VisionFogState.apply(false, 0, 4, false);
+        assertFalse(VisionFogState.zeroClearRange());
+    }
+
+    @Test
+    void zeroClearRadiusUsesTheOrdinaryFogGradientInsteadOfAWholeScreenBlackout() {
+        VisionFogState.apply(true, 0, 4, false);
+        FogData fog = new FogData();
+        fog.environmentalStart = fog.renderDistanceStart = 100;
+        fog.environmentalEnd = fog.renderDistanceEnd = 150;
+        fog.skyEnd = fog.cloudEnd = 200;
+        fog.color = new Vector4f(1, 1, 1, 1);
+        VisionFogState.applyTo(fog, null);
+        assertEquals(0, fog.environmentalStart, 0.001F);
+        assertEquals(4, fog.environmentalEnd, 0.001F);
+        assertEquals(4, fog.renderDistanceEnd, 0.001F);
+        assertEquals(4, fog.skyEnd, 0.001F);
+        assertEquals(0, VisionFogState.limitCameraDistance(null, 4), 0.001F);
+        assertTrue(VisionFogState.zeroClearRange());
     }
 
     @BeforeEach
