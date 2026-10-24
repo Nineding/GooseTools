@@ -33,6 +33,11 @@ public final class VisionFogState {
     }
 
     public static boolean shouldHideEntityVisual(Entity entity) {
+        // Skill zero vision overrides every ordinary exception, including the viewed player,
+        // glowing players and the smooth transition from the configured vision radius.
+        if (totalBlindness) {
+            return true;
+        }
         Minecraft client = Minecraft.getInstance();
         if (client.player == null
                 || !(entity instanceof Player || entity instanceof Mannequin || entity instanceof ArmorStand
@@ -78,6 +83,9 @@ public final class VisionFogState {
 
     /** Particle positions have no glow exception and must be checked again on every frame. */
     public static boolean shouldHideTerrainParticle(double x, double y, double z) {
+        if (totalBlindness) {
+            return true;
+        }
         Minecraft client = Minecraft.getInstance();
         if (client.player == null) {
             return false;
@@ -105,6 +113,9 @@ public final class VisionFogState {
 
     /** Visibility of custom names, intentionally ignoring glow-outline exceptions. */
     public static float nameTagVisibilityAlpha(Entity entity) {
+        if (totalBlindness) {
+            return 0.0F;
+        }
         Minecraft client = Minecraft.getInstance();
         if (client.player == null) {
             return 0.0F;
