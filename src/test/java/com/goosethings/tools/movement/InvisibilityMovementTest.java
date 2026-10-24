@@ -6,6 +6,23 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 class InvisibilityMovementTest {
+    @Test void onlyStationaryRetainedSkillsSuppressTheirPhysicalBody() {
+        for (String role : Set.of("astralProjected", "sniperScoped", "esperPossessing")) {
+            var tags = new HashSet<>(Set.of("players", "projectionBodyRetained", role, "Seagull"));
+            assertTrue(InvisibilityMovement.stationaryProjection(tags), role);
+            for (String blocked : Set.of("mimeControlled", "mimeProjectionBodyTarget", "spectator",
+                    "deadInMap", "inTalk", "endGame")) {
+                tags.add(blocked);
+                assertFalse(InvisibilityMovement.stationaryProjection(tags), role + ": " + blocked);
+                tags.remove(blocked);
+            }
+            tags.remove("projectionBodyRetained");
+            assertFalse(InvisibilityMovement.stationaryProjection(tags), "ended " + role);
+        }
+        assertFalse(InvisibilityMovement.stationaryProjection(
+                Set.of("players", "projectionBodyRetained", "mimeControlling")));
+    }
+
     @Test void silenceEndsWhenThePlayerDiesEntersMeetingOrLeavesTheRound() {
         Set<String> skill = Set.of("players", "invs", "Invisibility");
         assertTrue(InvisibilityMovement.active(skill));

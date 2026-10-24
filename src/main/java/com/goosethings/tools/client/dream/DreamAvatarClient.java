@@ -53,6 +53,11 @@ public final class DreamAvatarClient {
     public static boolean active() { return view != null; }
     public static boolean retainedProjection() { return view != null && view.projectionKind() >= 0; }
     public static boolean followsTarget() { return view != null && view.projectionKind() == 2; }
+    public static boolean isStationaryBody(Entity entity) {
+        return entity != null && retainedProjection() && view.projectionKind() < 3
+                && entity == Minecraft.getInstance().player
+                && !com.goosethings.tools.client.mime.MimeControlClient.isControlled();
+    }
     public static boolean isControlledAvatar(Entity entity) { return controls(entity); }
     static boolean controls(Entity entity) {
         Minecraft client = Minecraft.getInstance();
@@ -160,6 +165,7 @@ public final class DreamAvatarClient {
         }
         reset(client);
         view = payload;
+        if (isStationaryBody(client.player)) client.player.setSprinting(false);
         if (client.player != null) tickBodyAnimation(client.player);
         flight = new DreamFlightPrediction(payload.flightScale());
         previousCamera = client.getCameraEntity();

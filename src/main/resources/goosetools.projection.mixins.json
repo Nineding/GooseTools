@@ -5,7 +5,8 @@
   "compatibilityLevel": "JAVA_25",
   "client": [
     "ProjectionClientLevelMixin",
-    "ProjectionBodyEntityMixin"
+    "ProjectionBodyEntityMixin",
+    "ProjectionBodyPlayerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

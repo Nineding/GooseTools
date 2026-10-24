@@ -73,6 +73,8 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
     private int ownBodyLerpFrames, ownBodyWalkFrames, victimControllerFrames;
     private float previousOwnBodyYaw;
     private double cameraTravel, ownBodyTravel;
+    public static boolean collectMovementEffects;
+    public static int sprintParticles, stepSounds;
     public static volatile boolean countCorrections;
     public static final java.util.concurrent.atomic.AtomicInteger corrections = new java.util.concurrent.atomic.AtomicInteger();
 
@@ -212,7 +214,7 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
             if (stage == 1) {
                 verifyClient(mc);
                 if(ownerView && (scenario%4==0 || scenario%4==1))
-                    require(mc.getCameraEntity().position().distanceTo(entry)>.5,"native input could not leave the original body: role="+ROLES[scenario%4]
+                    require(mc.getCameraEntity().position().subtract(entry).horizontalDistance()>.5,"native input could not leave the original body: role="+ROLES[scenario%4]
                             +", camera="+mc.getCameraEntity().position()+", body="+mc.player.position());
                 if(ownerView && !DreamAvatarClient.followsTarget())DreamAvatarClient.turn(
                         (90-mc.getCameraEntity().getYRot())/.15, -mc.getCameraEntity().getXRot()/.15);
@@ -284,17 +286,20 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
             require(!DreamAvatarClient.retainedProjection(),"owner retained remote camera after cleanup");
             if(!ownerView && scenario==7)require(!com.goosethings.tools.client.mime.MimeControlClient.isControlled()
                     && mc.getCameraEntity()==mc.player,"victim camera/input was not restored after disconnect cleanup");
+            boolean previouslySilent = scenario==2;
             server(mc,p->{
                 ServerPlayer source=source(p);
                 require(!ProjectionBodyServer.isRetained(source) && DreamAvatarServer.actor(source)==null,"server session survived cleanup");
                 require(!source.entityTags().contains("projectionBodyRetained"),"retained tag survived cleanup");
                 require(source.gameMode()==GameType.ADVENTURE,"projection changed the source game mode");
+                require(source.isSilent()==previouslySilent,"projection did not restore previous silence");
             });
+            if(scenario%4!=3)verifyMovementEffects(mc,ownerView?mc.player:mc.level.getEntity(sourceId),false);
             GooseTools.LOGGER.info("Retained projection passed {} {}",ownerView?"owner":"observer",ROLES[scenario%4]);
             if (++scenario==11) {
                 finish(mc,"PASS "+checks+" checks: actual four-role datapack entry points, owner and tracked remote observer, "
                         +"Seagull borrowing, predicted Mime input, continuous tracked player identity/walk cycles, victim follow camera with zero ongoing teleports, native body ID/render, 20-block separation, crosshair/voice origins, "
-                        +"physical/remote coordinates, armour, return, meeting/swallowing/death/disconnect cleanup");
+                        +"physical/remote coordinates, armour, airborne gravity/landing, native sprint particles/footsteps, silence restoration, return, meeting/swallowing/death/disconnect cleanup");
             } else stage=0;
         } catch (Throwable error) { GooseTools.LOGGER.error("Retained projection regression failed",error);finish(mc,"FAIL "+error); }
     }
@@ -327,10 +332,13 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
                 }
             } catch(Exception error){throw new RuntimeException(error);}
             objectives.addAll(List.of("ggdadv","ggdRoleSetting","carrotrightclick","gamesetting"));
+            GooseTools.LOGGER.info("Retained fixture initializing {} objectives",objectives.size());
             for(String name:objectives)if(srv.getScoreboard().getObjective(name)==null)command(player,"scoreboard objectives add "+name+" dummy");
             for(String setting:List.of("FullBloodDLC 1","DLCVisionFog 0","AstralDuration 50","SniperDuration 50","MimeDuration 10","EsperDuration 10"))
                 command(player,"scoreboard players set "+setting.split(" ")[0]+" ggdadv "+setting.split(" ")[1]);
-            for(int x=-8;x<=44;x++)for(int z=-8;z<=12;z++)player.level().setBlockAndUpdate(new BlockPos(x,80,z),Blocks.STONE.defaultBlockState());
+            GooseTools.LOGGER.info("Retained fixture building isolated arena");
+            for(int x=-8;x<=44;x++)for(int z=-8;z<=12;z++)player.level().setBlock(new BlockPos(x,80,z),Blocks.STONE.defaultBlockState(),2);
+            GooseTools.LOGGER.info("Retained fixture adding tracked observer");
             var profile=new GameProfile(UUID.randomUUID(),"RetainedObserver");
             var fake=new ServerPlayer(srv,player.level(),profile,ClientInformation.createDefault());
             fake.connection=new ServerGamePacketListenerImpl(srv,new Connection(PacketFlow.SERVERBOUND),fake,CommonListenerCookie.createInitial(profile,false)) {
@@ -340,6 +348,7 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
             srv.getPlayerList().getPlayers().add(fake);srv.getPlayerList().getPlayersByUUID().put(fake.getUUID(),fake);
             player.connection.send(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(fake)));
             player.level().addNewPlayer(fake);fakeId=fake.getUUID();
+            GooseTools.LOGGER.info("Retained fixture adding tracked walking player");
             var walkerProfile=new GameProfile(UUID.randomUUID(),"ProjectionWalker");
             var walker=new ServerPlayer(srv,player.level(),walkerProfile,ClientInformation.createDefault());
             walker.connection=new ServerGamePacketListenerImpl(srv,new Connection(PacketFlow.SERVERBOUND),walker,
@@ -351,6 +360,7 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
             srv.getPlayerList().getPlayers().add(walker);srv.getPlayerList().getPlayersByUUID().put(walker.getUUID(),walker);
             player.connection.send(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(walker)));
             player.level().addNewPlayer(walker);walkerId=walker.getUUID();walkerEntityId=walker.getId();
+            GooseTools.LOGGER.info("Retained fixture initialized");
             try {
                 Field verified=MandatoryHandshake.class.getDeclaredField("VERIFIED");verified.setAccessible(true);
                 ((Set<UUID>)verified.get(null)).add(fakeId);
@@ -366,12 +376,20 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
             for(String tag:List.of("players","gamingGGD","good"))p.addTag(tag);
             p.setGameMode(GameType.ADVENTURE);p.setHealth(p.getMaxHealth());p.noPhysics=false;
             p.getInventory().clearContent();
+            p.setSilent(false);
+            p.removeTag("ggdInvisibilitySilenced");p.removeTag("ggdInvisibilityWasSilent");
         }
         local.teleportTo(local.level(),.5,81,ownerView?.5:6.5,Set.of(),180,0,false);
         fake.teleportTo(fake.level(),ownerView?8.5:.5,81,ownerView?6.5:.5,Set.of(),0,0,false);
         local.addTag("p1");fake.addTag("p2");
         ServerPlayer source=source(local),target=source==local?fake:local;
         entry=source.position();sourceId=source.getId();
+        if(scenario%4!=3) {
+            source.teleportTo(source.level(),entry.x,entry.y+4,entry.z,Set.of(),180,0,false);
+            source.setSprinting(true);
+            source.setDeltaMovement(.2,.3,.1);
+        }
+        if(scenario==2)source.setSilent(true);
         source.setItemSlot(EquipmentSlot.CHEST,new ItemStack(Items.GOLDEN_CHESTPLATE));
         target.setItemSlot(EquipmentSlot.CHEST,new ItemStack(Items.DIAMOND_CHESTPLATE));
         int role=scenario%4;source.addTag(TAGS[role]);
@@ -383,6 +401,7 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
         command(source,"function ggd:skill/"+ROLES[role]+"/"+action);
         require(ProjectionBodyServer.isRetained(source),"actual role entry did not retain its body: "+ROLES[role]);
         require(DreamAvatarServer.actor(source)!=null,"actual role entry did not create its remote actor");
+        if(scenario%4!=3)require(source.getY()>entry.y+3.9,"skill entry snapped airborne body to the floor");
     }
 
     private void separate(ServerPlayer local) {
@@ -395,6 +414,12 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
         ServerPlayer source=source(local);Entity actor=DreamAvatarServer.actor(source);
         require(actor!=null && actor.position().distanceTo(source.position())>10,"body followed the remote actor");
         require(source.position().distanceTo(entry)<.2,"stationary body left its entry point");
+        if(scenario%4!=3) {
+            require(source.onGround(),"airborne body did not land: "+ROLES[scenario%4]);
+            require(!source.isSprinting() && source.isSilent(),"retained body kept native sprint/sound state");
+            require(Math.abs(ProjectionBodyServer.visualAnchor(source).position().y-entry.y)<.01,
+                    "body hit anchor did not fall to its landing point");
+        }
         require(source.getId()==sourceId && source.level().getEntity(sourceId)==source,"native player body was replaced");
         require(source.gameMode()==GameType.ADVENTURE && !source.isInvisible(),"real body became spectator/invisible");
         require(source.getItemBySlot(EquipmentSlot.CHEST).is(Items.GOLDEN_CHESTPLATE),"body inherited target armour");
@@ -418,6 +443,7 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
     }
 
     private void verifyClient(Minecraft mc) {
+        if(scenario%4!=3)verifyMovementEffects(mc,ownerView?mc.player:mc.level.getEntity(sourceId),true);
         if(ownerView) {
             require(DreamAvatarClient.retainedProjection() && mc.getCameraEntity()!=mc.player,"owner camera never left physical body");
             for(float partial:new float[]{0,.5F,1}) {
@@ -435,6 +461,33 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
             var state=(AvatarRenderState)mc.getEntityRenderDispatcher().extractEntity(body,1);
             require(!state.isInvisible && !state.isInvisibleToPlayer && !state.isSpectator,"observer real body did not have a visible full render state");
         }
+    }
+
+    private void verifyMovementEffects(Minecraft mc,Entity body,boolean quiet) {
+        require(body!=null,"native movement-effect body is missing");
+        require(!quiet || !body.isSprinting(),"stationary body's sprint metadata survived");
+        require(!quiet || body.isSilent(),"body silence did not reach the real client");
+        boolean sprinting=body.isSprinting();
+        try {
+            var particle=Entity.class.getDeclaredMethod("spawnSprintParticle");particle.setAccessible(true);
+            var step=net.minecraft.world.entity.player.Player.class.getDeclaredMethod("playStepSound",
+                    BlockPos.class,net.minecraft.world.level.block.state.BlockState.class);step.setAccessible(true);
+            sprintParticles=stepSounds=0;collectMovementEffects=true;
+            // Owners must reject even an old sprint flag before the next metadata tick.
+            // Observers use the authoritative sprint flag sent by the real server.
+            if(!quiet || ownerView)body.setSprinting(true);
+            if(!quiet || ownerView || body.canSpawnSprintParticle())particle.invoke(body);
+            step.invoke(body,BlockPos.containing(body.getX(),80,body.getZ()),Blocks.STONE.defaultBlockState());
+            if(quiet)require(sprintParticles==0 && stepSounds==0,
+                    "stationary body emitted effects: particles="+sprintParticles+", steps="+stepSounds);
+            else {
+                require(sprintParticles>0,"ordinary sprint particles did not recover");
+                // Remote-player footsteps arrive as server sound packets; only
+                // the local player's direct step call emits a client sound.
+                require(!ownerView || body.isSilent() || stepSounds>0,"ordinary footsteps did not recover");
+            }
+        } catch(ReflectiveOperationException error) {throw new RuntimeException(error);}
+        finally {collectMovementEffects=false;body.setSprinting(sprinting);}
     }
 
     private void end(ServerPlayer local) {
