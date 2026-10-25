@@ -48,6 +48,19 @@ public final class DreamTcpFixture {
                     || client.player.connection.getConnection().isMemoryConnection())
                 throw new AssertionError("Fixture must use a dedicated server and real TCP, not an integrated/memory connection");
             verified=true;
+            // Loading the full pack and building its isolated arena can stall the
+            // server thread on slower machines. Keep the TCP connection alive for
+            // setup; the Gradle task still has its bounded overall timeout.
+            try {
+                var field=net.minecraft.network.Connection.class.getDeclaredField("channel");
+                field.setAccessible(true);
+                var channel=(io.netty.channel.Channel)field.get(client.player.connection.getConnection());
+                channel.eventLoop().execute(()->{
+                    var timeout=channel.pipeline().get(io.netty.handler.timeout.ReadTimeoutHandler.class);
+                    if(timeout!=null)channel.pipeline().replace(timeout,"projection-setup-timeout",
+                            new io.netty.handler.timeout.ReadTimeoutHandler(120));
+                });
+            } catch(ReflectiveOperationException error) {throw new IllegalStateException(error);}
             GooseTools.LOGGER.info("Projection regression connected to native dedicated server through real TCP");
         }
         return client.level==null;

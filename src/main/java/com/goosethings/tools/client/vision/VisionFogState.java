@@ -27,7 +27,7 @@ public final class VisionFogState {
     private static float targetClearRadius = 12.0F;
     private static float targetFullFogRadius = 16.0F;
     private static boolean horizontalCylinder;
-    private static volatile boolean totalBlindness;
+    private static volatile boolean zeroClearRange;
 
     private VisionFogState() {
     }
@@ -44,7 +44,12 @@ public final class VisionFogState {
                 && !com.goosethings.tools.client.dream.DreamAvatarClient.retainedProjection()) {
             return false;
         }
-        if (BirdwatcherClientState.isLimitedActive()) {
+        // Other players and retained bodies stay hidden inside the normal fog gradient too.
+        if (zeroClearRange && (entity instanceof Player
+                || com.goosethings.tools.client.nametag.NameTagClientState.isManaged(entity))) {
+            return true;
+        }
+        if (birdwatcherLimitedActive()) {
             // Submit the complete entity only while some part of its horizontal bounds
             // can touch the rendered field. This keeps players visible through validated
             // transparent walls without allowing late armour/item layers to leak through
@@ -83,7 +88,7 @@ public final class VisionFogState {
             return false;
         }
         Entity viewer = visibilityAnchor(client);
-        if (BirdwatcherClientState.isLimitedActive()) {
+        if (birdwatcherLimitedActive()) {
             Vec3 look = viewer.getLookAngle();
             return !BirdwatcherVisionMath.inLimitedField(
                     x - viewer.getX(), z - viewer.getZ(), look.x(), look.z(),
@@ -114,7 +119,11 @@ public final class VisionFogState {
                 && !com.goosethings.tools.client.dream.DreamAvatarClient.retainedProjection()) {
             return 1.0F;
         }
-        if (BirdwatcherClientState.isLimitedActive()) {
+        if (zeroClearRange && (entity instanceof Player
+                || com.goosethings.tools.client.nametag.NameTagClientState.isManaged(entity))) {
+            return 0.0F;
+        }
+        if (birdwatcherLimitedActive()) {
             var bounds = entity.getBoundingBox();
             double maximumRenderedRange = birdwatcherLimitedRange() + birdwatcherFadeDistance();
             var look = viewer.getLookAngle();
@@ -149,7 +158,10 @@ public final class VisionFogState {
     }
 
     public static float limitCameraDistance(Camera camera, float vanilla) {
-        if (BirdwatcherClientState.isLimitedActive()) {
+        if (zeroClearRange) {
+            return 0.0F;
+        }
+        if (birdwatcherLimitedActive()) {
             return VisionBoundary.cameraDistance(
                     vanilla,
                     (float) BirdwatcherVisionMath.NEAR_RADIUS,
@@ -167,15 +179,25 @@ public final class VisionFogState {
         ShaderVisionMask.register();
     }
 
-    public static boolean totalBlindness() { return totalBlindness; }
+    public static boolean zeroClearRange() { return zeroClearRange; }
+
+    static boolean birdwatcherLimitedActive() {
+        return !zeroClearRange && BirdwatcherClientState.isLimitedActive();
+    }
 
     public static void apply(boolean active, float clear, float fullFog, boolean useHorizontalCylinder) {
-        totalBlindness = active && clear <= 0.0F && fullFog <= 0.0F;
+        zeroClearRange = active && clear <= 0.0F;
         targetStrength = active ? 1.0F : 0.0F;
         // Normal settings are still authored as 4..32 blocks. Emergency overrides may
         // intentionally use a smaller player-centred radius, such as GooseShip's 2 blocks.
         targetClearRadius = Math.clamp(clear, 0.0F, 64.0F);
         targetFullFogRadius = Math.max(targetClearRadius + MIN_FOG_SPAN, fullFog);
+        if (zeroClearRange) {
+            // The skill range takes effect immediately without replacing world rendering.
+            strength = targetStrength;
+            clearRadius = targetClearRadius;
+            fullFogRadius = targetFullFogRadius;
+        }
         // Preserve the current shape while fading out so a meeting transition cannot
         // briefly turn the player-centred cylinder back into spherical distance fog.
         if (active) {
@@ -184,7 +206,7 @@ public final class VisionFogState {
     }
 
     public static boolean shouldBlockSky() {
-        return strength > 0.001F || BirdwatcherClientState.isLimitedActive();
+        return strength > 0.001F || birdwatcherLimitedActive();
     }
 
     public static float birdwatcherLimitedRange() {
@@ -198,7 +220,7 @@ public final class VisionFogState {
     public static void applyTo(FogData fog, Camera camera) {
         // Birdwatcher uses a 2-block shell with a forward opening. Radial fog would
         // incorrectly close that opening before its configured 2x observation range.
-        if (strength <= 0.001F || BirdwatcherClientState.isLimitedActive()) {
+        if (strength <= 0.001F || birdwatcherLimitedActive()) {
             return;
         }
 
@@ -263,7 +285,7 @@ public final class VisionFogState {
     }
 
     private static void reset() {
-        totalBlindness = false;
+        zeroClearRange = false;
         strength = 0.0F;
         targetStrength = 0.0F;
         clearRadius = 12.0F;

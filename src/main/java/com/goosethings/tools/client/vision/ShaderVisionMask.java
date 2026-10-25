@@ -55,7 +55,7 @@ final class ShaderVisionMask {
         }
 
         VisionFogState.MaskParameters parameters = VisionFogState.maskParameters(camera);
-        boolean birdwatcherLimited = BirdwatcherClientState.isLimitedActive();
+        boolean birdwatcherLimited = VisionFogState.birdwatcherLimitedActive();
         if (parameters.strength() <= 0.001F && !birdwatcherLimited) {
             activationLogged = false;
             return;

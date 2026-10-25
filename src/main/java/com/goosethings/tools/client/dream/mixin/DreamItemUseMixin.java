@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Dream toolbar buttons must reach item use even when the camera points at an interactive block. */
+/** Task tools must reach item use before distant block/entity prediction can reject the click. */
 @Mixin(Minecraft.class)
 public abstract class DreamItemUseMixin {
     @Shadow private int rightClickDelay;
@@ -44,12 +44,15 @@ public abstract class DreamItemUseMixin {
     @Inject(method = "startUseItem", at = @At("HEAD"), cancellable = true)
     private void dream$useToolbar(CallbackInfo callback) {
         Minecraft client = (Minecraft) (Object) this;
-        if (!DreamAvatarClient.active() || client.player == null || client.gameMode == null
-                || !client.player.getMainHandItem().is(Items.CARROT_ON_A_STICK)) return;
-        // Task rods must reach entity interactions; preserve toolbar/skill item use for other targets.
-        var data = client.player.getMainHandItem().getOrDefault(net.minecraft.core.component.DataComponents.CUSTOM_DATA,
+        if (!DreamAvatarClient.active() || client.player == null || client.gameMode == null) return;
+        var held = client.player.getMainHandItem();
+        if (!held.is(Items.CARROT_ON_A_STICK) && held.getUseDuration(client.player) <= 0
+                && !held.is(Items.FISHING_ROD)) return;
+        // Task rods use native entity interaction; charged tools keep upstream's item-use path.
+        var data = held.getOrDefault(net.minecraft.core.component.DataComponents.CUSTOM_DATA,
                 net.minecraft.world.item.component.CustomData.EMPTY).copyTag();
-        if (data.getBooleanOr("task", false) && client.hitResult instanceof net.minecraft.world.phys.EntityHitResult hit
+        if (held.is(Items.CARROT_ON_A_STICK) && data.getBooleanOr("task", false)
+                && client.hitResult instanceof net.minecraft.world.phys.EntityHitResult hit
                 && hit.getEntity() instanceof net.minecraft.world.entity.Interaction) return;
         rightClickDelay = 4;
         AimClaimClient.captureBeforeItemUse(client);

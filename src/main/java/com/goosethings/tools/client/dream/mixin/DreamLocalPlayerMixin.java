@@ -15,6 +15,7 @@ public abstract class DreamLocalPlayerMixin {
     private void dream$inputOnly(CallbackInfo callback) {
         if (!DreamAvatarClient.active()) return;
         LocalPlayer player = (LocalPlayer) (Object) this;
+        if (DreamAvatarClient.isStationaryBody(player)) player.setSprinting(false);
         // The remote avatar samples its own input outside this body's simulation.
         com.goosethings.tools.client.input.GuiMovementGuard.clear(player.input);
         player.setDeltaMovement(Vec3.ZERO);

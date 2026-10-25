@@ -214,8 +214,13 @@ public final class ProjectionBodyServer {
                 player.getUUID(), kind, snapshot, anchor.getUUID(),
                 GooseToolsPayloads.ProjectionBody.PREPARED, -1));
         if (!kind.isDream()) {
+            boolean wasSprinting = player.isSprinting();
+            // The remote actor copies movement attributes during construction;
+            // do not bake the old body's sprint multiplier into its base speed.
+            if (kind.supportsMimeBodyControl()) player.setSprinting(false);
             player.addTag("projectionBodyRetained");
             if (!DreamAvatarServer.beginProjection(player, kind)) {
+                player.setSprinting(wasSprinting);
                 player.removeTag("projectionBodyRetained");
                 SESSIONS.remove(player.getUUID());
                 anchor.discard();

@@ -245,7 +245,7 @@ loom {
             runDir 'build/retained-projection-regression-test'
             vmArg '-Dgoosetools.retainedProjectionRegression=true'
             vmArg '-Dgoosetools.testTcp=' + providers.gradleProperty('tcpFixture').getOrElse('false')
-            vmArg '-Dgoosetools.retainedDatapack=' + file('../../../GooseGooseDuck/datapack').absolutePath
+            vmArg '-Dgoosetools.retainedDatapack=' + file(providers.gradleProperty('retainedDatapack').getOrElse('../../../GooseGooseDuck/datapack')).absolutePath
             programArg '--width'
             programArg '1000'
             programArg '--height'
