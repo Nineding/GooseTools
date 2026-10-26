@@ -64,6 +64,7 @@ public final class GooseToolsClient implements ClientModInitializer {
         BirdwatcherClientState.register();
         WitchDoctorTargetClient.register();
         NameTagClientState.register();
+        com.goosethings.tools.client.spectator.SpectatorGlowClient.register();
         NameTagRenderer.register();
         PlayerMarkerItemDecorator.register();
         WEB_MANAGER.register();

@@ -42,6 +42,7 @@ public final class DreamAvatarRegression implements ClientModInitializer {
     private UUID chairId;
     private Vec3 seatedPosition, movementStart;
     private int bodyId;
+    private int interactionCase, interactionTarget;
     private Vec3 vehicleStart;
     private ItemStack stableEquipment, expectedEquipment;
     private double previousFlightZ;
@@ -159,6 +160,20 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                                 "teleport @s 515.5 101 4.5 45 0\nfunction ggd:talker/dream_regression_physical\nexecute store result score #ChildX dreamCheck run data get entity @s Pos[0]\n");
                         Files.writeString(pack.resolve("data/ggd/function/talker/dream_regression_physical.mcfunction"),
                                 "execute store result score #ChairX dreamCheck run data get entity @s Pos[0]\n");
+                        Files.writeString(pack.resolve("data/ggd/function/task/dream_regression/spatial.mcfunction"),
+                                "execute store success score #SelfBox dreamCheck if entity @s[x=515,y=100,z=4,dx=1,dy=2,dz=1]\n"
+                                + "execute store success score #PlayersBox dreamCheck if entity @a[x=515,y=100,z=4,dx=1,dy=2,dz=1]\n"
+                                + "execute at @s store success score #EntityPlayer dreamCheck if entity @e[type=minecraft:player,distance=..1]\n"
+                                + "execute store success score #EntityBox dreamCheck if entity @e[type=minecraft:player,x=515,y=100,z=4,dx=1,dy=2,dz=1]\n"
+                                + "execute at @s store success score #EntityAny dreamCheck if entity @e[tag=dreamRegressionCandidate,distance=..1]\n"
+                                + "execute at @s store success score #EntityNotPlayer dreamCheck if entity @e[type=!minecraft:player,tag=dreamRegressionCandidate,distance=..1]\n"
+                                + "execute at @s store success score #EntityMannequin dreamCheck if entity @e[type=minecraft:mannequin,tag=dreamRegressionCandidate,distance=..1]\n"
+                                + "scoreboard players set #EntityCount dreamCheck 0\n"
+                                + "execute at @s as @e[tag=dreamRegressionCandidate,distance=..1] run scoreboard players add #EntityCount dreamCheck 1\n"
+                                + "execute at @s store success score #EntityNearest dreamCheck if entity @e[tag=dreamRegressionCandidate,distance=..1,sort=nearest,limit=1]\n"
+                                + "execute store success score #SelectorPos dreamCheck if entity @s[nbt={Pos:[515.5d,101.0d,4.5d]}]\n"
+                                + "execute store success score #SelectorGround dreamCheck if entity @s[nbt={OnGround:1b}]\n"
+                                + "execute store success score #SelectorSelected dreamCheck if entity @s[nbt={SelectedItem:{id:\"minecraft:carrot_on_a_stick\"}}]\n");
                         srv.getPackRepository().reload();
                         var packs = new java.util.ArrayList<>(srv.getPackRepository().getSelectedIds());
                         packs.add("file/dream-check");
@@ -170,6 +185,7 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                 return;
             }
             if(stage==6) {checkGroundControls(mc);return;}
+            if(stage==7) {checkNativeInteractions(mc);return;}
             if (stage == 0) {
                 if (scenario == 0 && mc.player.tickCount < 30) return;
                 mc.player.walkAnimation.update(.8F,1,1);
@@ -353,7 +369,8 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                     movementStart=DreamStandInClient.liveAvatar(mc.player.getUUID()).position();
                     previousFlightZ=movementStart.z;
                     DreamTestLatency.enabled=true;
-                    mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);stage=2;ticks=0;targetWait=0;
+                    mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
+                    DreamTestLatency.enabled=false;stage=7;ticks=0;targetWait=0;interactionCase=0;
                 }
             } else if (stage == 2) {
                 DreamRemotePlayer body = DreamStandInClient.liveAvatar(mc.player.getUUID());
@@ -402,6 +419,8 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                                 "queued function/selectors did not use dream space");
                         require(score(p, "#ChildX") == 515 && score(p, "#ScopeAfter") == 515 && score(p, "#ChairX") == 0,
                                 "nested gameplay/physical scopes did not restore correctly");
+                        checkSpatialSelectors(p);
+                        checkGuiCallbacksOutsideFunctionScope(p);
                         assertSeated(p);
                         p.swing(net.minecraft.world.InteractionHand.MAIN_HAND, net.minecraft.world.item.component.SwingAnimation.DEFAULT, false);
                         require(!p.isSwinging(), "normal dream swing reached meeting body");
@@ -486,11 +505,174 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                 stage = 4;
             } else if (stage == 4 && scenario == 0) { scenario++; stage = 0; ticks = 0; }
             else if (stage == 4) finish(mc, "PASS overworld Lucid and cross-dimension End Raven: separated body/camera, far-away chunks, visible skin/equipment, "
-                    + "immediate Lucid movement with delayed input/state, wall/reverse/stop/jump/landing/slab, original Raven flight speed, dense sample interpolation and immediate skill displacement, local mouse look unaffected by stale samples, nine number-key slots, actual dream inventory rewards with stable button instances across 15 refreshes, native remote skill right-click at an interactive chest, remote-control rotation/pose protected from native meeting input, first-person hands, map coordinates, boat/camel steering, native input isolation, task coordinates/NBT/teleport/nested scopes, swing isolation, actual wake and meeting redraw, force-end cleanup and real lobby inventory reward; "
+                    + "immediate Lucid movement with delayed input/state, wall/reverse/stop/jump/landing/slab, original Raven flight speed, dense sample interpolation and immediate skill displacement, local mouse look unaffected by stale samples, nine number-key slots, actual dream inventory rewards with stable button instances across 15 refreshes, native remote skill right-click at an interactive chest, remote-control rotation/pose protected from native meeting input, first-person hands, map coordinates, boat/camel steering, native right/left interaction packets with empty hand/task rod/axe and reach rejection, task tools survive full inventory refreshes, native input isolation, task coordinates/NBT/teleport/nested scopes, same/cross-dimension player and entity AABB selectors, airborne selector NBT and owner SelectedItem, unscoped GUI dimension/tick and arcade progress, swing isolation, actual wake and meeting redraw, force-end cleanup and real lobby inventory reward; "
                     + "meeting UUID/entity ID/position/passenger unchanged throughout");
         } catch (Throwable error) {
             GooseTools.LOGGER.error("Dream avatar regression failed", error);
             finish(mc, "FAIL " + error);
+        }
+    }
+
+    /** Native client actions must create the original interaction/attack NBT as the real owner. */
+    private void checkNativeInteractions(Minecraft mc) {
+        if (ticks == 0) {
+            final int testCase=interactionCase;
+            pending=server(mc,p -> {
+                Entity actor=DreamAvatarServer.actor(p);
+                command(p,"function ggd:skill/dream/render_remote");
+                if (interactionCase==0) {
+                    // Full inventory callbacks must preserve both active tools and pre-tag task grants.
+                    for (boolean active : new boolean[]{true,false}) {
+                        if(active)p.addTag("inTask");else p.removeTag("inTask");
+                        command(p,"item replace entity @s hotbar.1 with copper_axe[custom_data={task:1b,dreamProbe:1b}]");
+                        var tool=p.getInventory().getItem(1);
+                        for(int refresh=0;refresh<12;refresh++)command(p,"advancement grant @s only mainsys:test/ifinvchange");
+                        require(p.getInventory().getItem(1)==tool,"dream slot two overwrote task tool; active="+active);
+                    }
+                    p.addTag("inTask");
+                    command(p,"item replace entity @s hotbar.1 with red_tulip[custom_data={donkeytransTaskRod:1b}]");
+                    var cargo=p.getInventory().getItem(1);
+                    for(int refresh=0;refresh<12;refresh++)command(p,"advancement grant @s only mainsys:test/ifinvchange");
+                    require(p.getInventory().getItem(1)==cargo,"dream slot two overwrote a legacy unmarked task tool");
+                }
+                p.addTag("inTask");
+                if(interactionCase==1)command(p,"item replace entity @s hotbar.1 with carrot_on_a_stick[custom_data={task:1b,dreamProbe:1b,ggdManagedHotbar:1b,ggdHotbarSlot:1,ggdHotbarState:\"dream_interaction_probe\"}]");
+                else if(interactionCase>=2)command(p,"item replace entity @s hotbar.1 with copper_axe[custom_data={task:1b,dreamProbe:1b}]");
+                else command(p,"item replace entity @s hotbar.1 with air");
+                p.getInventory().setSelectedSlot(1);
+                var target=EntityTypes.INTERACTION.create((net.minecraft.server.level.ServerLevel)actor.level(),EntitySpawnReason.COMMAND);
+                require(target!=null,"interaction fixture creation");
+                target.setWidth(1);target.setHeight(2.5F);target.setResponse(true);
+                target.absSnapTo(actor.getX(),actor.getY(),actor.getZ()+(interactionCase==3?14:2));
+                target.addTag("dreamInteractionProbe");actor.level().addFreshEntity(target);interactionTarget=target.getId();
+                p.inventoryMenu.sendAllDataToRemote();assertSeated(p);
+            });
+            ticks=1;targetWait=0;return;
+        }
+        if(ticks==1) {
+            var target=mc.level.getEntity(interactionTarget);
+            boolean itemReady=interactionCase==0?mc.player.getInventory().getItem(1).isEmpty()
+                    :mc.player.getInventory().getItem(1).is(interactionCase==1?Items.CARROT_ON_A_STICK:Items.COPPER_AXE);
+            if(target==null||!itemReady){require(++targetWait<120,"interaction fixture timeout: case="+interactionCase+", target="+target+", slot="+mc.player.getInventory().getItem(1)+", expectedItemReady="+itemReady);return;}
+            mc.player.getInventory().setSelectedSlot(1);
+            var hit=new net.minecraft.world.phys.EntityHitResult(target,target.getBoundingBox().getCenter());
+            mc.hitResult=hit;
+            try {
+                var use=Minecraft.class.getDeclaredMethod("startUseItem");use.setAccessible(true);
+                var attack=Minecraft.class.getDeclaredMethod("startAttack");attack.setAccessible(true);
+                // Inject only the picked target; vanilla client range checks and both native packets still run.
+                if(interactionCase<2||interactionCase==3)use.invoke(mc);
+                if(interactionCase>=2)attack.invoke(mc);
+            } catch(ReflectiveOperationException error){throw new AssertionError(error);}
+            ticks=2;return;
+        }
+        if(++ticks<14)return;
+        final int completedCase=interactionCase;
+        pending=server(mc,p -> {
+            var actor=DreamAvatarServer.actor(p);
+            var target=actor.level().getEntity(interactionTarget);
+            require(target!=null,"interaction fixture vanished");
+            var data=new EntityDataAccessor(target).getData();
+            if(completedCase==3)require(!data.contains("attack")&&!data.contains("interaction"),"remote interaction bypassed native reach limit");
+            else {
+                String action=completedCase<2?"interaction":"attack";
+                require(data.contains(action),"native "+action+" did not reach distant task entity in scenario="+scenario+", case="+completedCase);
+                var recorded=data.getCompound(action).orElseThrow();
+                var ids=recorded.getIntArray("player").orElseThrow();
+                var owner=net.minecraft.core.UUIDUtil.uuidFromIntArray(ids);
+                require(owner.equals(p.getUUID()),"interaction credited the detached avatar instead of the authenticated player");
+            }
+            target.discard();assertSeated(p);
+            if(completedCase==3){
+                p.removeTag("inTask");command(p,"item replace entity @s hotbar.1 with air");
+                command(p,"advancement grant @s only mainsys:test/ifinvchange");
+                assertDreamToolbar(p);expectedEquipment=p.getMainHandItem().copy();
+            }
+        });
+        if(++interactionCase<4){ticks=0;return;}
+        // The queued server assertion must use its own immutable case index.
+        stage=2;ticks=0;targetWait=0;
+        movementStart=DreamStandInClient.liveAvatar(mc.player.getUUID()).position();previousFlightZ=movementStart.z;
+        DreamTestLatency.enabled=true;
+    }
+
+    /** Exercise vanilla selector candidates and NBT serialization rather than only accessor reads. */
+    private void checkSpatialSelectors(ServerPlayer player) {
+        Entity actor = DreamAvatarServer.actor(player);
+        require(actor != null && !DreamSpatialContext.enabled(), "selector fixture entered a leaked scope");
+        boolean grounded = actor.onGround();
+        player.addTag("dreamRegressionCandidate");
+        try {
+            actor.setOnGround(true);
+            command(player, "function ggd:task/dream_regression/spatial");
+            for (String holder : java.util.List.of("#SelfBox", "#PlayersBox", "#EntityPlayer", "#EntityBox",
+                    "#EntityAny", "#SelectorPos", "#SelectorGround", "#SelectorSelected"))
+                require(score(player, holder) == 1, "dream selector failed " + holder + " in scenario " + scenario);
+            require(score(player, "#EntityNotPlayer") == 0 && score(player, "#EntityMannequin") == 0,
+                    "entity selector replaced authenticated player type with the remote mannequin");
+            require(score(player, "#EntityCount") == 1 && score(player, "#EntityNearest") == 1,
+                    "entity selector duplicated the dream owner or lost sorting/limit");
+            actor.setOnGround(false);
+            command(player, "function ggd:task/dream_regression/spatial");
+            require(score(player, "#SelectorGround") == 0, "selector NBT did not follow remote airborne state");
+            require(score(player, "#SelectorSelected") == 1, "selector lost authenticated owner inventory");
+            require(!DreamSpatialContext.enabled(), "selector query leaked its spatial scope");
+            assertSeated(player);
+        } finally { actor.setOnGround(grounded); player.removeTag("dreamRegressionCandidate"); }
+    }
+
+    /** GUI packets and END_SERVER_TICK run outside the mcfunction lens that opened the task. */
+    private void checkGuiCallbacksOutsideFunctionScope(ServerPlayer player) {
+        Entity actor = DreamAvatarServer.actor(player);
+        require(actor != null && !DreamSpatialContext.enabled(), "GUI fixture entered a leaked scope");
+        var savedTags = new java.util.HashSet<>(player.entityTags());
+        var scoreboard = player.level().getServer().getScoreboard();
+        var sessionObjective = scoreboard.getObjective("ggdSession");
+        if (sessionObjective == null) {
+            command(player, "scoreboard objectives add ggdSession dummy");
+            sessionObjective = scoreboard.getObjective("ggdSession");
+        }
+        var phaseHolder = net.minecraft.world.scores.ScoreHolder.forNameOnly("#MeetingPhase");
+        var oldPhase = scoreboard.getPlayerScoreInfo(phaseHolder, sessionObjective);
+        int previousPhase = oldPhase == null ? 0 : oldPhase.value();
+        var position = actor.position();
+        float yaw = actor.getYRot(), pitch = actor.getXRot();
+        try {
+            for (String tag : java.util.List.of("players", "LucidDreamer", "inDream", "dreamMeetingParticipant")) player.addTag(tag);
+            for (String tag : java.util.List.of("Raven", "dreamTaskCap", "inTalk", "spectator", "deadInMap", "dlcGhostActive")) player.removeTag(tag);
+            scoreboard.getOrCreatePlayerScore(phaseHolder, sessionObjective).set(1);
+            long id = com.goosethings.tools.task.TaskServer.openBound(player, com.goosethings.tools.task.TaskType.TIMING);
+            require(id != 0, "legal lucid task rejected outside a command scope");
+            var sessionsField = com.goosethings.tools.task.TaskServer.class.getDeclaredField("SESSIONS");
+            sessionsField.setAccessible(true);
+            var sessions = (java.util.Map<?, ?>) sessionsField.get(null);
+            Object trial = sessions.get(player.getUUID());
+            require(trial != null, "bound task did not create an authoritative trial");
+            var dimensionField = trial.getClass().getDeclaredField("dimension");
+            dimensionField.setAccessible(true);
+            require(actor.level().dimension().equals(dimensionField.get(trial)), "task captured the meeting body dimension");
+            var tickMethod = com.goosethings.tools.task.TaskServer.class.getDeclaredMethod("tick", net.minecraft.server.MinecraftServer.class);
+            tickMethod.setAccessible(true);
+            // Invoke the registered tick body after leaving the opening scope; this is the
+            // dimension validation that formerly closed a cross-dimension task on its first tick.
+            tickMethod.invoke(null, player.level().getServer());
+            require(sessions.get(player.getUUID()) == trial, "bound dream task was closed by its unscoped server tick");
+            com.goosethings.tools.task.TaskServer.close(player);
+            if (actor.level().dimension().equals(net.minecraft.world.level.Level.OVERWORLD)) {
+                require(DreamAvatarServer.move(player, (net.minecraft.server.level.ServerLevel) actor.level(),
+                        new Vec3(-1669.5, 72, -500.5), yaw, pitch), "arcade callback fixture teleport failed");
+                require(com.goosethings.tools.task.ArcadeStations.insideArcade(player),
+                        "unscoped arcade progress used the meeting chair position");
+            }
+            require(!DreamSpatialContext.enabled(), "GUI callback leaked its spatial scope");
+            assertSeated(player);
+        } catch (ReflectiveOperationException error) { throw new AssertionError(error); }
+        finally {
+            com.goosethings.tools.task.TaskServer.close(player);
+            DreamAvatarServer.move(player, (net.minecraft.server.level.ServerLevel) actor.level(), position, yaw, pitch);
+            scoreboard.getOrCreatePlayerScore(phaseHolder, sessionObjective).set(previousPhase);
+            for (String tag : new java.util.HashSet<>(player.entityTags())) if (!savedTags.contains(tag)) player.removeTag(tag);
+            for (String tag : savedTags) player.addTag(tag);
         }
     }
 

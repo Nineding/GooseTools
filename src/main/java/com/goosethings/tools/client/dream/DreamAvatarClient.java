@@ -51,6 +51,7 @@ public final class DreamAvatarClient {
     }
 
     public static boolean active() { return view != null; }
+    public static boolean observing() { return view != null && view.projectionKind() == com.goosethings.tools.dream.ObserverDreamPolicy.VIEW_KIND; }
     public static boolean retainedProjection() { return view != null && view.projectionKind() >= 0; }
     public static boolean followsTarget() { return view != null && view.projectionKind() == 2; }
     public static boolean isStationaryBody(Entity entity) {

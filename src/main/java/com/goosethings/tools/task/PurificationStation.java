@@ -2,6 +2,7 @@ package com.goosethings.tools.task;
 
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.server.level.ServerPlayer;
+import com.goosethings.tools.dream.DreamSpatialContext;
 import net.minecraft.server.permissions.PermissionSet;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -26,6 +27,9 @@ public final class PurificationStation {
         });
     }
     public static boolean valid(ServerPlayer p, TaskType type) {
+        return DreamSpatialContext.runFor(p, () -> validAtActor(p, type));
+    }
+    private static boolean validAtActor(ServerPlayer p, TaskType type) {
         if (type != TaskType.PURIFICATION && type != TaskType.PURIFICATIONLASER) return true;
         if (!GuiTaskBridge.eligible(p) || !GuiTaskEligibility.kindAllowed(p.entityTags(), type.id)
                 || GuiTaskBridge.map(p) != 11 || !p.level().dimension().equals(Level.OVERWORLD)

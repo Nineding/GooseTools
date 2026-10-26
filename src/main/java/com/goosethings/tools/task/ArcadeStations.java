@@ -4,6 +4,7 @@ import com.goosethings.tools.game.GameServer;
 import com.goosethings.tools.game.GameType;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.server.level.ServerPlayer;
+import com.goosethings.tools.dream.DreamSpatialContext;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.level.Level;
@@ -50,6 +51,9 @@ public final class ArcadeStations {
                 && player.isWithinBlockInteractionRange(pos, 0);
     }
     public static boolean insideArcade(ServerPlayer p) {
+        return DreamSpatialContext.runFor(p, () -> insideArcadeAtActor(p));
+    }
+    private static boolean insideArcadeAtActor(ServerPlayer p) {
         return p.level().dimension().equals(Level.OVERWORLD) && insideArcade(p.getX(), p.getY(), p.getZ());
     }
     public static boolean insideArcade(double x, double y, double z) {

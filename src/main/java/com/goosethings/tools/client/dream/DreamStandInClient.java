@@ -48,6 +48,29 @@ public final class DreamStandInClient {
     private DreamStandInClient() {
     }
 
+    /** Final render-state override: no server entity or personal marker can light the meeting room. */
+    public static boolean applyObserverOutline(Entity entity, net.minecraft.client.renderer.entity.state.EntityRenderState state) {
+        if (!DreamAvatarClient.observing()) return false;
+        View view = entity == null ? null : VIEWS.get(entity.getUUID());
+        boolean evidence = view != null && view.model == entity && view.renderReady
+                && com.goosethings.tools.dream.ObserverDreamPolicy.highlight(view.state.kind(), Minecraft.getInstance().player != null
+                        && view.state.sourcePlayerId().equals(Minecraft.getInstance().player.getUUID()));
+        state.outlineColor = evidence ? 0xff000000 | (view.state.kind() == GooseToolsPayloads.DreamStandIn.DREAM_CORPSE
+                ? com.goosethings.tools.spectator.SpectatorGlowPalette.CORPSE
+                : com.goosethings.tools.client.spectator.SpectatorGlowClient.playerColor(view.state.sourcePlayerId())) : 0;
+        return true;
+    }
+
+    public static net.minecraft.network.chat.Component observerRole(Entity entity) {
+        if (!DreamAvatarClient.observing() || entity == null) return null;
+        View view = VIEWS.get(entity.getUUID());
+        if (view == null || view.model != entity || !view.renderReady
+                || view.state.kind() != GooseToolsPayloads.DreamStandIn.MAP_BODY
+                || view.state.observerRole().isEmpty()) return null;
+        return net.minecraft.network.chat.Component.translatable(view.state.observerRole())
+                .withStyle(style -> style.withColor(view.state.observerRoleRgb()));
+    }
+
     public static Entity cameraAvatar(UUID owner) {
         return liveAvatar(owner);
     }
@@ -499,7 +522,13 @@ public final class DreamStandInClient {
                 }
             }
             var entry = NameTagClientState.entry(state.sourcePlayerId());
-            model.setGlowingTag(entry != null && entry.markerNameTagVisible());
+            boolean ownAvatar = Minecraft.getInstance().player != null && state.sourcePlayerId().equals(Minecraft.getInstance().player.getUUID());
+            model.observerHighlight = DreamAvatarClient.observing()
+                    && com.goosethings.tools.dream.ObserverDreamPolicy.highlight(state.kind(), ownAvatar);
+            model.observerColour = state.kind() == GooseToolsPayloads.DreamStandIn.DREAM_CORPSE
+                    ? com.goosethings.tools.spectator.SpectatorGlowPalette.CORPSE
+                    : com.goosethings.tools.client.spectator.SpectatorGlowClient.playerColor(state.sourcePlayerId());
+            model.setGlowingTag(model.observerHighlight || entry != null && entry.markerNameTagVisible());
             if (swingSequence != appliedSwingSequence) {
                 appliedSwingSequence = swingSequence;
                 model.swing(

@@ -195,7 +195,9 @@ public final class PlayerArmAnimationContinuity {
     }
 
     private static boolean isSupported(Entity entity) {
-        return entity instanceof Player || entity instanceof Mannequin;
+        // Corpses and living ghosts can share a profile and position indefinitely.
+        // They are not a transient player/body replacement.
+        return entity instanceof Player || entity instanceof Mannequin && entity.getPose() != Pose.SLEEPING;
     }
 
     private static boolean isPlayerMannequinPair(Entity first, Entity second) {

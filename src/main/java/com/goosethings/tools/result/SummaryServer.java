@@ -160,7 +160,10 @@ public final class SummaryServer {
         for(var viewer:server.getPlayerList().getPlayers()) {
             if(viewer.entityTags().contains("inTutorial")||!viewer.entityTags().contains("endGame")) continue;
             var self=result.roster().stream().filter(p->p.id().equals(viewer.getUUID())).findFirst().orElse(null);
-            var start=BEFORE.get(viewer.getUUID()); boolean participating=start!=null && self!=null;
+            // A dead participant is still in the frozen match roster; a pure observer is not.
+            // Both see MatchResult, but only actual participants receive the later summary pages.
+            if (self == null) continue;
+            var start=BEFORE.get(viewer.getUUID()); boolean participating=start!=null;
             int from=participating?start.level:Math.max(0,score(viewer,"playerLevel"));
             int to=Math.max(from,score(viewer,"playerLevel"));
             if(from>10000||to>10000) continue;

@@ -49,13 +49,18 @@ public final class RoleIntroScene {
     /** Balanced rows preserve row-major seat order; labels determine the column budget. */
     public static java.util.List<Slot> grid(float left, float right, float top, float bottom,
                                             int count, float labelWidth, float nameScale) {
+        return grid(left,right,top,bottom,count,labelWidth,nameScale,1);
+    }
+    /** Observer rosters reserve a second line for private role labels. */
+    public static java.util.List<Slot> grid(float left, float right, float top, float bottom,
+                                            int count, float labelWidth, float nameScale, int labelLines) {
         if (count == 0) return java.util.List.of();
         float available = Math.max(1, right-left);
         int columns = Math.max(1, Math.min(7, (int)(available/Math.max(1,labelWidth+12*nameScale))));
         int rows = (count+columns-1)/columns;
         columns = (count+rows-1)/rows;
         float rowHeight = (bottom-top)/rows;
-        float scale = Math.min((bottom-top)*.26F, (rowHeight-22*nameScale)/2.05F);
+        float scale = Math.min((bottom-top)*.26F, (rowHeight-(22+14*(labelLines-1))*nameScale)/2.05F);
         scale = Math.max(4, Math.min(scale, available/columns*.62F));
         var slots = new java.util.ArrayList<Slot>();
         int remaining = count;
@@ -63,7 +68,7 @@ public final class RoleIntroScene {
             int inRow = Math.min(columns,remaining);
             float step = Math.min(available/columns, Math.max(scale*1.55F,labelWidth+12*nameScale));
             float first = (left+right-step*inRow)*.5F;
-            float floor = top + rowHeight*(row+.5F) + (scale*2.05F+14*nameScale)*.5F;
+            float floor = top + rowHeight*(row+.5F) + (scale*2.05F+14*labelLines*nameScale)*.5F;
             for (int col=0;col<inRow;col++) slots.add(new Slot(first+step*(col+.5F),floor,scale,step,nameScale));
             remaining -= inRow;
         }
@@ -93,6 +98,7 @@ public final class RoleIntroScene {
             case RoleIntroPolicy.DUCK -> 0xFF4148;
             case RoleIntroPolicy.BIRD -> 0xFFDD50;
             case RoleIntroPolicy.LOVER -> 0xFF8AC4;
+            case RoleIntroPolicy.SPECTATOR -> 0xA0A0A0;
             default -> 0xFFFFFF;
         };
         return tintedStagePixel(tint, x, y);
@@ -111,6 +117,7 @@ public final class RoleIntroScene {
             case RoleIntroPolicy.DUCK -> 0xFF4148;
             case RoleIntroPolicy.BIRD -> RoleIntroCatalog.byTag(role).color();
             case RoleIntroPolicy.LOVER -> 0xFF8AC4;
+            case RoleIntroPolicy.SPECTATOR -> 0xA0A0A0;
             default -> 0xFFFFFF;
         };
     }

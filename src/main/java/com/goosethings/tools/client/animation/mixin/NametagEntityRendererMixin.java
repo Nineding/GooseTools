@@ -40,6 +40,10 @@ public abstract class NametagEntityRendererMixin {
                 humanoid.isPassenger = true;
             }
         }
+        // setGlowingTag only updates the server-side flag on synthetic client players.
+        // Explicitly select the outline pass, overriding vanilla glow AND private marker glow.
+        if (DreamStandInClient.applyObserverOutline(entity, state)) return;
+        if (com.goosethings.tools.client.spectator.SpectatorGlowClient.applyOutline(entity, state)) return;
         var entry = NameTagClientState.entry(entity);
         if (entry == null || !entry.markerNameTagVisible()) {
             return;
@@ -48,7 +52,7 @@ public abstract class NametagEntityRendererMixin {
         if (marker != null) {
             // Viewer-private proxies have no server entity-data glow bit. A non-zero render-state
             // colour both enables the outline pass and keeps its colour identical to the marker.
-            state.outlineColor = 0xFF000000 | marker.style().glowRgb();
+            state.outlineColor = 0xFF000000 | marker.glowRgb();
         }
     }
 }

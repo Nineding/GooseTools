@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.UUID;
 
 public final class RoleIntroServer {
-    private record Session(int expires, List<UUID> roster) {}
+    private record Session(int expires, List<UUID> roster, boolean spectator) {}
     private static final Map<UUID, Session> ACTIVE = new HashMap<>();
     private RoleIntroServer() {}
 
@@ -60,23 +60,32 @@ public final class RoleIntroServer {
         MatchCounts counts = new MatchCounts(total,ducks,birds);
         int sent = 0;
         for (ServerPlayer viewer : viewers) {
-            if (!participants.contains(viewer) || !openingLocked(server, viewer)
+            boolean spectator = RoleIntroPolicy.spectator(viewer.entityTags());
+            if ((!participants.contains(viewer) && !spectator) || participants.isEmpty() || !openingLocked(server, viewer)
                     || !MandatoryHandshake.isVerified(viewer)
                     || !ServerPlayNetworking.canSend(viewer, RoleIntroPayload.TYPE)) continue;
-            List<RoleIntroPayload.Appearance> roster = RoleIntroPolicy.roster(identity(viewer), identities).stream()
+            List<RoleIntroPayload.Appearance> roster = (spectator
+                    ? identities.stream().map(p -> new RoleIntroPolicy.Member(p.id(),false)).toList()
+                    : RoleIntroPolicy.roster(identity(viewer), identities)).stream()
                     .map(member -> {
                         ServerPlayer player = participants.stream().filter(p -> p.getUUID().equals(member.id()))
                                 .findFirst().orElseThrow();
                         return new RoleIntroPayload.Appearance(member.id(), player.getGameProfile().name(), member.small(),
-                                PresentationAppearance.equipment(server, player, "p" + RoleIntroPolicy.seat(player.entityTags())));
+                                PresentationAppearance.equipment(server, player, "p" + RoleIntroPolicy.seat(player.entityTags())),
+                                spectator && score(server,"ggdadv",ScoreHolder.forNameOnly("DLCRoleVisible")) == 1
+                                        && score(server,"ggdadv",ScoreHolder.forNameOnly("DLCGlowByFaction")) == 1
+                                        ? RoleIntroCatalog.resolve(player.entityTags()).tag() : "",
+                                spectator ? com.goosethings.tools.spectator.SpectatorGlowPalette.player(player.entityTags(),
+                                        score(server,"ggdadv",ScoreHolder.forNameOnly("DLCGlowByFaction")) == 1) : 0);
                     }).toList();
             ServerPlayNetworking.send(viewer, new RoleIntroPayload(true,
-                    RoleIntroCatalog.resolve(viewer.entityTags()).tag(), RoleIntroPolicy.theme(viewer.entityTags()),
+                    spectator ? "" : RoleIntroCatalog.resolve(viewer.entityTags()).tag(),
+                    spectator ? RoleIntroPolicy.SPECTATOR : RoleIntroPolicy.theme(viewer.entityTags()),
                     Math.clamp(score(server, "ggdadv", ScoreHolder.forNameOnly("HowRole")), 0, 2),
                     Math.clamp(score(server, "gamesetting", ScoreHolder.forNameOnly("map")), 0, 11),
                     score(server, "eagleton", ScoreHolder.forNameOnly("#Full")) == 1, participants.stream().filter(p -> p.entityTags().contains("evil")).count() == 1, counts, roster));
             ACTIVE.put(viewer.getUUID(), new Session(server.getTickCount() + RoleIntroScene.DURATION_TICKS,
-                    roster.stream().map(RoleIntroPayload.Appearance::id).toList()));
+                    roster.stream().map(RoleIntroPayload.Appearance::id).toList(), spectator));
             sent++;
         }
         return sent;
@@ -95,10 +104,9 @@ public final class RoleIntroServer {
             ServerPlayer viewer = server.getPlayerList().getPlayer(entry.getKey());
             if (viewer == null) { iterator.remove(); continue; }
             if (!dlc || !openingLocked(server, viewer)
-                    || !viewer.entityTags().contains("players") || viewer.entityTags().contains("endGame")
-                    || viewer.entityTags().contains("spectator") || server.getTickCount() >= entry.getValue().expires()) {
+                    || !validViewer(viewer,entry.getValue()) || server.getTickCount() >= entry.getValue().expires()) {
                 if (dlc && openingLocked(server, viewer) && server.getTickCount() >= entry.getValue().expires()
-                        && !viewer.entityTags().contains("endGame") && !viewer.entityTags().contains("spectator")) {
+                        && validViewer(viewer,entry.getValue())) {
                     sendBlackout(viewer);
                 } else sendClose(viewer);
                 iterator.remove();
@@ -111,10 +119,16 @@ public final class RoleIntroServer {
         Session session = ACTIVE.get(viewer.getUUID());
         if (session == null || server.getTickCount() >= session.expires()
                 || !openingLocked(server, viewer)
-                || viewer.entityTags().contains("spectator") || viewer.entityTags().contains("endGame")
+                || !validViewer(viewer,session)
                 || score(server, "ggdadv", ScoreHolder.forNameOnly("FullBloodDLC")) != 1) return List.of();
         return session.roster().stream().map(id -> server.getPlayerList().getPlayer(id))
                 .filter(java.util.Objects::nonNull).toList();
+    }
+
+    private static boolean validViewer(ServerPlayer viewer, Session session) {
+        return !viewer.entityTags().contains("endGame") && (session.spectator()
+                ? RoleIntroPolicy.spectator(viewer.entityTags())
+                : viewer.entityTags().contains("players") && !viewer.entityTags().contains("spectator"));
     }
 
     private static boolean openingLocked(MinecraftServer server, ServerPlayer viewer) {

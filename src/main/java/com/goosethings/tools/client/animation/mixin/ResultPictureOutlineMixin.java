@@ -27,6 +27,8 @@ public abstract class ResultPictureOutlineMixin {
             CallbackInfo callback) {
         if (!(net.minecraft.client.Minecraft.getInstance().gui.screen()
                 instanceof com.goosethings.tools.client.hud.MatchResultScreen)
+                && !(net.minecraft.client.Minecraft.getInstance().gui.screen()
+                instanceof com.goosethings.tools.client.hud.RoleIntroScreen intro && intro.spectator())
                 || !(state instanceof GuiEntityRenderState entity)
                 || !(entity.renderState() instanceof ResultOutline outline)
                 || outline.goosetools$resultOutline() == 0) return;

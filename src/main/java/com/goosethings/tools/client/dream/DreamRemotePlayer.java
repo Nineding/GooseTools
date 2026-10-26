@@ -11,6 +11,9 @@ import java.util.function.Supplier;
 final class DreamRemotePlayer extends RemotePlayer {
     private final Supplier<PlayerSkin> skinSupplier;
     boolean dreamRiding;
+    boolean observerHighlight;
+    int observerColour;
+    @Override public int getTeamColor() { return observerHighlight ? observerColour : super.getTeamColor(); }
 
     @Override
     protected net.minecraft.world.entity.InterpolationHandler createInterpolationHandler() {

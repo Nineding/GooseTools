@@ -123,6 +123,7 @@ public final class PlayerMarkerCatalog {
     private static void add(Map<Integer, Definition> definitions, int code, Style style,
                             String translationKey, String fallback, String texture,
                             boolean roleSpecific) {
+
         Definition previous = definitions.put(code, new Definition(
                 code, style, translationKey, fallback, texture, roleSpecific));
         if (previous != null) {
@@ -180,5 +181,10 @@ public final class PlayerMarkerCatalog {
             String fallback,
             String texture,
             boolean roleSpecific) {
+        public int glowRgb() {
+            return roleSpecific && style == Style.BIRD
+                    ? com.goosethings.tools.spectator.SpectatorGlowPalette.role(translationKey.substring(translationKey.lastIndexOf('.') + 1), style.glowRgb())
+                    : style.glowRgb();
+        }
     }
 }
