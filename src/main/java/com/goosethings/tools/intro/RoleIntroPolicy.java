@@ -8,10 +8,14 @@ import java.util.UUID;
 /** Per-viewer opening roster. Other players' roles never enter the wire snapshot. */
 public final class RoleIntroPolicy {
     public static boolean hasOpeningLock(java.util.Set<String> tags, boolean participantsLocked) {
-        return tags.contains("ggdRoleShowLocked")
+        return spectator(tags) && participantsLocked || tags.contains("ggdRoleShowLocked")
                 || tags.contains("Parasite") && tags.contains("parasiteInside") && participantsLocked;
     }
-    public static final int GOOSE = 0, DUCK = 1, BIRD = 2, LOVER = 3;
+    public static final int GOOSE = 0, DUCK = 1, BIRD = 2, LOVER = 3, SPECTATOR = 4;
+
+    public static boolean spectator(Set<String> tags) {
+        return tags.contains("spectator") && !tags.contains("inTutorial") && !tags.contains("endGame");
+    }
     public static final int MAX_PLAYERS = 21;
 
     private RoleIntroPolicy() {}

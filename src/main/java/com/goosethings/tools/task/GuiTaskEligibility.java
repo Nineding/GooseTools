@@ -8,6 +8,7 @@ final class GuiTaskEligibility {
     private GuiTaskEligibility() {}
 
     static boolean eligible(Set<String> tags, int map, boolean fullBloodDlc) {
+        if (tags.contains("spectatorDream")) return false;
         boolean ghost = tags.contains("spectator") && tags.contains("dlcGhostActive")
                 && map == 11 && fullBloodDlc;
         return tags.contains("players")
@@ -28,6 +29,7 @@ final class GuiTaskEligibility {
     }
 
     static boolean meetingBlocked(Set<String> tags, int phase) {
+        if (tags.contains("spectatorDream")) return true;
         // The body remains in the meeting, but a valid lucid dream may complete assigned tasks.
         // Recheck on input and tick: waking, death or reaching the cap closes the session.
         if (tags.contains("inDream")) return phase < 1 || phase > 2 || !lucidDream(tags);
@@ -35,6 +37,7 @@ final class GuiTaskEligibility {
     }
 
     static boolean kindAllowed(Set<String> tags, String kind) {
+        if (tags.contains("spectatorDream")) return false;
         if (artisanKind(kind)) {
             boolean living = !tags.contains("spectator") && !tags.contains("deadInMap")
                     && !tags.contains("dlcGhostActive");

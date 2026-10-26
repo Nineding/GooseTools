@@ -61,6 +61,7 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
         this.smallTeammates = payload.roster().stream().anyMatch(RoleIntroPayload.Appearance::small);
     }
     public RoleIntroPayload payload() { return payload; }
+    public boolean spectator() { return payload.theme() == RoleIntroPolicy.SPECTATOR; }
 
     public static void register() {
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(() -> {
@@ -98,8 +99,8 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
     @Override public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         long elapsed = System.nanoTime() - started;
         float brightness = RoleIntroScene.brightness(elapsed);
-        float expansion = RoleIntroScene.expansion(elapsed);
-        rosterOpacity = RoleIntroScene.rosterOpacity(elapsed);
+        float expansion = spectator() ? Math.clamp(elapsed/1_400_000_000F,0,1) : RoleIntroScene.expansion(elapsed);
+        rosterOpacity = spectator() ? RoleIntroScene.ease(Math.clamp((elapsed/1_000_000_000F-.25F)/1.1F,0,1)) : RoleIntroScene.rosterOpacity(elapsed);
         float movement = reducedMotion() ? (expansion >= 1 ? 1 : 0) : RoleIntroScene.ease(expansion);
         int frame = Math.round(movement*(LIGHT_FRAMES-1));
         ensureStage(); ensureLight(frame);
@@ -107,7 +108,7 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
         if (minecraft.level != null) {
             MeetingAlertTrueSkinCache.capture(minecraft);
             textOpacity = 1-Math.clamp(expansion/.4F,0,1);
-            if (textOpacity > .01F || RoleIntroAct.keepRoleArtwork(payload.theme())) drawArtwork(g);
+            if (!spectator() && (textOpacity > .01F || RoleIntroAct.keepRoleArtwork(payload.theme()))) drawArtwork(g);
             drawSecondBackdrop(g,movement);
             drawText(g);
             drawCast(g, movement, expansion, elapsed/1_000_000_000.0);
@@ -163,6 +164,11 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
             centered(g, mapName, width*.5F, height*.09F,
                     Math.min(1.30F*ui,width*.88F/Math.max(1,font.width(mapName))),0xFF000000|map.color());
         }
+        if (spectator()) {
+            centered(g,Component.translatableWithFallback("intro.goosetools.spectator","Spectator"),
+                    width*.5F,height*.235F,2.2F*ui,0xFFE5E7EC);
+            return;
+        }
         if (textOpacity <= .01F) return;
         RoleIntroCatalog.Role role = RoleIntroCatalog.byTag(payload.role());
         var title = Component.empty().append(Component.translatableWithFallback(role.key(), role.fallback())
@@ -200,12 +206,26 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
     private List<RoleIntroScene.Slot> slots(List<RoleIntroPayload.Appearance> group, float left, float right, boolean small) {
         float nameScale = .8F*uiScale();
         float widest = group.stream().mapToInt(p -> MeetingNameTagHud.introWidth(minecraft,p.id(),p.name())).max().orElse(40)*nameScale;
-        var result = RoleIntroScene.grid(width*left,width*right,height*.34F,height*.86F,group.size(),widest,nameScale);
+        if (spectator()) widest = Math.max(widest,group.stream().filter(p -> !p.observerRole().isEmpty())
+                .mapToInt(p -> font.width(Component.translatableWithFallback(RoleIntroCatalog.byTag(p.observerRole()).key(),RoleIntroCatalog.byTag(p.observerRole()).fallback())))
+                .max().orElse(0)*nameScale);
+        // Bound long localized labels instead of shrinking 21 models into a fourth row.
+        if (spectator() && !group.isEmpty()) widest = Math.min(widest,
+                width*(right-left)/Math.min(7,group.size())-12*nameScale-.01F);
+        var result = RoleIntroScene.grid(width*left,width*right,height*(spectator()?.38F:.34F),height*.86F,group.size(),widest,nameScale,spectator()?2:1);
         if (!small) return result;
         return result.stream().map(p -> new RoleIntroScene.Slot(p.center(),p.floor(),p.scale()*.65F,p.step(),p.nameScale())).toList();
     }
 
     private void drawCast(GuiGraphicsExtractor g, float movement, float progress, double seconds) {
+        if (spectator()) {
+            var placements=slots(payload.roster(),.06F,.94F,false);
+            for(int i=0;i<payload.roster().size();i++) {
+                float alpha=RoleIntroScene.ease((float)Math.clamp((seconds-.25-i*.035)/1.1,0,1));
+                drawPlayer(g,payload.roster().get(i),placements.get(i),i,seconds,alpha);
+            }
+            return;
+        }
         var main = payload.roster().stream().filter(p -> !p.small()).toList();
         var small = payload.roster().stream().filter(RoleIntroPayload.Appearance::small).toList();
         if (main.isEmpty()) return;
@@ -251,6 +271,8 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
         var renderer = minecraft.getEntityRenderDispatcher().getRenderer(model);
         var state = renderer.createRenderState(model,1);
         state.shadowPieces.clear(); state.outlineColor = 0; state.nameTag = null;
+        if (state instanceof com.goosethings.tools.client.animation.ResultOutline outline)
+            outline.goosetools$resultOutline(spectator() ? alphaColor(appearance.observerGlowRgb(),alpha) : 0);
         ((com.goosethings.tools.client.animation.IntroOpacity)state).goosetools$introOpacity(alpha);
         state.ageInTicks = (float)(seconds*20+index*7);
         if (state instanceof LivingEntityRenderState living) {
@@ -268,6 +290,12 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
         g.entity(state,scale,new Vector3f(0,feetOffset,0),
                 new Quaternionf().rotateZ((float)Math.PI),new Quaternionf(),
                 Math.round(center-step*.48F),top,Math.round(center+step*.48F),bottom);
+        if (spectator() && !appearance.observerRole().isEmpty()) {
+            var role=RoleIntroCatalog.byTag(appearance.observerRole());
+            var label=Component.translatableWithFallback(role.key(),role.fallback());
+            float labelScale=Math.min(slot.nameScale(),(step-8)/Math.max(1,font.width(label)));
+            centered(g,label,center,top-28*slot.nameScale(),labelScale,alphaColor(role.color(),alpha));
+        }
         MeetingNameTagHud.drawIntro(g,minecraft,appearance.id(),appearance.name(),center,
                 top-14*slot.nameScale(),slot.nameScale(),Math.max(12,(int)((step-6)/slot.nameScale())),alpha);
     }
@@ -381,7 +409,7 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
         if (textureReady) return;
         ensureLight(0);
         textureReady = true;
-        prepareArtwork();
+        if (!spectator()) prepareArtwork();
     }
     /** Generate only reached frames, once per opening; no per-frame texture uploads. */
     private void ensureLight(int frame) {

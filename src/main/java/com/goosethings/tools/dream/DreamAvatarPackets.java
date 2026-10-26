@@ -22,7 +22,7 @@ public final class DreamAvatarPackets {
   public static final StreamCodec<RegistryFriendlyByteBuf,View> CODEC=StreamCodec.of(
    (b,p)->{b.writeLong(p.session);b.writeBoolean(p.active);b.writeDouble(p.x);b.writeDouble(p.y);b.writeDouble(p.z);b.writeBoolean(p.raven);b.writeVarInt(p.projectionKind);},
    b->new View(b.readLong(),b.readBoolean(),b.readDouble(),b.readDouble(),b.readDouble(),b.readBoolean(),b.readVarInt()));
-  public View {if(session<=0||!Double.isFinite(x)||!Double.isFinite(y)||!Double.isFinite(z)||Math.abs(x)>30000000||Math.abs(z)>30000000||Math.abs(y)>20000||projectionKind< -1||projectionKind>3)throw new IllegalArgumentException("Invalid dream view");}
+  public View {if(session<=0||!Double.isFinite(x)||!Double.isFinite(y)||!Double.isFinite(z)||Math.abs(x)>30000000||Math.abs(z)>30000000||Math.abs(y)>20000||projectionKind< ObserverDreamPolicy.VIEW_KIND||projectionKind>3)throw new IllegalArgumentException("Invalid dream view");}
   public float flightScale(){return projectionKind==0?0.2F:projectionKind==1?0.25F:1.0F;}
   @Override public Type<View> type(){return TYPE;}
  }

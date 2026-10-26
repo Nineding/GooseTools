@@ -60,7 +60,8 @@ public final class DreamSpatialContext {
         return !(p.startsWith("talker/") || p.startsWith("session/") || p.startsWith("gameendevents/")
                 || p.startsWith("role_extensions/") || p.startsWith("deadveent/")
                 || p.startsWith("skill/dream/enter") || p.startsWith("skill/dream/wake")
-                || p.startsWith("skill/dream/meeting") || p.startsWith("skill/dream/cleanup") || p.startsWith("skill/dream/death/"));
+                || p.startsWith("skill/dream/meeting") || p.startsWith("skill/dream/cleanup") || p.startsWith("skill/dream/death/")
+                || p.startsWith("skill/dream/spectator/"));
     }
     public static boolean projectionGameplay(Identifier id) {
         if (!id.getNamespace().equals("ggd")) return false;

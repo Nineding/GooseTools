@@ -6,6 +6,15 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class GuiTaskEligibilityTest {
+    @Test void observationDreamsCannotUseAnyTaskEvenWithGhostQualification() {
+        var tags = new HashSet<>(Set.of("players", "spectator", "deadInMap", "dlcGhostActive", "spectatorDream",
+                "inTaskArtisan", "artisan.assigned", "task.artisan.available", "task.artisan_civil.available"));
+        assertFalse(GuiTaskEligibility.eligible(tags, 11, true));
+        for (String kind : Set.of("civil", "traffic", "arcade", "keepgreen", "cleaning"))
+            assertFalse(GuiTaskEligibility.kindAllowed(tags, kind, 11));
+        for (int phase = 0; phase <= 3; phase++) assertTrue(GuiTaskEligibility.meetingBlocked(tags, phase));
+    }
+
     private static final Set<String> GHOST = Set.of("players", "spectator", "deadInMap", "dlcGhostActive");
 
     @Test void lucidDreamCanWorkButItsBodyAndInvalidDreamsCannot() {

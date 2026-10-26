@@ -16,7 +16,7 @@ import java.util.UUID;
 public record RoleIntroPayload(boolean active, String role, int theme, int mode, int map, boolean fullMap, boolean loneDuck, MatchCounts counts, List<Appearance> roster)
         implements CustomPacketPayload {
     public static final Type<RoleIntroPayload> TYPE = new Type<>(
-            Identifier.fromNamespaceAndPath("goosetools", "role_intro_s2c_v5"));
+            Identifier.fromNamespaceAndPath("goosetools", "role_intro_s2c_v6"));
     public static final StreamCodec<RegistryFriendlyByteBuf, RoleIntroPayload> CODEC =
             StreamCodec.of(RoleIntroPayload::write, RoleIntroPayload::read);
     public static final RoleIntroPayload CLOSE = new RoleIntroPayload(false, "", 0, 0, List.of());
@@ -34,7 +34,7 @@ public record RoleIntroPayload(boolean active, String role, int theme, int mode,
     }
 
     public RoleIntroPayload {
-        if (role == null || role.length() > 64 || theme < 0 || theme > 3 || mode < 0 || mode > 2 || map < 0 || map > 11) {
+        if (role == null || role.length() > 64 || theme < 0 || theme > RoleIntroPolicy.SPECTATOR || mode < 0 || mode > 2 || map < 0 || map > 11) {
             throw new IllegalArgumentException("Invalid role intro header");
         }
         java.util.Objects.requireNonNull(counts);
@@ -43,6 +43,10 @@ public record RoleIntroPayload(boolean active, String role, int theme, int mode,
             throw new IllegalArgumentException("Invalid role intro roster size");
         }
         HashSet<UUID> ids = new HashSet<>();
+        for (Appearance player : roster) {
+            if (theme != RoleIntroPolicy.SPECTATOR && (!player.observerRole().isEmpty() || player.observerGlowRgb() != 0))
+                throw new IllegalArgumentException("Other roles are spectator-only");
+        }
         for (Appearance player : roster) if (!ids.add(player.id())) {
             throw new IllegalArgumentException("Duplicate role intro player");
         }
@@ -68,6 +72,7 @@ public record RoleIntroPayload(boolean active, String role, int theme, int mode,
             buffer.writeUtf(player.name(), 64);
             buffer.writeBoolean(player.small());
             for (ItemStack item : player.equipment()) ItemStack.OPTIONAL_STREAM_CODEC.encode(buffer, item);
+            buffer.writeUtf(player.observerRole(),64); buffer.writeInt(player.observerGlowRgb());
         }
     }
 
@@ -90,18 +95,25 @@ public record RoleIntroPayload(boolean active, String role, int theme, int mode,
             boolean small = buffer.readBoolean();
             List<ItemStack> equipment = new ArrayList<>();
             for (EquipmentSlot slot : EquipmentSlot.values()) equipment.add(ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer));
-            roster.add(new Appearance(id, name, small, equipment));
+            roster.add(new Appearance(id, name, small, equipment, buffer.readUtf(64), buffer.readInt()));
         }
         return new RoleIntroPayload(active, role, theme, mode, map, fullMap, loneDuck, counts, roster);
     }
 
     @Override public Type<RoleIntroPayload> type() { return TYPE; }
 
-    public record Appearance(UUID id, String name, boolean small, List<ItemStack> equipment) {
+    public record Appearance(UUID id, String name, boolean small, List<ItemStack> equipment, String observerRole, int observerGlowRgb) {
+        public Appearance(UUID id, String name, boolean small, List<ItemStack> equipment) {
+            this(id,name,small,equipment,"",0);
+        }
         public Appearance(UUID id, String name, boolean small) {
             this(id, name, small, PresentationAppearance.emptyEquipment());
         }
         public Appearance {
+            observerRole = observerRole == null ? "" : observerRole;
+            if (!observerRole.isEmpty() && RoleIntroCatalog.findByStoredId(observerRole).isEmpty() && !observerRole.equals("Duck"))
+                throw new IllegalArgumentException("Unknown spectator intro role");
+            observerGlowRgb &= 0xffffff;
             if (id == null || name == null || name.isBlank() || name.length() > 64) {
                 throw new IllegalArgumentException("Invalid intro appearance");
             }

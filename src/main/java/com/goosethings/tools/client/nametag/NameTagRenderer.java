@@ -7,6 +7,8 @@ import com.goosethings.tools.client.vision.BirdwatcherClientState;
 import com.goosethings.tools.client.vision.BirdwatcherWallTransparency;
 import com.goosethings.tools.client.voice.GgdSpeakingIcon;
 import com.goosethings.tools.nametag.NameTagSync;
+import com.goosethings.tools.nametag.NameTagCorpseMarkerPolicy;
+import net.minecraft.world.entity.Display;
 import com.goosethings.tools.network.GooseToolsPayloads;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -91,8 +93,13 @@ public final class NameTagRenderer {
         Vec3 cameraPosition = camera.position();
         float partialTick = client.getDeltaTracker().getGameTimeDeltaPartialTick(true);
         for (Entity entity : client.level.entitiesForRendering()) {
+            renderObserverRole(context, client, camera, cameraPosition, partialTick, entity);
             UUID sourceId = NameTagClientState.sourcePlayerId(entity);
             GooseToolsPayloads.NameTagEntry entry = NameTagClientState.entry(sourceId);
+            if (entry != null && NameTagCorpseMarkerPolicy.markerOnly(entry.attachmentFlags())) {
+                renderCorpseMarker(context, client, camera, cameraPosition, partialTick, entity, entry);
+                continue;
+            }
             boolean localPlayer = entity == client.player
                     || (sourceId != null && sourceId.equals(client.player.getUUID()));
             if (entry == null || entry.name().isEmpty()) {
@@ -123,6 +130,59 @@ public final class NameTagRenderer {
                             position.z - cameraPosition.z),
                     camera.rotation(), entity, sourceId, entry, visibility);
         }
+    }
+
+    private static void renderObserverRole(LevelRenderContext context, Minecraft client, Camera camera,
+            Vec3 cameraPosition, float partialTick, Entity entity) {
+        Component role = com.goosethings.tools.client.dream.DreamStandInClient.observerRole(entity);
+        if (role == null || entity.isRemoved() || entity == camera.entity()) return;
+        Vec3 position = entity.getPosition(partialTick);
+        if (position.distanceToSqr(cameraPosition) > MAX_DISTANCE_SQUARED
+                || !hasLineOfSight(client, cameraPosition, entity, position)) return;
+        var poses = context.poseStack();
+        poses.pushPose();
+        poses.translate(position.x-cameraPosition.x, position.y-cameraPosition.y+entity.getBbHeight()+.85D,
+                position.z-cameraPosition.z);
+        poses.mulPose(new Matrix4f().rotate(camera.rotation()));
+        poses.scale(SCALE,-SCALE,SCALE);
+        context.submitNodeCollector().submitText(poses,-client.font.width(role)*.5F,-4.5F,
+                role.getVisualOrderText(),false,Font.DisplayMode.NORMAL,FULL_BRIGHT,0xffffffff,0,0);
+        poses.popPose();
+    }
+
+    private static void renderCorpseMarker(LevelRenderContext context, Minecraft client, Camera camera,
+            Vec3 cameraPosition, float partialTick, Entity entity, GooseToolsPayloads.NameTagEntry entry) {
+        if (!(entity instanceof Display.TextDisplay label) || entity.isRemoved()
+                || !entry.markerNameTagVisible() || entity.isInvisibleTo(client.player)) return;
+        PlayerMarkerCatalog.Definition marker = PlayerMarkerCatalog.byCode(entry.markerCode());
+        if (marker == null) return;
+        Vec3 position = entity.getPosition(partialTick);
+        if (position.distanceToSqr(cameraPosition) > MAX_DISTANCE_SQUARED
+                || !clearRay(client, cameraPosition, position)) return;
+        float alpha = VisionFogState.nameTagVisibilityAlpha(entity);
+        if (alpha <= .01F) return;
+        float labelScale = label.renderState() == null ? 1.0F
+                : Math.clamp(Math.abs(label.renderState().transformation().get(1.0F).scale().x()), .1F, 2.0F);
+        var poses = context.poseStack();
+        poses.pushPose();
+        poses.translate(position.x-cameraPosition.x, position.y-cameraPosition.y, position.z-cameraPosition.z);
+        poses.mulPose(new Matrix4f().rotate(camera.rotation()));
+        poses.scale(SCALE*labelScale, -SCALE*labelScale, SCALE*labelScale);
+        String text = Component.translatableWithFallback(marker.translationKey(), marker.fallback()).getString();
+        Identifier texture = Identifier.tryParse(marker.texture());
+        float left = client.font.width(label.getText())*.5F+GAP;
+        float width = client.font.width(text)+4.0F+(texture==null?0:GAP+ICON_HEIGHT);
+        int opacity = Math.clamp(Math.round(alpha*255),0,255);
+        emitSolidRect(context.submitNodeCollector(),poses,left,-6,width,12,
+                Math.clamp(Math.round(alpha*190),0,255)<<24 | marker.style().cardRgb());
+        float x = left+2;
+        if (texture != null) {
+            emitIcon(context.submitNodeCollector(),poses,texture,x,-ICON_HEIGHT*.5F,ICON_HEIGHT,ICON_HEIGHT,opacity<<24|0xffffff);
+            x+=ICON_HEIGHT+GAP;
+        }
+        context.submitNodeCollector().submitText(poses,x,-4.5F,Component.literal(text).getVisualOrderText(),false,
+                Font.DisplayMode.NORMAL,FULL_BRIGHT,opacity<<24|SerialBadgeStyle.contrastColour(marker.style().cardRgb()),0,0);
+        poses.popPose();
     }
 
     private static boolean hasLineOfSight(Minecraft client, Vec3 from,

@@ -50,6 +50,17 @@ public final class DreamAvatarServer {
         return begin(owner, level, position, yaw, pitch, raven, -1);
     }
 
+    public static boolean beginObserver(ServerPlayer owner, ServerLevel level, Vec3 position, float yaw, float pitch) {
+        if (SESSIONS.containsKey(owner.getUUID()) || !MandatoryHandshake.isVerified(owner)
+                || !DreamStandInServer.observerPrepared(owner)) return false;
+        return begin(owner, level, position, yaw, pitch, true, ObserverDreamPolicy.VIEW_KIND);
+    }
+
+    public static boolean observing(ServerPlayer owner) {
+        Session session = SESSIONS.get(owner.getUUID());
+        return session != null && session.projectionKind == ObserverDreamPolicy.VIEW_KIND;
+    }
+
     /** Round skills retain their real, interactable player instead of publishing a body clone. */
     public static boolean beginProjection(ServerPlayer owner, ProjectionBodyServer.Kind kind) {
         if (kind == null || kind.isDream() || SESSIONS.containsKey(owner.getUUID())
@@ -152,9 +163,10 @@ public final class DreamAvatarServer {
     }
     public static Entity end(ServerPlayer owner) {
         owner.getAdvancements().setPlayer(owner);
-        if(!retainsProjectionBody(owner))DreamStandInServer.retainAvatarSnapshot(owner);
+        if(!retainsProjectionBody(owner) && !observing(owner))DreamStandInServer.retainAvatarSnapshot(owner);
         Session s=SESSIONS.remove(owner.getUUID());
         if(s==null)return null;
+        if (s.projectionKind == ObserverDreamPolicy.VIEW_KIND) owner.removeTag("spectatorDream");
         if(s.projectionKind<0)owner.setPose(s.meetingPose);
         s.body.stopRiding();
         if(s.chunk!=null) s.body.level().getChunkSource().removeTicketWithRadius(VIEW_TICKET,s.chunk,s.radius);
@@ -191,13 +203,16 @@ public final class DreamAvatarServer {
     private static void tick(MinecraftServer server) {
         for(Session s:List.copyOf(SESSIONS.values())) {
             var tags=s.owner.entityTags();
-            boolean unavailable=s.owner.hasDisconnected() || tags.contains("spectator") || tags.contains("endGame");
-            if(s.projectionKind<0)unavailable|=(!tags.contains("inDream") && server.getTickCount()-s.started>2)
+            boolean observer = s.projectionKind == ObserverDreamPolicy.VIEW_KIND;
+            boolean unavailable=s.owner.hasDisconnected() || (!observer && tags.contains("spectator")) || tags.contains("endGame");
+            if (observer) unavailable |= !ObserverDreamPolicy.valid(tags, meetingPhase(server));
+            else if(s.projectionKind<0)unavailable|=(!tags.contains("inDream") && server.getTickCount()-s.started>2)
                     || s.owner.getVehicle()==null || s.owner.getVehicle().isRemoved();
             else unavailable|=tags.contains("inTalk") || tags.contains("inPelican")
                     || !ProjectionBodyServer.isRetained(s.owner);
-            if(unavailable) {end(s.owner);continue;}
+            if(unavailable) {if(observer)DreamStandInServer.returnObserver(s.owner);else end(s.owner);continue;}
             if(!s.ready && server.getTickCount()-s.started>200) {
+                if (observer) {DreamStandInServer.returnObserver(s.owner);continue;}
                 String function=s.projectionKind<0?"ggd:skill/dream/wake":"ggd:skill/"+
                         ProjectionBodyServer.kind(s.owner.getUUID()).commandName()+"/force_cleanup";
                 server.getCommands().performPrefixedCommand(s.owner.createCommandSourceStack().withSuppressedOutput(),"function "+function);
@@ -277,6 +292,11 @@ public final class DreamAvatarServer {
             // Scene samples preserve a moving player body rather than a hidden camera.
             DreamStandInServer.avatarChanged();
         }
+    }
+    private static int meetingPhase(MinecraftServer server) {
+        var objective = server.getScoreboard().getObjective("ggdSession");
+        var value = objective == null ? null : server.getScoreboard().getPlayerScoreInfo(net.minecraft.world.scores.ScoreHolder.forNameOnly("#MeetingPhase"), objective);
+        return value == null ? -1 : value.value();
     }
     private static void sendGround(Session s) {
         ServerPlayNetworking.send(s.owner,new DreamAvatarPackets.Ground(s.id,

@@ -12,6 +12,10 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.Display;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -158,6 +162,9 @@ public final class NameTagSync {
         }
         List<GooseToolsPayloads.NameTagAlias> aliases = dreamAliases(server, playersBySeat);
         Map<UUID, ServerPlayer> openingModels = openingModels(server);
+        List<Entity> corpseLabels = onlinePlayers.stream().anyMatch(player ->
+                NameTagCorpseMarkerPolicy.viewerCanSee(fullBlood, player.entityTags()))
+                ? meetingCorpseLabels(server) : List.of();
         List<GooseToolsPayloads.NameTagAlias> allAliases = new ArrayList<>(aliases);
         openingModels.keySet().stream()
                 .limit(GooseToolsPayloads.NameTagSnapshotS2C.MAX_ALIASES - allAliases.size())
@@ -177,6 +184,7 @@ public final class NameTagSync {
                 viewerTargets.add(viewer);
             }
             List<GooseToolsPayloads.NameTagEntry> entries = new ArrayList<>(viewerTargets.size());
+            List<GooseToolsPayloads.NameTagAlias> viewerAliases = new ArrayList<>(allAliases);
             for (ServerPlayer target : viewerTargets) {
                 // Keep the real body as the entry/visibility owner, but mirror the
                 // viewer's effective identity and complete label with its skin.
@@ -233,13 +241,53 @@ public final class NameTagSync {
                 entries.add(openingEntry(server, viewer, target, RoleIntroScene.modelId(target.getUUID()),
                         fullBlood, activeLoverCount));
             }
+            appendCorpseMarkers(server, viewer, fullBlood, corpseLabels, entries, viewerAliases);
             GooseToolsPayloads.NameTagSnapshotS2C snapshot =
-                    new GooseToolsPayloads.NameTagSnapshotS2C(entries, allAliases);
+                    new GooseToolsPayloads.NameTagSnapshotS2C(entries, viewerAliases);
             if (snapshot.equals(LAST_SENT.get(viewer.getUUID()))) {
                 continue;
             }
             ServerPlayNetworking.send(viewer, snapshot);
             LAST_SENT.put(viewer.getUUID(), snapshot);
+        }
+    }
+
+    private static List<Entity> meetingCorpseLabels(MinecraftServer server) {
+        List<Entity> result = new ArrayList<>();
+        for (ServerLevel level : server.getAllLevels()) for (Entity entity : level.getAllEntities()) {
+            if (entity instanceof Display.TextDisplay && !entity.isRemoved()
+                    && NameTagCorpseMarkerPolicy.sourceSeat(entity.entityTags()) > 0) result.add(entity);
+        }
+        return result;
+    }
+
+    private static void appendCorpseMarkers(MinecraftServer server, ServerPlayer viewer, boolean fullBlood,
+            List<Entity> labels, List<GooseToolsPayloads.NameTagEntry> entries,
+            List<GooseToolsPayloads.NameTagAlias> aliases) {
+        if (!NameTagCorpseMarkerPolicy.viewerCanSee(fullBlood, viewer.entityTags())) return;
+        var roles = server.getCommandStorage().get(Identifier.fromNamespaceAndPath("ggd", "role"));
+        for (Entity label : labels) {
+            if (label.level() != viewer.level()) continue;
+            int seat = NameTagCorpseMarkerPolicy.sourceSeat(label.entityTags());
+            int code = PlayerMarkerPolicy.validCodeOrZero(readScore(server,
+                    PlayerMarkerPolicy.objectiveForSeat(seat), viewer.getScoreboardName(), 0));
+            if (code == 0) continue;
+            var role = roles.getCompoundOrEmpty("p" + seat);
+            if (!role.contains("UUID")) continue;
+            UUID source = UUIDUtil.CODEC.parse(NbtOps.INSTANCE, role.get("UUID")).result().orElse(null);
+            if (source == null) continue;
+            // A metadata-only entry lets the same offline identity retain its mark in the menu.
+            if (entries.stream().noneMatch(entry -> entry.playerId().equals(source))) {
+                if (entries.size() >= GooseToolsPayloads.NameTagSnapshotS2C.MAX_ENTRIES) break;
+                entries.add(new GooseToolsPayloads.NameTagEntry(source, source,
+                        role.getStringOr("real_name", "p" + seat), "", 0, 0, 0, code, false, List.of()));
+            }
+            if (entries.size() >= GooseToolsPayloads.NameTagSnapshotS2C.MAX_ENTRIES
+                    || aliases.size() >= GooseToolsPayloads.NameTagSnapshotS2C.MAX_ALIASES) break;
+            entries.add(new GooseToolsPayloads.NameTagEntry(label.getUUID(), source,
+                    "", "", 0, 0, NameTagCorpseMarkerPolicy.CORPSE_MARKER_ONLY, code, true, List.of()));
+            // Self aliases are rendered entities, not replacement player/profile metadata.
+            aliases.add(new GooseToolsPayloads.NameTagAlias(label.getUUID(), label.getUUID()));
         }
     }
 

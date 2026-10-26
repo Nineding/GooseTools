@@ -56,6 +56,7 @@ public final class GooseToolsPayloads {
         PayloadTypeRegistry.clientboundPlay().register(WitchDoctorTargetS2C.TYPE, WitchDoctorTargetS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(NameTagSnapshotS2C.TYPE, NameTagSnapshotS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(DreamSceneS2C.TYPE, DreamSceneS2C.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(com.goosethings.tools.spectator.SpectatorGlowPayload.TYPE, com.goosethings.tools.spectator.SpectatorGlowPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(DreamMotionS2C.TYPE, DreamMotionS2C.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(
                 ProjectionBodiesS2C.TYPE, ProjectionBodiesS2C.CODEC);
@@ -659,7 +660,7 @@ public final class GooseToolsPayloads {
             implements CustomPacketPayload {
         public static final int MAX_STAND_INS = 64;
         public static final Type<DreamSceneS2C> TYPE =
-                GooseToolsPayloads.type("dream_scene_s2c_v1");
+                GooseToolsPayloads.type("dream_scene_s2c_v2");
         public static final StreamCodec<RegistryFriendlyByteBuf, DreamSceneS2C> CODEC =
                 StreamCodec.of(DreamSceneS2C::write, DreamSceneS2C::read);
 
@@ -715,17 +716,38 @@ public final class GooseToolsPayloads {
             float bodyRot,
             float headRot,
             String pose,
-            List<ItemStack> equipment) {
+            List<ItemStack> equipment,
+            String observerRole,
+            int observerRoleRgb) {
         public static final int MEETING_PROXY = 0;
         public static final int MAP_BODY = 1;
         public static final int DREAM_CORPSE = 2;
         public static final int LIVE_AVATAR = 3;
         private static final int EQUIPMENT_COUNT = EquipmentSlot.values().length;
 
+        public DreamStandIn(UUID fakeId, UUID sourcePlayerId, UUID appearancePlayerId,
+                String sourceName, String dimension, int kind, boolean retiring, boolean riding,
+                double x, double y, double z, float yRot, float xRot, float bodyRot, float headRot,
+                String pose, List<ItemStack> equipment) {
+            this(fakeId, sourcePlayerId, appearancePlayerId, sourceName, dimension, kind, retiring,
+                    riding, x, y, z, yRot, xRot, bodyRot, headRot, pose, equipment, "", 0xffffff);
+        }
+
+        public DreamStandIn withObserverRole(String role, int rgb) {
+            return new DreamStandIn(fakeId, sourcePlayerId, appearancePlayerId, sourceName, dimension,
+                    kind, retiring, riding, x, y, z, yRot, xRot, bodyRot, headRot, pose, equipment, role, rgb);
+        }
+
         public DreamStandIn {
             if (fakeId == null || sourcePlayerId == null || appearancePlayerId == null) {
                 throw new IllegalArgumentException("Dream stand-in UUIDs are required");
             }
+            observerRole = observerRole == null ? "" : observerRole;
+            if (!observerRole.isEmpty() && (kind != MAP_BODY || observerRole.length() > 128
+                    || !observerRole.matches("role\\.[a-z0-9_]+\\.[a-z0-9_]+"))) {
+                throw new IllegalArgumentException("Invalid observer role label");
+            }
+            observerRoleRgb &= 0xffffff;
             sourceName = sourceName == null ? "" : sourceName;
             dimension = dimension == null ? "" : dimension;
             pose = pose == null ? "STANDING" : pose;
@@ -768,6 +790,8 @@ public final class GooseToolsPayloads {
             for (ItemStack item : equipment) {
                 ItemStack.OPTIONAL_STREAM_CODEC.encode(buffer, item);
             }
+            buffer.writeUtf(observerRole, 128);
+            buffer.writeInt(observerRoleRgb);
         }
 
         private static DreamStandIn read(RegistryFriendlyByteBuf buffer) {
@@ -793,7 +817,8 @@ public final class GooseToolsPayloads {
             }
             return new DreamStandIn(fakeId, sourcePlayerId, appearancePlayerId,
                     sourceName, dimension, kind, retiring, riding,
-                    x, y, z, yRot, xRot, bodyRot, headRot, pose, equipment);
+                    x, y, z, yRot, xRot, bodyRot, headRot, pose, equipment,
+                    buffer.readUtf(128), buffer.readInt());
         }
     }
 

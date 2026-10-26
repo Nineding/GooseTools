@@ -53,6 +53,9 @@ public final class DreamStandInServer {
 
     private static final Map<UUID, PlayerSnapshot> SNAPSHOTS = new HashMap<>();
     private static final Map<UUID, PlayerSnapshot> MAP_SNAPSHOTS = new HashMap<>();
+    // Per-viewer navigation only; never published as a player or corpse snapshot.
+    private record ObserverPosition(ServerLevel level, Vec3 position, float yaw, float pitch) {}
+    private static final Map<UUID, ObserverPosition> OBSERVER_POSITIONS = new HashMap<>();
     private static int mapSnapshotGame = -1;
     private static final List<CorpseSnapshot> CORPSES = new ArrayList<>();
     private static final Map<UUID, Session> SESSIONS = new HashMap<>();
@@ -69,14 +72,28 @@ public final class DreamStandInServer {
     }
 
     public static void register() {
+        net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback.EVENT.register((dispatcher, access, environment) ->
+                dispatcher.register(Commands.literal("ggdream")
+                        .then(Commands.literal("observe").executes(context -> {
+                            ServerPlayer player = context.getSource().getPlayerOrException();
+                            int result = observe(player);
+                            if (result == 0) context.getSource().sendFailure(net.minecraft.network.chat.Component.translatableWithFallback(
+                                    "text.dream.spectator.enter_failed", "Observation dreams are only available to spectators during a meeting"));
+                            return result;
+                        }))
+                        .then(Commands.literal("return").executes(context -> returnObserver(context.getSource().getPlayerOrException())))));
+
         ServerTickEvents.END_SERVER_TICK.register(DreamStandInServer::tick);
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            handler.player.removeTag("spectatorDream");
             LAST_SCENES.remove(handler.player.getUUID());
             LAST_SCENE_SENT_TICKS.remove(handler.player.getUUID());
             dirty = true;
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            handler.player.removeTag("spectatorDream");
             UUID playerId = handler.player.getUUID();
+            OBSERVER_POSITIONS.remove(playerId);
             Session departing = SESSIONS.get(playerId);
             if (departing != null && DreamAvatarServer.active(handler.player))
                 SNAPSHOTS.put(playerId, PlayerSnapshot.capture(handler.player));
@@ -162,6 +179,63 @@ public final class DreamStandInServer {
         dirty = true;
         syncAll(server);
         return count;
+    }
+
+    /** Self-only public command; no role, DLC, task allowance or passenger is required. */
+    public static int observe(ServerPlayer player) {
+        MinecraftServer server = player.level().getServer();
+        int phase = dummyScore(server, "#MeetingPhase", "ggdSession");
+        if (!ObserverDreamPolicy.allowed(player.entityTags(), phase) || !MandatoryHandshake.isVerified(player)
+                || SESSIONS.containsKey(player.getUUID()) || DreamAvatarServer.active(player)) return 0;
+        PlayerSnapshot destination = SNAPSHOTS.values().stream()
+                .sorted(Comparator.comparing(snapshot -> snapshot.playerId)).findFirst().orElse(null);
+        ServerLevel level = destination == null ? CORPSES.stream().map(corpse -> corpse.level).findFirst().orElse(null) : destination.level;
+        Vec3 position = destination == null ? CORPSES.stream().map(corpse -> corpse.position).findFirst().orElse(null) : destination.position;
+        ObserverPosition previous = OBSERVER_POSITIONS.get(player.getUUID());
+        float yaw = destination == null ? 0 : destination.yRot, pitch = destination == null ? 0 : destination.xRot;
+        if (previous != null && server.getLevel(previous.level.dimension()) == previous.level
+                && Double.isFinite(previous.position.lengthSqr())
+                && previous.level.getWorldBorder().isWithinBounds(previous.position.x, previous.position.z)) {
+            level = previous.level; position = previous.position; yaw = previous.yaw; pitch = previous.pitch;
+        }
+        if (level == null || position == null) return 0;
+        server.getCommands().performPrefixedCommand(server.createCommandSourceStack().withEntity(player)
+                .withLevel(player.level()).withPosition(player.position()).withSuppressedOutput(), "function ggd:canceltask");
+        Session session = new Session(player.getUUID(), DreamType.OBSERVER, ProxySnapshot.capture(player), server.getTickCount(), false);
+        SESSIONS.put(player.getUUID(), session);
+        if (!DreamAvatarServer.beginObserver(player, level, position, yaw, pitch)) {
+            SESSIONS.remove(player.getUUID());return 0;
+        }
+        player.addTag("spectatorDream");session.active = true;dirty = true;syncAll(server);refreshObserverInventory(player);return 1;
+    }
+
+    public static int returnObserver(ServerPlayer player) {
+        Session session = SESSIONS.get(player.getUUID());
+        if (session != null && session.type != DreamType.OBSERVER) return 0;
+        boolean present = player.entityTags().contains("spectatorDream") || session != null || DreamAvatarServer.observing(player);
+        boolean valid = ObserverDreamPolicy.allowed(player.entityTags(), dummyScore(player.level().getServer(), "#MeetingPhase", "ggdSession"));
+        if (valid && DreamAvatarServer.observing(player)) {
+            Entity actor = DreamAvatarServer.actor(player);
+            if (actor != null) OBSERVER_POSITIONS.put(player.getUUID(), new ObserverPosition(
+                    (ServerLevel)actor.level(), actor.position(), actor.getYRot(), actor.getXRot()));
+        } else if (!valid) OBSERVER_POSITIONS.remove(player.getUUID());
+        player.removeTag("spectatorDream");
+        if (session != null) abandon(player.level().getServer(), player);
+        else if (DreamAvatarServer.observing(player)) DreamAvatarServer.end(player);
+        if (present && !player.hasDisconnected()) refreshObserverInventory(player);
+        return present ? 1 : 0;
+    }
+
+    private static void refreshObserverInventory(ServerPlayer player) {
+        player.level().getServer().getCommands().performPrefixedCommand(player.level().getServer().createCommandSourceStack()
+                .withEntity(player).withLevel(player.level()).withPosition(player.position()).withSuppressedOutput(),
+                "function ggd:skill/dream/spectator/render_inventory");
+    }
+
+    public static boolean observerPrepared(ServerPlayer player) {
+        Session session = SESSIONS.get(player.getUUID());
+        return session != null && session.type == DreamType.OBSERVER && !session.active
+                && ObserverDreamPolicy.allowed(player.entityTags(), dummyScore(player.level().getServer(), "#MeetingPhase", "ggdSession"));
     }
 
     private static int prepare(MinecraftServer server, ServerPlayer player, DreamType type) {
@@ -250,6 +324,7 @@ public final class DreamStandInServer {
         int game = dummyScore(server, "#Global", "ggdGameId");
         if (mapSnapshotGame != game) {
             MAP_SNAPSHOTS.clear();
+            OBSERVER_POSITIONS.clear();
             mapSnapshotGame = game;
         }
         if (tick % 20 == 0 && dummyScore(server, "#MeetingPhase", "ggdSession") == 0) {
@@ -261,6 +336,10 @@ public final class DreamStandInServer {
             }
         }
 
+        OBSERVER_POSITIONS.keySet().removeIf(id -> {
+            ServerPlayer viewer = server.getPlayerList().getPlayer(id);
+            return viewer == null || !ObserverDreamPolicy.allowed(viewer.entityTags(), dummyScore(server, "#MeetingPhase", "ggdSession"));
+        });
         for (Session session : List.copyOf(SESSIONS.values())) {
             ServerPlayer player = server.getPlayerList().getPlayer(session.playerId);
             if (player == null) {
@@ -275,7 +354,10 @@ public final class DreamStandInServer {
                 changed = true;
                 continue;
             }
-            if (session.active) {
+            if (session.type == DreamType.OBSERVER && !ObserverDreamPolicy.valid(player.entityTags(), dummyScore(server, "#MeetingPhase", "ggdSession"))) {
+                returnObserver(player);changed = true;continue;
+            }
+            if (session.active && session.type != DreamType.OBSERVER) {
                 updateRemoteProxy(server, player, session);
             }
         }
@@ -390,7 +472,7 @@ public final class DreamStandInServer {
         for (Session session : sessions) {
             ServerPlayer source=server.getPlayerList().getPlayer(session.playerId);
             Entity actor=source==null?null:DreamAvatarServer.actor(source);
-            if(actor==null || !session.active)continue;
+            if(actor==null || !session.active || session.type == DreamType.OBSERVER && session != ownSession)continue;
             UUID appearance=ownSession.type==DreamType.LUCID && session.type==DreamType.RAVEN
                     ?viewer.getUUID():session.playerId;
             List<ItemStack> equipment=new ArrayList<>();
@@ -404,14 +486,20 @@ public final class DreamStandInServer {
 
         SNAPSHOTS.values().stream()
                 .sorted(Comparator.comparing(snapshot -> snapshot.playerId))
-                .filter(snapshot -> !snapshot.playerId.equals(viewer.getUUID()))
-                .filter(snapshot -> !SESSIONS.containsKey(snapshot.playerId))
-                .filter(snapshot -> MeetingParticipantBridge.living(server, snapshot.playerId))
+                .filter(snapshot -> ownSession.type == DreamType.OBSERVER || !snapshot.playerId.equals(viewer.getUUID()))
+                .filter(snapshot -> ownSession.type == DreamType.OBSERVER
+                        // Keep ordinary map evidence, but never duplicate an actual live dreamer.
+                        // Preparing/cancelled sessions without a live avatar retain their snapshot.
+                        ? result.stream().noneMatch(body -> body.kind() == GooseToolsPayloads.DreamStandIn.LIVE_AVATAR
+                                && !body.sourcePlayerId().equals(viewer.getUUID())
+                                && body.sourcePlayerId().equals(snapshot.playerId))
+                        : !SESSIONS.containsKey(snapshot.playerId))
+                .filter(snapshot -> ownSession.type == DreamType.OBSERVER || MeetingParticipantBridge.living(server, snapshot.playerId))
                 .map(snapshot -> mapBody(viewer, ownSession.type, snapshot))
                 .forEach(result::add);
 
-        if (readFlag(server, CORPSE_VISIBLE_SCORE, true)) {
-            boolean showProfessional = readFlag(server, PROF_CORPSE_VISIBLE_SCORE, false);
+        if (ownSession.type == DreamType.OBSERVER || readFlag(server, CORPSE_VISIBLE_SCORE, true)) {
+            boolean showProfessional = ownSession.type == DreamType.OBSERVER || readFlag(server, PROF_CORPSE_VISIBLE_SCORE, false);
             CORPSES.stream()
                     .filter(corpse -> !corpse.professional || showProfessional)
                     .sorted(Comparator.comparing(corpse -> corpse.sourceId))
@@ -470,12 +558,31 @@ public final class DreamStandInServer {
         UUID appearanceId = lucid ? viewer.getUUID() : snapshot.playerId;
         List<ItemStack> equipment = lucid
                 ? viewerArmour(snapshot.equipment, viewer) : snapshot.equipment;
-        return standIn(
+        var body = standIn(
                 privateFakeId(viewer.getUUID(), snapshot.playerId, "body"),
                 snapshot.playerId, appearanceId, snapshot.playerName,
                 snapshot.level, GooseToolsPayloads.DreamStandIn.MAP_BODY, false,
                 snapshot.position, snapshot.yRot, snapshot.xRot,
                 snapshot.bodyRot, snapshot.headRot, snapshot.pose, equipment);
+        // Never transmit hidden identities to living dream roles. Read settings every scene sync.
+        MinecraftServer server = viewer.level().getServer();
+        if (type != DreamType.OBSERVER || !ObserverDreamPolicy.valid(viewer.entityTags(),
+                dummyScore(server, "#MeetingPhase", "ggdSession"))
+                || !readFlag(server, "FullBloodDLC", false)
+                || !readFlag(server, "DLCRoleVisible", false)
+                || !readFlag(server, "DLCGlowByFaction", false)) return body;
+        var role = server.getCommandStorage().get(net.minecraft.resources.Identifier.parse("ggd:role"))
+                .getCompoundOrEmpty(snapshot.seatTag);
+        if (role.contains("UUID")) {
+            var owner = net.minecraft.core.UUIDUtil.CODEC.parse(net.minecraft.nbt.NbtOps.INSTANCE, role.get("UUID")).result();
+            if (owner.isEmpty() || !owner.get().equals(snapshot.playerId)) return body;
+        }
+        String faction = role.getStringOr("faction", ""), name = role.getStringOr("role", "");
+        String key = "role." + faction + "." + name;
+        if (key.length() > 128 || !faction.matches("[a-z0-9_]+") || !name.matches("[a-z0-9_]+")) return body;
+        String colour = role.getStringOr("color", "#FFFFFF");
+        int rgb = colour.matches("#[0-9a-fA-F]{6}") ? Integer.parseInt(colour.substring(1), 16) : 0xffffff;
+        return body.withObserverRole(key, rgb);
     }
 
     private static GooseToolsPayloads.DreamStandIn dreamCorpse(
@@ -600,6 +707,7 @@ public final class DreamStandInServer {
     }
 
     private static void clearState() {
+        OBSERVER_POSITIONS.clear();
         SNAPSHOTS.clear();
         CORPSES.clear();
         SESSIONS.clear();
@@ -611,7 +719,8 @@ public final class DreamStandInServer {
 
     private enum DreamType {
         LUCID,
-        RAVEN
+        RAVEN,
+        OBSERVER
     }
 
     private static int dummyScore(MinecraftServer server, String holder, String name) {

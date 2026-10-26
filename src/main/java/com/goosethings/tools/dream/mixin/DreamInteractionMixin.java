@@ -16,6 +16,17 @@ import org.spongepowered.asm.mixin.injection.At;
 @Mixin(ServerGamePacketListenerImpl.class)
 public abstract class DreamInteractionMixin {
     @Shadow public ServerPlayer player;
+    private boolean dream$observationControl() {
+        var data = player.getMainHandItem().getOrDefault(net.minecraft.core.component.DataComponents.CUSTOM_DATA,
+                net.minecraft.world.item.component.CustomData.EMPTY).copyTag();
+        if (data.getBooleanOr("SpectatorDreamWake", false) && DreamAvatarServer.observing(player)) {
+            com.goosethings.tools.dream.DreamStandInServer.returnObserver(player);return true;
+        }
+        if (data.getBooleanOr("SpectatorDreamEnter", false) && player.entityTags().contains("spectator")) {
+            com.goosethings.tools.dream.DreamStandInServer.observe(player);return true;
+        }
+        return false;
+    }
     // Keep vanilla movement validation/loading, but its seated-client look is not dream input.
     @WrapOperation(method="handleMovePlayer",at=@At(value="INVOKE",
             target="Lnet/minecraft/network/protocol/game/ServerboundMovePlayerPacket;getYRot(F)F",ordinal=1))
@@ -29,14 +40,20 @@ public abstract class DreamInteractionMixin {
     }
     @WrapMethod(method="handlePlayerAction")
     private void dream$blockAction(ServerboundPlayerActionPacket packet,Operation<Void> original) {
+        net.minecraft.network.protocol.PacketUtils.ensureRunningOnSameThread(packet, (ServerGamePacketListenerImpl)(Object)this, player.level());
+        if (DreamAvatarServer.observing(player)) return;
         DreamSpatialContext.runFor(player,()-> {original.call(packet);return null;});
     }
     @WrapMethod(method="handleUseItemOn")
     private void dream$block(ServerboundUseItemOnPacket packet,Operation<Void> original) {
+        net.minecraft.network.protocol.PacketUtils.ensureRunningOnSameThread(packet, (ServerGamePacketListenerImpl)(Object)this, player.level());
+        if (dream$observationControl() || DreamAvatarServer.observing(player)) return;
         DreamSpatialContext.runFor(player,()-> {original.call(packet);return null;});
     }
     @WrapMethod(method="handleUseItem")
     private void dream$item(ServerboundUseItemPacket packet,Operation<Void> original) {
+        net.minecraft.network.protocol.PacketUtils.ensureRunningOnSameThread(packet, (ServerGamePacketListenerImpl)(Object)this, player.level());
+        if (dream$observationControl() || DreamAvatarServer.observing(player)) return;
         float yaw=player.getYRot(),pitch=player.getXRot();
         DreamSpatialContext.runFor(player,()-> {original.call(packet);return null;});
         if(DreamAvatarServer.active(player)) {player.setYRot(yaw);player.setXRot(pitch);}
@@ -44,14 +61,30 @@ public abstract class DreamInteractionMixin {
     // Since 26.3, entity attacks use a separate packet from right-click interactions.
     @WrapMethod(method="handleAttack")
     private void dream$attack(ServerboundAttackPacket packet, Operation<Void> original) {
+        net.minecraft.network.protocol.PacketUtils.ensureRunningOnSameThread(packet, (ServerGamePacketListenerImpl)(Object)this, player.level());
+        if (DreamAvatarServer.observing(player)) return;
         DreamSpatialContext.runFor(player, () -> { original.call(packet); return null; });
     }
     @WrapMethod(method="handleInteract")
     private void dream$entity(ServerboundInteractPacket packet,Operation<Void> original) {
+        net.minecraft.network.protocol.PacketUtils.ensureRunningOnSameThread(packet, (ServerGamePacketListenerImpl)(Object)this, player.level());
+        if (dream$observationControl() || DreamAvatarServer.observing(player)) return;
         DreamSpatialContext.runFor(player,()-> {original.call(packet);return null;});
     }
     @WrapMethod(method="handleContainerClick")
     private void dream$inventory(ServerboundContainerClickPacket packet,Operation<Void> original) {
+        net.minecraft.network.protocol.PacketUtils.ensureRunningOnSameThread(packet, (ServerGamePacketListenerImpl)(Object)this, player.level());
+        if (DreamAvatarServer.observing(player)) return;
         DreamSpatialContext.runFor(player,()-> {original.call(packet);return null;});
+    }
+    @WrapMethod(method="handleContainerButtonClick")
+    private void dream$readonlyButton(ServerboundContainerButtonClickPacket packet,Operation<Void> original) {
+        net.minecraft.network.protocol.PacketUtils.ensureRunningOnSameThread(packet, (ServerGamePacketListenerImpl)(Object)this, player.level());
+        if (!DreamAvatarServer.observing(player)) original.call(packet);
+    }
+    @WrapMethod(method="handleTeleportToEntityPacket")
+    private void dream$readonlyTeleport(ServerboundTeleportToEntityPacket packet,Operation<Void> original) {
+        net.minecraft.network.protocol.PacketUtils.ensureRunningOnSameThread(packet, (ServerGamePacketListenerImpl)(Object)this, player.level());
+        if (!DreamAvatarServer.observing(player)) original.call(packet);
     }
 }
