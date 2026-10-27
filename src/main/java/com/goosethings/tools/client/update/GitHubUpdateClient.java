@@ -79,9 +79,13 @@ public final class GitHubUpdateClient {
             // A server's exact version is independent of the player's automatic update channel.
             if (!version.equals(required)) return Optional.empty();
         } else {
+            // The backpack release was numbered on the wrong line. Keep exact-server
+            // recovery available, but automatic updates continue the 1.15.0 Alpha line.
+            if(version.equals("1.16.0+Alpha0.1"))return Optional.empty();
             boolean prerelease = json.get("prerelease").getAsBoolean() || parsed.alphaMajor() != null;
             if (prerelease != alpha) return Optional.empty();
             UpdateVersion installed = UpdateVersion.parse(current);
+            if(current.equals("1.16.0+Alpha0.1"))installed=UpdateVersion.parse("1.15.0+Alpha0.14");
             // Switching channels may select a lower base version (1.15.1 -> 1.15.0+Alpha).
             // Within the selected channel, never reinstall or downgrade an existing version.
             if ((installed.alphaMajor() != null) == alpha && parsed.compareTo(installed) <= 0) {
