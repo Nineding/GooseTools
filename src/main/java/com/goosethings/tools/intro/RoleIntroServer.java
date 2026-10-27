@@ -70,7 +70,7 @@ public final class RoleIntroServer {
                     .map(member -> {
                         ServerPlayer player = participants.stream().filter(p -> p.getUUID().equals(member.id()))
                                 .findFirst().orElseThrow();
-                        return new RoleIntroPayload.Appearance(member.id(), player.getGameProfile().name(), member.small(),
+                        return new RoleIntroPayload.Appearance(member.id(), com.goosethings.tools.nametag.PlayerDisplayNames.name(player), member.small(),
                                 PresentationAppearance.equipment(server, player, "p" + RoleIntroPolicy.seat(player.entityTags())),
                                 spectator && score(server,"ggdadv",ScoreHolder.forNameOnly("DLCRoleVisible")) == 1
                                         && score(server,"ggdadv",ScoreHolder.forNameOnly("DLCGlowByFaction")) == 1

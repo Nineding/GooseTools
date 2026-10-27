@@ -134,6 +134,7 @@ public final class SummaryServer {
         for(var appearance:result.roster()) {
             var player=server.getPlayerList().getPlayer(appearance.id());
             String seat="p"+appearance.serial();
+            String scoreHolderName=appearance.name();
             int faction=Math.clamp(RoleIntroCatalog.byTag(appearance.role()).faction(),0,2);
             for(int i=0;i<saved.size();i++) {
                 var entry=saved.getCompoundOrEmpty(i);
@@ -142,13 +143,14 @@ public final class SummaryServer {
                 var id=new UUID((long)parts[0]<<32|parts[1]&0xffffffffL,(long)parts[2]<<32|parts[3]&0xffffffffL);
                 if(!id.equals(appearance.id())) continue;
                 seat=entry.getStringOr("set",seat);
+                scoreHolderName=entry.getStringOr("real_name",scoreHolderName);
                 faction=switch(entry.getStringOr("faction","")) {case "good"->0;case "evil"->1;case "neutral"->2;default->faction;};
                 break;
             }
             var clone=PresentationAppearance.source(server,player,seat);
             var tags=player!=null?player.entityTags():clone!=null?clone.entityTags():Set.<String>of();
             int award=tags.contains("ggd_SMVP")?2:tags.contains("ggd_MVP")?1:0;
-            int index=score(server,"ggdIndexScore",player!=null?player:ScoreHolder.forNameOnly(appearance.name()));
+            int index=score(server,"ggdIndexScore",player!=null?player:ScoreHolder.forNameOnly(scoreHolderName));
             candidates.add(new SummaryPolicy.Candidate(appearance.id(),award,index,appearance.serial()));
             rows.add(new SummaryRoster.Entry(appearance.id(),appearance.name(),appearance.role(),faction,
                     appearance.serial(),appearance.rgb(),appearance.lover(),index,award));

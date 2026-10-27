@@ -62,7 +62,7 @@ public final class MatchResultServer {
             if (player != null && player.entityTags().contains("inTutorial")) continue;
             var clone = PresentationAppearance.source(server, player, seat);
             Set<String> tags = player != null ? player.entityTags() : clone != null ? clone.entityTags() : Set.of();
-            String name = player != null ? player.getGameProfile().name() : entry.getStringOr("real_name", seat);
+            String name = player != null ? com.goosethings.tools.nametag.PlayerDisplayNames.name(player) : com.goosethings.tools.nametag.PlayerDisplayNames.name(id,entry.getStringOr("real_name", seat));
             String roleId = entry.getStringOr("role", "goose");
             var role = RoleIntroCatalog.findByStoredId(roleId)
                     .orElseGet(() -> RoleIntroCatalog.byTag("evil".equals(entry.getStringOr("faction", "")) ? "Duck" : "Goose"));
