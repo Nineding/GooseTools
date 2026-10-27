@@ -125,7 +125,8 @@ public final class MeetingAlertServer {
         String playerName = saved.getStringOr("real_name", player == null ? playerTag : player.getGameProfile().name());
         LivingEntity corpse = findReportedCorpse(source, playerTag);
         LivingEntity equipmentSource = corpse == null ? PresentationAppearance.source(server, player, playerTag) : corpse;
-        return snapshot(playerId == null ? player.getUUID() : playerId, playerName, equipmentSource);
+        UUID resolvedId=playerId == null ? player.getUUID() : playerId;
+        return snapshot(resolvedId,com.goosethings.tools.nametag.PlayerDisplayNames.name(resolvedId,playerName),equipmentSource);
     }
 
     static UUID savedPlayerId(CompoundTag saved) {
@@ -139,7 +140,7 @@ public final class MeetingAlertServer {
     private static GooseToolsPayloads.MeetingAppearance snapshot(
             ServerPlayer identity,
             LivingEntity equipmentSource) {
-        return snapshot(identity.getUUID(), identity.getGameProfile().name(), equipmentSource);
+        return snapshot(identity.getUUID(), com.goosethings.tools.nametag.PlayerDisplayNames.name(identity), equipmentSource);
     }
 
     private static GooseToolsPayloads.MeetingAppearance snapshot(
@@ -166,7 +167,7 @@ public final class MeetingAlertServer {
                     .filter(player -> player.entityTags().contains("p" + seat))
                     .findFirst().orElse(null);
             if (target != null) {
-                return new GooseToolsPayloads.MeetingAppearance(target.getUUID(), target.getGameProfile().name(),
+                return new GooseToolsPayloads.MeetingAppearance(target.getUUID(), com.goosethings.tools.nametag.PlayerDisplayNames.name(target),
                         PresentationAppearance.equipment(server, target, "p" + seat));
             }
             // The victim may have disconnected. The round's authoritative identity and
@@ -183,7 +184,7 @@ public final class MeetingAlertServer {
                 : PresentationAppearance.source(server, caller, "p" + ownSeat);
         // A missing backup must not leak the stolen armor into a true-identity banner.
         if (wardrobe == caller && DisguiseIdentityPolicy.isActiveDisguise(caller.entityTags())) {
-            return new GooseToolsPayloads.MeetingAppearance(caller.getUUID(), caller.getGameProfile().name(),
+            return new GooseToolsPayloads.MeetingAppearance(caller.getUUID(), com.goosethings.tools.nametag.PlayerDisplayNames.name(caller),
                     PresentationAppearance.emptyEquipment());
         }
         return snapshot(caller, wardrobe);

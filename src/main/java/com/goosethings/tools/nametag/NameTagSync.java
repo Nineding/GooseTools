@@ -443,7 +443,7 @@ public final class NameTagSync {
                                              boolean fullBlood) {
         return new VisualIdentity(
                 player.getUUID(),
-                player.getGameProfile().name(),
+                PlayerDisplayNames.name(player),
                 colourOf(server, player, fullBlood),
                 RoomOrderManager.orderOf(server, player),
                 Set.copyOf(player.entityTags()),
