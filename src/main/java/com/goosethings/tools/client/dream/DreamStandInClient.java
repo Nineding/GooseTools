@@ -152,6 +152,8 @@ public final class DreamStandInClient {
                 (payload, context) -> context.client().execute(() -> applyMotion(payload)));
         ClientEntityEvents.ENTITY_UNLOAD.register(DreamStandInClient::onEntityUnload);
         ClientTickEvents.END_CLIENT_TICK.register(DreamStandInClient::tick);
+        // Scene revisions belong to one backend; proxy transfers need not disconnect.
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> clear());
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> clear());
     }
 

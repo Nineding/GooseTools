@@ -26,3 +26,10 @@ spectator update, full-body render flags, equipment, entity-unload recovery,
 return de-duplication and cleanup. Results are written to
 `build/projection-regression-test/projection-result.txt`. The remote source is
 simulated in one real client; this is not a two-client full-match or shader test.
+
+`runRetainedProjectionRegressionTest` also seeds a previous backend's high scene
+revisions and active Astral, Sniper and Raven camera locks, then invokes the real
+Fabric JOIN callbacks without DISCONNECT. It verifies camera/input restoration,
+acceptance of the new backend's low revisions and same-backend stale-scene rejection
+before running the existing retained-body movement and cleanup scenarios. The JOIN
+transition is simulated in one real client; it does not launch a Velocity proxy.

@@ -73,6 +73,8 @@ public final class ProjectionBodyClient {
                 GooseToolsPayloads.ProjectionBodyMotionS2C.TYPE,
                 (payload, context) -> context.client().execute(() -> applyBodyMotion(payload)));
         ClientTickEvents.END_CLIENT_TICK.register(ProjectionBodyClient::tick);
+        // Drop retained entities and revision counters when a proxy selects a new backend.
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> clear());
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> clear());
     }
 

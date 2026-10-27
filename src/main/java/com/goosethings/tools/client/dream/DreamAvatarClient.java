@@ -47,6 +47,9 @@ public final class DreamAvatarClient {
                 }));
         ClientTickEvents.START_CLIENT_TICK.register(DreamAvatarClient::tickInput);
         ClientTickEvents.END_CLIENT_TICK.register(DreamAvatarClient::tick);
+        // Velocity can replace the backend without closing the physical connection.
+        // A new play session must never inherit the previous server's camera/input lock.
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> reset(client));
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> reset(client));
     }
 
