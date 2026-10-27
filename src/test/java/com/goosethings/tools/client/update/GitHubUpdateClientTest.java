@@ -74,6 +74,14 @@ class GitHubUpdateClientTest {
         assertTrue(GitHubUpdateClient.release(stable, "1.15.1", false, null).isEmpty());
         assertTrue(GitHubUpdateClient.release(alpha, "1.15.0+Alpha0.6", true, null).isEmpty());
     }
+    @Test void correctedBackpackReleaseContinuesTheExistingAlphaSequence(){
+        var retired=release("1.16.0+Alpha0.1",true);var corrected=release("1.15.0+Alpha0.15",true);
+        assertTrue(GitHubUpdateClient.release(retired,"1.15.0+Alpha0.15",true,null).isEmpty());
+        assertTrue(GitHubUpdateClient.release(corrected,"1.16.0+Alpha0.1",true,null).isPresent());
+        assertTrue(GitHubUpdateClient.release(corrected,"1.15.0+Alpha0.14",true,null).isPresent());
+        assertTrue(GitHubUpdateClient.release(release("1.15.0+Alpha0.13",true),"1.16.0+Alpha0.1",true,null).isEmpty());
+        assertTrue(GitHubUpdateClient.release(retired,"1.15.0+Alpha0.15",true,"1.16.0+Alpha0.1").isPresent());
+    }
 
     @Test void exactServerVersionBypassesEitherAutomaticChannel() {
         var alpha = release("1.15.0+Alpha0.6", true);
