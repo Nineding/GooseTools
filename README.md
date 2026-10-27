@@ -16,11 +16,11 @@ GooseTools is the required Fabric client/server foundation for the Whoiskiller G
 - Fabric API 0.161.0+26.3 or newer for Minecraft 26.3
 - Xaero's Minimap 26.5.3 or newer for Minecraft 26.3 / Fabric
 - Xaero's World Map 1.46.4 or newer for Minecraft 26.3 / Fabric
-- GooseTools 1.15.0+Alpha0.15 on the server and every client
+- GooseTools 1.15.0+Alpha0.16 on the server and every client
 
-当前网络协议版本为 49，沿用最新主分支的职业入场数据 v5。服务端、本地联机房主和所有客户端均须使用 GooseTools 1.15.0+Alpha0.15；旧版本仍受版本握手限制。两幕职业入场需配套当前数据包和资源包的 12 秒开场流程及当局人数计分。
+当前网络协议版本为 49，沿用最新主分支的职业入场数据 v5。服务端、本地联机房主和所有客户端均须使用 GooseTools 1.15.0+Alpha0.16；旧版本仍受版本握手限制。两幕职业入场需配套当前数据包和资源包的 12 秒开场流程及当局人数计分。
 
-The network protocol is 49, retaining the latest main branch's role-intro payload v5. Dedicated servers, LAN hosts and every client must use GooseTools 1.15.0+Alpha0.15; release handshake restrictions still apply to older versions. The two-act opening requires the current datapack and resource pack with the twelve-second opening flow and match-count scores.
+The network protocol is 49, retaining the latest main branch's role-intro payload v5. Dedicated servers, LAN hosts and every client must use GooseTools 1.15.0+Alpha0.16; release handshake restrictions still apply to older versions. The two-act opening requires the current datapack and resource pack with the twelve-second opening flow and match-count scores.
 
 前置版本声明只设最低版本、不设上限；需要使用 Minecraft 26.3 / Fabric 对应且彼此兼容的前置文件。未来依赖若发生 API 破坏仍可能需要适配，自动更新继续遵循玩家原有设置。
 
@@ -29,7 +29,7 @@ Dependency requirements have minimum versions with no upper bounds. Use compatib
 ## 安装 / Installation
 
 1. 安装 Minecraft 26.3、Fabric Loader 和上方列出的依赖。
-2. 从 [Releases](https://github.com/Nineding/GooseTools/releases) 下载 `goosetools-1.15.0+Alpha0.15.jar`。
+2. 从 [Releases](https://github.com/Nineding/GooseTools/releases) 下载 `goosetools-1.15.0+Alpha0.16.jar`。
 3. 将 GooseTools 及依赖 JAR 放入服务端和每位玩家客户端的 `mods` 目录。
 
 Install Minecraft 26.3 with Fabric Loader and the dependencies listed above, then place the GooseTools JAR in the `mods` directory on both the server and every client.

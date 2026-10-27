@@ -203,7 +203,10 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
             }
             if (++ticks < 25) return;
             ticks = 0;
-            if (!initialized) { initialized = true;installPack(mc);return; }
+            if (!initialized) {
+                CameraTransferRegressionChecks.verify(mc);
+                initialized = true;installPack(mc);return;
+            }
             if (stage == 0) {
                 ownerBodyFrames=0;renderWaits=0;idleAnimationError=null;victimControllerFrames=0;ownerView=scenario<4 || scenario>=8;
                 // Enter while the native walk cycle is active. Suspending aiStep must
@@ -297,7 +300,7 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
             if(scenario%4!=3)verifyMovementEffects(mc,ownerView?mc.player:mc.level.getEntity(sourceId),false);
             GooseTools.LOGGER.info("Retained projection passed {} {}",ownerView?"owner":"observer",ROLES[scenario%4]);
             if (++scenario==11) {
-                finish(mc,"PASS "+checks+" checks: actual four-role datapack entry points, owner and tracked remote observer, "
+                finish(mc,"PASS "+checks+" checks: backend JOIN camera/input reset and scene revision isolation, actual four-role datapack entry points, owner and tracked remote observer, "
                         +"Seagull borrowing, predicted Mime input, continuous tracked player identity/walk cycles, victim follow camera with zero ongoing teleports, native body ID/render, 20-block separation, crosshair/voice origins, "
                         +"physical/remote coordinates, armour, airborne gravity/landing, native sprint particles/footsteps, silence restoration, return, meeting/swallowing/death/disconnect cleanup");
             } else stage=0;
