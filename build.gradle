@@ -151,6 +151,8 @@ loom {
             vmArg '-Dgoosetools.artworkRegression=' + providers.gradleProperty('artworkRegression').isPresent()
             vmArg '-Dgoosetools.aiVoteRegression=' + providers.gradleProperty('aiVoteRegression').isPresent()
             vmArg '-Dgoosetools.presentationRegression=' + providers.gradleProperty('presentationRegression').isPresent()
+            vmArg '-Dgoosetools.blindDuckRegression=' + providers.gradleProperty('blindDuckRegression').isPresent()
+            vmArg '-Dgoosetools.blindDuckPack=' + file(providers.gradleProperty('blindDuckPack').getOrElse('../../../GooseGooseDuck')).absolutePath
             vmArg '-Dgoosetools.summaryRegression=' + providers.gradleProperty('summaryRegression').isPresent()
             vmArg '-Dgoosetools.danceRegression=' + providers.gradleProperty('danceRegression').isPresent()
             programArg '--width'
@@ -209,6 +211,13 @@ loom {
         xaeroServerSmokeTest {
             server()
             runDir 'build/xaero-server-smoke-test'
+        }
+        blindDuckServerSmoke {
+            server()
+            source sourceSets.roleIntroRegressionTest
+            runDir 'build/blind-duck-server-smoke'
+            vmArg '-Dgoosetools.blindDuckServerSmoke=true'
+            vmArg '-Dgoosetools.blindDuckServerResult=' + layout.buildDirectory.file('blind-duck-server-smoke/result.txt').get().asFile.absolutePath
         }
         cameraRenderTest {
             client()
@@ -340,12 +349,50 @@ tasks.named('runRoleIntroRegressionTest') {
     timeout = java.time.Duration.ofMinutes(4)
     doFirst {
         java.nio.file.Files.deleteIfExists(layout.buildDirectory.file('role-intro-regression-test/result.txt').get().asFile.toPath())
+        if (providers.gradleProperty('blindDuckRegression').isPresent()) {
+            def run = layout.buildDirectory.dir('role-intro-regression-test').get().asFile
+            def pack = file(providers.gradleProperty('blindDuckPack').getOrElse('../../../GooseGooseDuck'))
+            copy {
+                from new File(pack, 'resourcepack')
+                into new File(run, 'resourcepacks/blind-duck-proof')
+                include 'pack.mcmeta', 'assets/minecraft/textures/entity/player/slim/unknow.png'
+            }
+            new File(run, 'options.txt').text = 'lang:en_us\nguiScale:2\nrenderDistance:2\nsimulationDistance:5\npauseOnLostFocus:false\ntutorialStep:none\nresourcePacks:["vanilla","file/blind-duck-proof"]\n'
+        }
     }
     doLast {
         def result = layout.buildDirectory.file('role-intro-regression-test/result.txt').get().asFile
         if (!result.isFile() || !result.text.startsWith('PASS ')) {
             throw new GradleException('Opening stage regression failed; inspect build/role-intro-regression-test/result.txt and screenshots')
         }
+        logger.lifecycle(result.text)
+    }
+}
+
+tasks.named('runBlindDuckServerSmoke') {
+    timeout = java.time.Duration.ofMinutes(3)
+    doFirst {
+        def run = layout.buildDirectory.dir('blind-duck-server-smoke').get().asFile
+        def pack = file(providers.gradleProperty('blindDuckPack').getOrElse('../../../GooseGooseDuck'))
+        run.mkdirs()
+        java.nio.file.Files.deleteIfExists(new File(run, 'result.txt').toPath())
+        new File(run, 'eula.txt').text = 'eula=true\n'
+        new File(run, 'server.properties').text = 'online-mode=false\nserver-port=0\nlevel-type=minecraft:flat\nmax-tick-time=-1\n'
+        copy {
+            from new File(pack, 'datapack')
+            into new File(run, 'world/datapacks/BlindDuck')
+            include 'pack.mcmeta', 'data/lobby/function/invreplace/toggle/blind_duck_mode.mcfunction',
+                    'data/lobby/function/gamesetting/ggd/blind_duck_mode/**',
+                    'data/lobby/function/invreplace/menu_main.mcfunction',
+                    'data/lobby/function/settings_display/update.mcfunction',
+                    'data/lobby/function/settings_display/ggd/**',
+                    'data/mainsys/function/gamestartprogress/ggd/showevil/do_summon*.mcfunction',
+                    'data/mainsys/function/gamestartprogress/ggd/lover/show_duck_teammates.mcfunction'
+        }
+    }
+    doLast {
+        def result = layout.buildDirectory.file('blind-duck-server-smoke/result.txt').get().asFile
+        if (!result.isFile() || !result.text.startsWith('PASS ')) throw new GradleException('Inspect blind-duck-server-smoke logs and result.txt')
         logger.lifecycle(result.text)
     }
 }
