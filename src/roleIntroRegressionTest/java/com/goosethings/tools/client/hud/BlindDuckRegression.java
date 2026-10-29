@@ -54,7 +54,7 @@ final class BlindDuckRegression {
             if (mc.player == null || mc.level == null || mc.getSingleplayerServer() == null
                     || !mc.player.connection.hasClientLoaded() || ++warmup < 40) return;
             if (pending != null) { if (!pending.isDone()) return; pending.join(); pending = null; }
-            if (scenario == 4) { finish(mc, "PASS real server protocol 50; anonymous UUID/name/equipment sanitization; no anonymous name aliases; unknown resource skin without cape; Duck and Lover GPU rendering; lover retained; disabled restores real appearance; default/menu/NBT parser; four screenshots"); return; }
+            if (scenario == 4) { finish(mc, "PASS real server protocol 50; anonymous UUID/name/equipment sanitization; no anonymous name aliases; unknown wide skin and black head; local black leather outfit and question-mark asset; Duck and Lover GPU rendering; lover retained; disabled restores real appearance; four screenshots"); return; }
             if (!requested) {
                 requested = true; captured = false; saved = false; since = System.nanoTime();
                 pending = CompletableFuture.runAsync(() -> fixture(mc), mc.getSingleplayerServer()); return;
@@ -137,6 +137,7 @@ final class BlindDuckRegression {
         } finally { buffer.release(); }
         var field = RoleIntroScreen.class.getDeclaredField("models"); field.setAccessible(true);
         @SuppressWarnings("unchecked") var models = (Map<UUID, net.minecraft.client.player.RemotePlayer>) field.get(screen);
+        Set<UUID> headIds = new HashSet<>();
         for (var appearance : payload.roster()) {
             var model = models.get(appearance.id()); require(model != null, "model rendered");
             if (appearance.anonymous()) {
@@ -145,9 +146,22 @@ final class BlindDuckRegression {
                 require(appearance.equipment().stream().allMatch(ItemStack::isEmpty), "wardrobe leaked");
                 require(model.getSkin().body().texturePath().equals(Identifier.withDefaultNamespace("textures/entity/player/slim/unknow.png")), "resource skin not applied");
                 require(model.getSkin().cape() == null && model.getSkin().elytra() == null, "cape leaked");
+                require(model.getSkin().model() == net.minecraft.world.entity.player.PlayerModelType.WIDE, "anonymous arms are still slim");
+                for (var slot : List.of(EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET)) {
+                    var item = model.getItemBySlot(slot);
+                    require(item.get(net.minecraft.core.component.DataComponents.DYED_COLOR).rgb() == 0, "anonymous armor is not black");
+                    require(item.get(net.minecraft.core.component.DataComponents.EQUIPPABLE).assetId().orElseThrow()
+                            .identifier().equals(Identifier.withDefaultNamespace("blind_duck")), "question-mark equipment asset missing");
+                }
+                var head = model.getItemBySlot(EquipmentSlot.HEAD);
+                require(head.is(Items.PLAYER_HEAD), "anonymous head missing");
+                var profile = head.get(net.minecraft.core.component.DataComponents.PROFILE);
+                require(profile.skinPatch().body().isPresent(), "head's black skin override missing");
+                require(headIds.add(profile.partialProfile().id()), "anonymous heads share a UUID");
             } else require(!model.getItemBySlot(EquipmentSlot.CHEST).isEmpty(), "known wardrobe lost");
         }
         require(mc.getResourceManager().getResource(Identifier.withDefaultNamespace("textures/entity/player/slim/unknow.png")).isPresent(), "unknown skin missing from resource pack");
+        require(mc.getResourceManager().getResource(Identifier.withDefaultNamespace("equipment/blind_duck.json")).isPresent(), "question-mark equipment definition missing");
     }
 
     private static int score(MinecraftServer server) {

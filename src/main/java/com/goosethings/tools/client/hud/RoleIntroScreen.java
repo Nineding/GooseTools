@@ -308,8 +308,10 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
                 new GameProfile(isolated, appearance.name()), () -> appearance.anonymous()
                         ? anonymousSkin() : skin(appearance.id()));
         model.showAllSkinLayers();
+        var equipment = appearance.anonymous()
+                ? com.goosethings.tools.intro.BlindDuckAppearance.equipment(appearance.id()) : appearance.equipment();
         for (var slot : net.minecraft.world.entity.EquipmentSlot.values())
-            model.setItemSlot(slot, appearance.equipment().get(slot.ordinal()).copy());
+            model.setItemSlot(slot, equipment.get(slot.ordinal()).copy());
         model.setId(0x6A120000 + index);
         model.refreshDimensions();
         return model;
@@ -317,7 +319,7 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
     private static PlayerSkin anonymousSkin() {
         return new PlayerSkin(new net.minecraft.core.ClientAsset.ResourceTexture(
                 Identifier.withDefaultNamespace("entity/player/slim/unknow")), null, null,
-                net.minecraft.world.entity.player.PlayerModelType.SLIM, true);
+                net.minecraft.world.entity.player.PlayerModelType.WIDE, true);
     }
 
     private PlayerSkin skin(UUID id) {
