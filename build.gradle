@@ -355,7 +355,9 @@ tasks.named('runRoleIntroRegressionTest') {
             copy {
                 from new File(pack, 'resourcepack')
                 into new File(run, 'resourcepacks/blind-duck-proof')
-                include 'pack.mcmeta', 'assets/minecraft/textures/entity/player/slim/unknow.png'
+                include 'pack.mcmeta', 'assets/minecraft/textures/entity/player/slim/unknow.png',
+                        'assets/minecraft/equipment/blind_duck.json',
+                        'assets/minecraft/textures/entity/equipment/**/blind_duck.png'
             }
             new File(run, 'options.txt').text = 'lang:en_us\nguiScale:2\nrenderDistance:2\nsimulationDistance:5\npauseOnLostFocus:false\ntutorialStep:none\nresourcePacks:["vanilla","file/blind-duck-proof"]\n'
         }
@@ -387,7 +389,8 @@ tasks.named('runBlindDuckServerSmoke') {
                     'data/lobby/function/settings_display/update.mcfunction',
                     'data/lobby/function/settings_display/ggd/**',
                     'data/mainsys/function/gamestartprogress/ggd/showevil/do_summon*.mcfunction',
-                    'data/mainsys/function/gamestartprogress/ggd/lover/show_duck_teammates.mcfunction'
+                    'data/mainsys/function/gamestartprogress/ggd/lover/show_duck_teammates.mcfunction',
+                    'data/ggd/function/faction_markers/**'
         }
     }
     doLast {
