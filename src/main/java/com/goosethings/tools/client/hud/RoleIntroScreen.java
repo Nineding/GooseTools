@@ -296,14 +296,17 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
             float labelScale=Math.min(slot.nameScale(),(step-8)/Math.max(1,font.width(label)));
             centered(g,label,center,top-28*slot.nameScale(),labelScale,alphaColor(role.color(),alpha));
         }
-        MeetingNameTagHud.drawIntro(g,minecraft,appearance.id(),appearance.name(),center,
-                top-14*slot.nameScale(),slot.nameScale(),Math.max(12,(int)((step-6)/slot.nameScale())),alpha);
+        if (!appearance.anonymous()) {
+            MeetingNameTagHud.drawIntro(g,minecraft,appearance.id(),appearance.name(),center,
+                    top-14*slot.nameScale(),slot.nameScale(),Math.max(12,(int)((step-6)/slot.nameScale())),alpha);
+        }
     }
 
     private RemotePlayer model(RoleIntroPayload.Appearance appearance, int index) {
         UUID isolated = RoleIntroScene.modelId(appearance.id());
         MeetingAlertRemotePlayer model = new MeetingAlertRemotePlayer(minecraft.level,
-                new GameProfile(isolated, appearance.name()), () -> skin(appearance.id()));
+                new GameProfile(isolated, appearance.name()), () -> appearance.anonymous()
+                        ? anonymousSkin() : skin(appearance.id()));
         model.showAllSkinLayers();
         for (var slot : net.minecraft.world.entity.EquipmentSlot.values())
             model.setItemSlot(slot, appearance.equipment().get(slot.ordinal()).copy());
@@ -311,6 +314,12 @@ public final class RoleIntroScreen extends Screen implements ProtectedInputScree
         model.refreshDimensions();
         return model;
     }
+    private static PlayerSkin anonymousSkin() {
+        return new PlayerSkin(new net.minecraft.core.ClientAsset.ResourceTexture(
+                Identifier.withDefaultNamespace("entity/player/slim/unknow")), null, null,
+                net.minecraft.world.entity.player.PlayerModelType.SLIM, true);
+    }
+
     private PlayerSkin skin(UUID id) {
         PlayerSkin cached = MeetingAlertTrueSkinCache.get(id);
         if (cached != null) return cached;

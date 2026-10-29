@@ -17,6 +17,44 @@ class RoleIntroPolicyTest {
         return roster.stream().filter(m -> m.small() == small).map(m -> (int) m.id().getLeastSignificantBits()).sorted().toList();
     }
 
+    @Test void blindDuckMasksOtherDucksAndMimicWithoutLeakingTheHeroSeatOrder() {
+        var duck = player(9, "evil", "Spy");
+        var other = player(2, "evil", "Sniper");
+        var mimic = player(5, "good", "Mimic");
+        var goose = player(1, "good");
+        var all = List.of(goose, other, mimic, duck);
+        var roster = RoleIntroPolicy.roster(duck, all, true);
+        assertEquals(duck.id(), roster.getFirst().id());
+        assertEquals(3, roster.size());
+        assertEquals(List.of(other.id(), mimic.id()), roster.stream().filter(RoleIntroPolicy.Member::anonymous)
+                .map(RoleIntroPolicy.Member::id).toList());
+        assertFalse(roster.getFirst().anonymous());
+        assertTrue(RoleIntroPolicy.roster(duck, all, false).stream().noneMatch(RoleIntroPolicy.Member::anonymous));
+        assertTrue(RoleIntroPolicy.roster(goose, all, true).stream().noneMatch(RoleIntroPolicy.Member::anonymous));
+        assertTrue(RoleIntroPolicy.roster(mimic, all, true).stream().noneMatch(RoleIntroPolicy.Member::anonymous));
+    }
+
+    @Test void blindDuckLoverKeepsTheirPartnerAndMasksOnlyTheSideRoster() {
+        var duck = player(1, "evil", "Lover", "lover_with_2");
+        var partner = player(2, "good", "Mimic", "Lover", "lover_with_1");
+        var ally = player(3, "evil");
+        var mimic = player(4, "good", "Mimic");
+        var all = List.of(duck, partner, ally, mimic);
+        var roster = RoleIntroPolicy.roster(duck, all, true);
+        assertEquals(List.of(1,2), seats(roster, false));
+        assertEquals(List.of(3,4), seats(roster, true));
+        assertTrue(roster.stream().filter(member -> !member.small()).noneMatch(RoleIntroPolicy.Member::anonymous));
+        assertTrue(roster.stream().filter(RoleIntroPolicy.Member::small).allMatch(RoleIntroPolicy.Member::anonymous));
+        assertTrue(RoleIntroPolicy.roster(partner, all, true).stream().noneMatch(RoleIntroPolicy.Member::anonymous));
+        assertTrue(RoleIntroPolicy.roster(duck, all, false).stream().noneMatch(RoleIntroPolicy.Member::anonymous));
+    }
+
+    @Test void blindDuckSoloAndBirdDoNotInventAnonymousTeammates() {
+        var duck = player(1, "evil"); var bird = player(2, "neutral", "Dodo");
+        assertEquals(List.of(new RoleIntroPolicy.Member(duck.id(), false)), RoleIntroPolicy.roster(duck, List.of(duck, bird), true));
+        assertEquals(List.of(new RoleIntroPolicy.Member(bird.id(), false)), RoleIntroPolicy.roster(bird, List.of(duck, bird), true));
+    }
+
     @Test void eachViewerGetsExactlyTheRequestedFactionRoster() {
         var goose = player(1, "good", "Goose");
         var duck = player(2, "evil", "Spy");

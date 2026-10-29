@@ -3,7 +3,10 @@
   "id": "goosetools_intro_test",
   "version": "1.0.0",
   "name": "GooseTools opening stage render check",
-  "environment": "client",
-  "entrypoints": { "client": ["com.goosethings.tools.client.hud.RoleIntroRegression"] },
+  "environment": "*",
+  "entrypoints": {
+    "client": ["com.goosethings.tools.client.hud.RoleIntroRegression"],
+    "server": ["com.goosethings.tools.intro.BlindDuckServerSmoke"]
+  },
   "depends": { "goosetools": "*" }
 }

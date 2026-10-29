@@ -32,6 +32,10 @@ public final class RoleIntroPolicy {
     }
 
     public static List<Member> roster(Player viewer, List<Player> participants) {
+        return roster(viewer, participants, false);
+    }
+
+    public static List<Member> roster(Player viewer, List<Player> participants, boolean blindDuck) {
         List<Member> result = new ArrayList<>();
         // Seat order is spatially stable: the hero joins their numbered slot in act two.
         List<Player> main = new ArrayList<>();
@@ -49,9 +53,15 @@ public final class RoleIntroPolicy {
             };
             if (show) main.add(target);
         }
-        main.add(viewer);
-        main.sort(java.util.Comparator.comparingInt(Player::seat).thenComparing(Player::id));
-        for (Player player : main) result.add(new Member(player.id(), false));
+        if (blindDuck && theme == DUCK) {
+            // The hero's position must not reveal which anonymous allies have lower seat numbers.
+            main.addFirst(viewer);
+        } else {
+            main.add(viewer);
+            main.sort(java.util.Comparator.comparingInt(Player::seat).thenComparing(Player::id));
+        }
+        for (Player player : main) result.add(new Member(player.id(), false,
+                blindDuck && theme == DUCK && !player.id().equals(viewer.id())));
         if (theme == LOVER && viewer.tags().contains("evil")) {
             for (Player target : participants.stream().sorted(java.util.Comparator.comparingInt(Player::seat)
                     .thenComparing(Player::id)).toList()) {
@@ -59,7 +69,7 @@ public final class RoleIntroPolicy {
                 boolean teammate = target.tags().contains("evil") && !target.tags().contains("Lover")
                         || target.tags().contains("Mimic");
                 if (teammate && result.stream().noneMatch(member -> member.id().equals(target.id()))) {
-                    result.add(new Member(target.id(), true));
+                    result.add(new Member(target.id(), true, blindDuck));
                 }
             }
         }
@@ -87,5 +97,7 @@ public final class RoleIntroPolicy {
     public record Player(UUID id, int seat, Set<String> tags) {
         public Player { tags = Set.copyOf(tags); }
     }
-    public record Member(UUID id, boolean small) {}
+    public record Member(UUID id, boolean small, boolean anonymous) {
+        public Member(UUID id, boolean small) { this(id, small, false); }
+    }
 }

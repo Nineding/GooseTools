@@ -16,7 +16,7 @@ import java.util.UUID;
 public record RoleIntroPayload(boolean active, String role, int theme, int mode, int map, boolean fullMap, boolean loneDuck, MatchCounts counts, List<Appearance> roster)
         implements CustomPacketPayload {
     public static final Type<RoleIntroPayload> TYPE = new Type<>(
-            Identifier.fromNamespaceAndPath("goosetools", "role_intro_s2c_v6"));
+            Identifier.fromNamespaceAndPath("goosetools", "role_intro_s2c_v7"));
     public static final StreamCodec<RegistryFriendlyByteBuf, RoleIntroPayload> CODEC =
             StreamCodec.of(RoleIntroPayload::write, RoleIntroPayload::read);
     public static final RoleIntroPayload CLOSE = new RoleIntroPayload(false, "", 0, 0, List.of());
@@ -44,6 +44,9 @@ public record RoleIntroPayload(boolean active, String role, int theme, int mode,
         }
         HashSet<UUID> ids = new HashSet<>();
         for (Appearance player : roster) {
+            if (player.anonymous() && (theme != RoleIntroPolicy.DUCK
+                    && (theme != RoleIntroPolicy.LOVER || !player.small())))
+                throw new IllegalArgumentException("Anonymous appearances are Duck teammates only");
             if (theme != RoleIntroPolicy.SPECTATOR && (!player.observerRole().isEmpty() || player.observerGlowRgb() != 0))
                 throw new IllegalArgumentException("Other roles are spectator-only");
         }
@@ -71,6 +74,7 @@ public record RoleIntroPayload(boolean active, String role, int theme, int mode,
             buffer.writeUUID(player.id());
             buffer.writeUtf(player.name(), 64);
             buffer.writeBoolean(player.small());
+            buffer.writeBoolean(player.anonymous());
             for (ItemStack item : player.equipment()) ItemStack.OPTIONAL_STREAM_CODEC.encode(buffer, item);
             buffer.writeUtf(player.observerRole(),64); buffer.writeInt(player.observerGlowRgb());
         }
@@ -93,16 +97,25 @@ public record RoleIntroPayload(boolean active, String role, int theme, int mode,
             UUID id = buffer.readUUID();
             String name = buffer.readUtf(64);
             boolean small = buffer.readBoolean();
+            boolean anonymous = buffer.readBoolean();
             List<ItemStack> equipment = new ArrayList<>();
             for (EquipmentSlot slot : EquipmentSlot.values()) equipment.add(ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer));
-            roster.add(new Appearance(id, name, small, equipment, buffer.readUtf(64), buffer.readInt()));
+            roster.add(new Appearance(id, name, small, equipment, buffer.readUtf(64), buffer.readInt(), anonymous));
         }
         return new RoleIntroPayload(active, role, theme, mode, map, fullMap, loneDuck, counts, roster);
     }
 
     @Override public Type<RoleIntroPayload> type() { return TYPE; }
 
-    public record Appearance(UUID id, String name, boolean small, List<ItemStack> equipment, String observerRole, int observerGlowRgb) {
+    public record Appearance(UUID id, String name, boolean small, List<ItemStack> equipment, String observerRole, int observerGlowRgb, boolean anonymous) {
+        public Appearance(UUID id, String name, boolean small, List<ItemStack> equipment, String observerRole, int observerGlowRgb) {
+            this(id, name, small, equipment, observerRole, observerGlowRgb, false);
+        }
+        public static Appearance anonymousTeammate(boolean small) {
+            // Never transmit the real UUID: skin/name caches can otherwise identify the teammate.
+            return new Appearance(UUID.randomUUID(), "Unknown", small,
+                    PresentationAppearance.emptyEquipment(), "", 0, true);
+        }
         public Appearance(UUID id, String name, boolean small, List<ItemStack> equipment) {
             this(id,name,small,equipment,"",0);
         }
@@ -110,6 +123,10 @@ public record RoleIntroPayload(boolean active, String role, int theme, int mode,
             this(id, name, small, PresentationAppearance.emptyEquipment());
         }
         public Appearance {
+            if (anonymous && (!"Unknown".equals(name) || observerRole != null && !observerRole.isEmpty()
+                    || observerGlowRgb != 0 || equipment == null
+                    || equipment.stream().anyMatch(item -> item == null || !item.isEmpty())))
+                throw new IllegalArgumentException("Anonymous appearance contains identifying data");
             observerRole = observerRole == null ? "" : observerRole;
             if (!observerRole.isEmpty() && RoleIntroCatalog.findByStoredId(observerRole).isEmpty() && !observerRole.equals("Duck"))
                 throw new IllegalArgumentException("Unknown spectator intro role");

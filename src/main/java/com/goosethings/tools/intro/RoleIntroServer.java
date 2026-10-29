@@ -58,6 +58,7 @@ public final class RoleIntroServer {
         int ducks = Math.clamp(score(server, "gameGGD", ScoreHolder.forNameOnly("#RosterEvil")),0,total);
         int birds = Math.clamp(score(server, "gameGGD", ScoreHolder.forNameOnly("#RosterBird")),0,total-ducks);
         MatchCounts counts = new MatchCounts(total,ducks,birds);
+        boolean blindDuck = score(server, "ggdadv", ScoreHolder.forNameOnly("BlindDuckMode")) == 1;
         int sent = 0;
         for (ServerPlayer viewer : viewers) {
             boolean spectator = RoleIntroPolicy.spectator(viewer.entityTags());
@@ -66,8 +67,9 @@ public final class RoleIntroServer {
                     || !ServerPlayNetworking.canSend(viewer, RoleIntroPayload.TYPE)) continue;
             List<RoleIntroPayload.Appearance> roster = (spectator
                     ? identities.stream().map(p -> new RoleIntroPolicy.Member(p.id(),false)).toList()
-                    : RoleIntroPolicy.roster(identity(viewer), identities)).stream()
+                    : RoleIntroPolicy.roster(identity(viewer), identities, blindDuck)).stream()
                     .map(member -> {
+                        if (member.anonymous()) return RoleIntroPayload.Appearance.anonymousTeammate(member.small());
                         ServerPlayer player = participants.stream().filter(p -> p.getUUID().equals(member.id()))
                                 .findFirst().orElseThrow();
                         return new RoleIntroPayload.Appearance(member.id(), com.goosethings.tools.nametag.PlayerDisplayNames.name(player), member.small(),
@@ -85,7 +87,8 @@ public final class RoleIntroServer {
                     Math.clamp(score(server, "gamesetting", ScoreHolder.forNameOnly("map")), 0, 11),
                     score(server, "eagleton", ScoreHolder.forNameOnly("#Full")) == 1, participants.stream().filter(p -> p.entityTags().contains("evil")).count() == 1, counts, roster));
             ACTIVE.put(viewer.getUUID(), new Session(server.getTickCount() + RoleIntroScene.DURATION_TICKS,
-                    roster.stream().map(RoleIntroPayload.Appearance::id).toList(), spectator));
+                    roster.stream().filter(player -> !player.anonymous())
+                            .map(RoleIntroPayload.Appearance::id).toList(), spectator));
             sent++;
         }
         return sent;
