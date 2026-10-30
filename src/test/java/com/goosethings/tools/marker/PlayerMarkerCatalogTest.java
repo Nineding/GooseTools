@@ -64,9 +64,21 @@ class PlayerMarkerCatalogTest {
         assertTrue(PlayerMarkerPolicy.viewerCanSeeMarkers(Set.of("players", "inDream")));
         assertFalse(PlayerMarkerPolicy.viewerCanSeeMarkers(Set.of("players", "gamingGGD")));
 
-        assertTrue(PlayerMarkerPolicy.showBesideNameTag(Set.of("players", "inTalk")));
-        assertFalse(PlayerMarkerPolicy.showBesideNameTag(Set.of("players", "inTalk", "spectator")));
-        assertFalse(PlayerMarkerPolicy.showBesideNameTag(Set.of("players", "inTalk", "deadInMap")));
+        assertTrue(PlayerMarkerPolicy.showBesideNameTag(Set.of("players", "inTalk"), 1, 1));
+        assertFalse(PlayerMarkerPolicy.showBesideNameTag(Set.of("players", "inTalk", "spectator"), 1, 1));
+        assertFalse(PlayerMarkerPolicy.showBesideNameTag(Set.of("players", "inTalk", "deadInMap"), 1, 1));
+    }
+
+    @Test
+    void bellIntroAndDelayedRevealNeverEnableClientOutlines() {
+        for (Set<String> tags : List.of(Set.of("players", "inTalk"), Set.of("players", "inDream"))) {
+            assertFalse(PlayerMarkerPolicy.showBesideNameTag(tags, 1, 0), "Bell intro has no outline");
+            assertFalse(PlayerMarkerPolicy.showBesideNameTag(tags, 1, 2), "Three-second wait has no outline");
+            assertTrue(PlayerMarkerPolicy.showBesideNameTag(tags, 1, 1), "Discussion reveal is ready");
+            assertTrue(PlayerMarkerPolicy.showBesideNameTag(tags, 2, 1), "Voting retains the ready outline");
+            assertFalse(PlayerMarkerPolicy.showBesideNameTag(tags, 0, 1), "Stale readiness cannot reveal on the map");
+            assertFalse(PlayerMarkerPolicy.showBesideNameTag(tags, 3, 1), "Ended meeting cannot reveal");
+        }
     }
 
     @Test
