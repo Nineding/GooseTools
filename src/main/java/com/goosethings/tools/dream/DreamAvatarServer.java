@@ -31,6 +31,12 @@ public final class DreamAvatarServer {
     private DreamAvatarServer() {}
     public static void register() {
         DreamAvatarPackets.register();
+        // Optional server task modules need the real remote actor outside command scopes.
+        net.fabricmc.loader.api.FabricLoader.getInstance().getObjectShare().put("goosetools:lucid_task_actor",
+                (java.util.function.Function<ServerPlayer, Entity>) player -> {
+                    Session session = SESSIONS.get(player.getUUID());
+                    return session != null && !session.raven && session.projectionKind == -1 ? session.body : null;
+                });
         ServerPlayNetworking.registerGlobalReceiver(DreamAvatarPackets.Input.TYPE, (p,c) ->
                 c.server().execute(() -> input(c.player(), p)));
         ServerPlayNetworking.registerGlobalReceiver(DreamAvatarPackets.Ready.TYPE, (p,c) ->

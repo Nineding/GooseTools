@@ -196,8 +196,11 @@ public final class PlayerArmAnimationContinuity {
 
     private static boolean isSupported(Entity entity) {
         // Corpses and living ghosts can share a profile and position indefinitely.
-        // They are not a transient player/body replacement.
-        return entity instanceof Player || entity instanceof Mannequin && entity.getPose() != Pose.SLEEPING;
+        // They are not a transient player/body replacement. The explicit corpse flag is
+        // synced to clients, unlike command tags, and also covers prone/frozen corpses.
+        return entity instanceof Player || entity instanceof Mannequin
+                && entity.getPose() != Pose.SLEEPING
+                && !((com.goosethings.tools.corpse.MapCorpse) entity).goosetools$isMapCorpse();
     }
 
     private static boolean isPlayerMannequinPair(Entity first, Entity second) {
