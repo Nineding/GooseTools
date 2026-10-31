@@ -1,6 +1,7 @@
 package com.goosethings.tools.intro;
 
 import org.junit.jupiter.api.Test;
+import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ExchangerCatalogTest {
@@ -11,6 +12,8 @@ class ExchangerCatalogTest {
         assertEquals("role.evil.exchanger", role.key());
         assertEquals("role.evil.exchanger.subtitle", role.descriptionKey());
         assertEquals("exchanger", RoleIntroArtwork.sprite("Exchanger").orElseThrow());
+        assertEquals(role, RoleIntroCatalog.resolve(Set.of("players", "evil", "Exchanger")));
+        assertNotNull(getClass().getResource("/assets/goosetools/textures/gui/role_intro/exchanger.png"));
         assertEquals(RoleIntroCatalog.byTag("SinEater").color(), role.color());
     }
 }
