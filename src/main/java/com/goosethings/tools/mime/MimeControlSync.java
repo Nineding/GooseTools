@@ -204,6 +204,14 @@ public final class MimeControlSync {
         }
     }
 
+    /** Ignore native input before vanilla can reject attacks on the hidden authenticated body. */
+    public static boolean blocksLocalInput(ServerPlayer target) {
+        UUID targetId = target.getUUID();
+        return CONTROLLED.containsKey(targetId)
+                && !PROJECTION_BODY_TARGETS.contains(targetId)
+                && !DreamAvatarServer.retainsProjectionBody(target);
+    }
+
     /** Only the ordinary controlled body follows; a target's own projection keeps its input. */
     public static boolean followsBody(ServerPlayer target) {
         UUID id = CONTROLLED.get(target.getUUID());

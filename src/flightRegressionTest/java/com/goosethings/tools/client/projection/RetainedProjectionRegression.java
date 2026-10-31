@@ -53,6 +53,8 @@ import java.util.regex.Pattern;
 /** Actual datapack entry points, real remote-player tracking, and the local owner's native body render. */
 public final class RetainedProjectionRegression implements ClientModInitializer {
     public static boolean suspendBodyTicks;
+    public static boolean countMimeInputPackets;
+    public static int mimeInputPackets;
     private static final String[] ROLES = {"astral", "sniper", "esper", "mime"};
     private static final String[] TAGS = {"Astral", "Sniper", "Esper", "Mime"};
     private boolean opened, initialized, finished;
@@ -73,6 +75,8 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
     private int ownBodyLerpFrames, ownBodyWalkFrames, victimControllerFrames;
     private float previousOwnBodyYaw;
     private double cameraTravel, ownBodyTravel;
+    private boolean mimeInputTested, mimeRecoveryAttack;
+    private int mimeRecoveryEntityId;
     public static boolean collectMovementEffects;
     public static int sprintParticles, stepSounds;
     public static volatile boolean countCorrections;
@@ -90,6 +94,7 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
             mc.options.keyUp.setDown(moving);
             mc.options.keyDown.setDown(false);mc.options.keyLeft.setDown(false);
             mc.options.keyRight.setDown(false);mc.options.keySprint.setDown(false);
+            mc.options.keyShift.setDown(!ownerView && scenario==7 && (stage==4 || stage==5));
         });
         var checkPhase=net.minecraft.resources.Identifier.fromNamespaceAndPath("goosetools_flight_test","after_projection");
         ClientTickEvents.END_CLIENT_TICK.addPhaseOrdering(net.fabricmc.fabric.api.event.Event.DEFAULT_PHASE,checkPhase);
@@ -196,6 +201,24 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
             }
             if(!ownerView && scenario==7 && stage==4) {
                 require(com.goosethings.tools.client.mime.MimeControlClient.followsBody(),"victim did not enter body-follow camera");
+                require(com.goosethings.tools.client.mime.MimeControlClient.blocksLocalInput(),"victim's native actions were not locked");
+                require(!mc.player.input.keyPresses.shift(),"victim's Shift input escaped its lock");
+                if(!mimeInputTested) {
+                    mimeInputTested=true;
+                    var previousHit=mc.hitResult;
+                    mc.hitResult=new net.minecraft.world.phys.EntityHitResult(mc.player);
+                    mimeInputPackets=0;countMimeInputPackets=true;
+                    try {
+                        var attack=Minecraft.class.getDeclaredMethod("startAttack");attack.setAccessible(true);attack.invoke(mc);
+                        var held=Minecraft.class.getDeclaredMethod("continueAttack",boolean.class);held.setAccessible(true);held.invoke(mc,true);
+                        var use=Minecraft.class.getDeclaredMethod("startUseItem");use.setAccessible(true);use.invoke(mc);
+                        require(mimeInputPackets==0,"victim sent native attack/use packets from its detached camera");
+                    } finally {countMimeInputPackets=false;mc.hitResult=previousHit;}
+                    // Bypass the client guard to simulate packets queued before the control notice.
+                    mc.player.connection.send(new net.minecraft.network.protocol.game.ServerboundAttackPacket(mc.player.getId()));
+                    mc.player.connection.send(new net.minecraft.network.protocol.game.ServerboundPlayerInputPacket(
+                            new net.minecraft.world.entity.player.Input(false,false,false,false,false,true,false)));
+                }
                 require(mc.getCameraEntity()==movementCamera && movementCamera!=mc.player,"victim camera fell back onto the teleported LocalPlayer");
                 Vec3 current=movementCamera.position();
                 require(current.distanceTo(previousCameraPosition)<.5,"victim camera jumped during controlled walking");
@@ -261,6 +284,7 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
             }
             if(stage==4) {
                 if(ownerView) {
+                    require(!com.goosethings.tools.client.mime.MimeControlClient.blocksLocalInput(),"projected target lost its independent native actions");
                     require(movementSamples>=20,"not enough continuous camera samples");
                     require(scenario%4==3?cameraTravel>1:mc.getCameraEntity().position().distanceTo(movementStart)>.5,
                             "native movement left the projection stuck at its origin: role="+ROLES[scenario%4]+", travel="+cameraTravel);
@@ -282,15 +306,41 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
                 }
                 DreamTestLatency.enabled=false;mc.options.keyUp.setDown(false);
                 server(mc,p->{
+                    if(!ownerView && scenario==7) {
+                        require(!p.hasDisconnected(),"queued self-attack disconnected the controlled victim");
+                        require(!p.getLastClientInput().shift(),"server accepted the controlled victim's queued Shift input");
+                    }
                     if(ownerView)ServerPlayNetworking.send(p,new GooseToolsPayloads.MimeControlS2C(false,fakeId));
                     end(p);
+                    if(!ownerView && scenario==7) {
+                        var interaction=new net.minecraft.world.entity.Interaction(net.minecraft.world.entity.EntityTypes.INTERACTION,p.level());
+                        interaction.setWidth(1);interaction.setHeight(2);interaction.setResponse(true);
+                        interaction.setPos(p.position().add(0,0,1));p.level().addFreshEntity(interaction);
+                        mimeRecoveryEntityId=interaction.getId();
+                    }
                 });stage++;return;
             }
             require(!DreamAvatarClient.retainedProjection(),"owner retained remote camera after cleanup");
             if(!ownerView && scenario==7)require(!com.goosethings.tools.client.mime.MimeControlClient.isControlled()
                     && mc.getCameraEntity()==mc.player,"victim camera/input was not restored after disconnect cleanup");
+            boolean verifyMimeRecovery=!ownerView && scenario==7;
+            if(verifyMimeRecovery && !mimeRecoveryAttack) {
+                require(!com.goosethings.tools.client.mime.MimeControlClient.blocksLocalInput(),"victim's attack lock survived cleanup");
+                require(mc.player.input.keyPresses.shift(),"victim's native Shift input did not recover");
+                Entity interaction=mc.level.getEntity(mimeRecoveryEntityId);
+                require(interaction!=null,"recovery interaction was not tracked");
+                var previousHit=mc.hitResult;
+                mc.hitResult=new net.minecraft.world.phys.EntityHitResult(interaction);
+                var attack=Minecraft.class.getDeclaredMethod("startAttack");attack.setAccessible(true);attack.invoke(mc);
+                mc.hitResult=previousHit;mimeRecoveryAttack=true;return;
+            }
             boolean previouslySilent = scenario==2;
             server(mc,p->{
+                if(verifyMimeRecovery) {
+                    var interaction=(net.minecraft.world.entity.Interaction)p.level().getEntity(mimeRecoveryEntityId);
+                    require(interaction!=null && interaction.getLastAttacker()==p,"native entity attacks did not recover after control ended");
+                    interaction.discard();
+                }
                 ServerPlayer source=source(p);
                 require(!ProjectionBodyServer.isRetained(source) && DreamAvatarServer.actor(source)==null,"server session survived cleanup");
                 require(!source.entityTags().contains("projectionBodyRetained"),"retained tag survived cleanup");
@@ -302,7 +352,8 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
             if (++scenario==11) {
                 finish(mc,"PASS "+checks+" checks: backend JOIN camera/input reset and scene revision isolation, actual four-role datapack entry points, owner and tracked remote observer, "
                         +"Seagull borrowing, predicted Mime input, continuous tracked player identity/walk cycles, victim follow camera with zero ongoing teleports, native body ID/render, 20-block separation, crosshair/voice origins, "
-                        +"physical/remote coordinates, armour, airborne gravity/landing, native sprint particles/footsteps, silence restoration, return, meeting/swallowing/death/disconnect cleanup");
+                        +"physical/remote coordinates, armour, airborne gravity/landing, native sprint particles/footsteps, silence restoration, return, meeting/swallowing/death/disconnect cleanup, "
+                        +"Mime victim native attack/use suppression, queued self-attack rejection without disconnect, Shift lock and post-control native attack/Shift recovery");
             } else stage=0;
         } catch (Throwable error) { GooseTools.LOGGER.error("Retained projection regression failed",error);finish(mc,"FAIL "+error); }
     }
@@ -523,7 +574,8 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
     private void finish(Minecraft mc,String result) {
         finished=true;
         suspendBodyTicks=false;
-        mc.options.keyUp.setDown(false);DreamTestLatency.enabled=false;
+        countMimeInputPackets=false;
+        mc.options.keyUp.setDown(false);mc.options.keyShift.setDown(false);DreamTestLatency.enabled=false;
         try{Files.writeString(mc.gameDirectory.toPath().resolve("retained-result.txt"),result);}catch(Exception error){GooseTools.LOGGER.error("Cannot write retained result",error);}
         DreamTcpFixture.stop();mc.stop();
     }
