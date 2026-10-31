@@ -46,7 +46,8 @@
     {
       "config": "goosetools.dream.client.mixins.json",
       "environment": "client"
-    }
+    },
+    "goosetools.corpse.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.19.5",

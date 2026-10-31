@@ -48,9 +48,22 @@ public abstract class DreamItemUseMixin {
         var held = client.player.getMainHandItem();
         if (!held.is(Items.CARROT_ON_A_STICK) && held.getUseDuration(client.player) <= 0
                 && !held.is(Items.FISHING_ROD)) return;
-        // Task rods use native entity interaction; charged tools keep upstream's item-use path.
         var data = held.getOrDefault(net.minecraft.core.component.DataComponents.CUSTOM_DATA,
                 net.minecraft.world.item.component.CustomData.EMPTY).copyTag();
+        // A brush starts through useOn, and task hitboxes require the native entity packet.
+        if (held.is(Items.BRUSH)) return;
+        if (held.has(net.minecraft.core.component.DataComponents.FOOD)
+                && client.hitResult instanceof net.minecraft.world.phys.BlockHitResult hit && client.level != null) {
+            var block = client.level.getBlockState(hit.getBlockPos());
+            boolean campfire = block.is(net.minecraft.world.level.block.Blocks.CAMPFIRE)
+                    || block.is(net.minecraft.world.level.block.Blocks.SOUL_CAMPFIRE);
+            boolean schoolSurface = data.getBooleanOr("eg_raw", false)
+                    && data.getStringOr("eg_node", "").equals("school")
+                    && (block.is(net.minecraft.world.level.block.Blocks.POLISHED_ANDESITE_STAIRS)
+                    || block.is(net.minecraft.world.level.block.Blocks.MANGROVE_TRAPDOOR));
+            if (campfire || schoolSurface) return;
+        }
+        // Dream controls and charged tools retain the item-use shortcut away from task surfaces.
         if (held.is(Items.CARROT_ON_A_STICK) && data.getBooleanOr("task", false)
                 && client.hitResult instanceof net.minecraft.world.phys.EntityHitResult hit
                 && hit.getEntity() instanceof net.minecraft.world.entity.Interaction) return;

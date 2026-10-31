@@ -30,6 +30,14 @@ class RoleIntroCatalogTest {
         assertEquals(RoleIntroCatalog.byTag("Goose").color(), role.color());
     }
 
+    @Test void correspondentOpeningAndStoredIdentityUseTheGoosePalette() {
+        var role = RoleIntroCatalog.resolve(Set.of("players", "good", "Correspondent"));
+        assertEquals("Correspondent", role.tag());
+        assertEquals(RoleIntroPolicy.GOOSE, role.faction());
+        assertEquals(RoleIntroCatalog.byTag("Goose").color(), role.color());
+        assertEquals(role, RoleIntroCatalog.findByStoredId("correspondent").orElseThrow());
+    }
+
     @Test void savedIdsWithUnderscoresKeepTheirResultIdentity() {
         assertEquals("LucidDreamer", RoleIntroCatalog.findByStoredId("lucid_dreamer").orElseThrow().tag());
         assertEquals("WitchDoctor", RoleIntroCatalog.findByStoredId("witch_doctor").orElseThrow().tag());

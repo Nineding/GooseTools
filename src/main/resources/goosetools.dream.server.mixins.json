@@ -21,6 +21,7 @@
     "DreamEntitySelectorNbtMixin",
     "DreamSwingMixin",
     "DreamUsingItemMixin",
+    "DreamLivingRidingMixin",
     "DreamHorseMixin",
     "DreamBoatMixin"
   ],
