@@ -619,5 +619,14 @@
   "descriptionFallback": "Charge, dash and slash",
   "color": 16741235,
   "faction": 1
+},
+{
+  "tag": "Exchanger",
+  "key": "role.evil.exchanger",
+  "fallback": "Exchanger",
+  "descriptionKey": "role.evil.exchanger.subtitle",
+  "descriptionFallback": "Mark two players and swap their positions",
+  "color": 16741235,
+  "faction": 1
 }
 ]
