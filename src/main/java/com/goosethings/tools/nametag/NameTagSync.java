@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -144,6 +145,13 @@ public final class NameTagSync {
         boolean roleVisible = readScore(server, SETTINGS_OBJECTIVE, "DLCRoleVisible", 0) == 1;
         NameTagAttachmentConfig attachmentConfig = ATTACHMENTS.current();
         List<ServerPlayer> onlinePlayers = List.copyOf(server.getPlayerList().getPlayers());
+        Set<Integer> exchangeMarks = new HashSet<>();
+        for (ServerPlayer caster : onlinePlayers) {
+            if (ExchangerNameTagPolicy.activeCaster(caster.entityTags())) {
+                exchangeMarks.add(readScore(server, "ggdExA", caster.getScoreboardName(), 0));
+                exchangeMarks.add(readScore(server, "ggdExB", caster.getScoreboardName(), 0));
+            }
+        }
         Map<Integer, ServerPlayer> playersBySeat = new HashMap<>();
         for (ServerPlayer player : onlinePlayers) {
             int seat = DisguiseIdentityPolicy.playerSeat(player.entityTags());
@@ -178,6 +186,8 @@ public final class NameTagSync {
             }
             boolean spectatorStatusView = NameTagSpectatorStatusPolicy.revealAll(
                     fullBlood, roleVisible, viewer.entityTags());
+            int exchangeFirst = readScore(server, "ggdExA", viewer.getScoreboardName(), 0);
+            int exchangeSecond = readScore(server, "ggdExB", viewer.getScoreboardName(), 0);
             List<ServerPlayer> viewerTargets = targets;
             boolean alreadyOrdered = targets.contains(viewer);
             if (NameTagTargetPolicy.includeUnorderedSelf(
@@ -213,6 +223,10 @@ public final class NameTagSync {
                 }
                 int flags = fullBlood ? attachmentFlags(
                         viewer, labelPlayer, identity, activeLoverCount, spectatorStatusView) : 0;
+                int exchangeTargetId = readScore(server, "ggdExId", target.getScoreboardName(), 0);
+                boolean exchangeMarked = ExchangerNameTagPolicy.visible(
+                        viewer.entityTags(), target.entityTags(), exchangeTargetId,
+                        exchangeFirst, exchangeSecond, exchangeMarks.contains(exchangeTargetId));
                 if (NameTagAttachmentPolicy.showGuardShield(
                         viewer == labelPlayer, viewer.entityTags(), labelPlayer.entityTags(), spectatorStatusView)) {
                     flags |= GUARD_SHIELD;
@@ -229,7 +243,7 @@ public final class NameTagSync {
                         markerNameTagVisible,
                         dataDrivenAttachments(
                                 viewer, labelPlayer, identity, fullBlood,
-                                spectatorStatusView, attachmentConfig)));
+                                spectatorStatusView, attachmentConfig, exchangeMarked)));
             }
             // Opening stand-ins are visible identities, independently of the Parasite's
             // hidden camera body. Their own UUIDs keep world hiding rules intact.
@@ -378,8 +392,13 @@ public final class NameTagSync {
             VisualIdentity identity,
             boolean fullBlood,
             boolean spectatorStatusView,
-            NameTagAttachmentConfig config) {
+            NameTagAttachmentConfig config,
+            boolean exchangeMarked) {
         List<GooseToolsPayloads.NameTagIcon> result = new ArrayList<>();
+        if (exchangeMarked) {
+            result.add(new GooseToolsPayloads.NameTagIcon(
+                    "minecraft:textures/item/exchange_potion.png", 10.0F, 10.0F, 0xffffff));
+        }
         if (NameTagAttachmentPolicy.showChamberlainWard(
                 viewer.getUUID().equals(renderedPlayer.getUUID()),
                 viewer.entityTags(), renderedPlayer.entityTags(), fullBlood)) {
