@@ -139,6 +139,8 @@ public final class NameTagSync {
             return;
         }
         boolean fullBlood = readScore(server, SETTINGS_OBJECTIVE, "FullBloodDLC", 0) == 1;
+        int meetingPhase = readScore(server, "ggdSession", "#MeetingPhase", 0);
+        int markerGlowsReady = readScore(server, "ggdSession", "#MarkerGlowsReady", 0);
         boolean roleVisible = readScore(server, SETTINGS_OBJECTIVE, "DLCRoleVisible", 0) == 1;
         NameTagAttachmentConfig attachmentConfig = ATTACHMENTS.current();
         List<ServerPlayer> onlinePlayers = List.copyOf(server.getPlayerList().getPlayers());
@@ -193,7 +195,8 @@ public final class NameTagSync {
                 VisualIdentity identity = identities.get(labelPlayer.getUUID());
                 int markerCode = markerCode(server, viewer, labelPlayer, fullBlood);
                 boolean markerNameTagVisible = markerCode != 0
-                        && PlayerMarkerPolicy.showBesideNameTag(labelPlayer.entityTags());
+                        && PlayerMarkerPolicy.showBesideNameTag(
+                                labelPlayer.entityTags(), meetingPhase, markerGlowsReady);
                 boolean samePlayer = viewer.getUUID().equals(target.getUUID());
                 if (NameTagVisibilityOverrides.isHidden(
                         viewer.getUUID(), target.getUUID())

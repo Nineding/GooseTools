@@ -13,7 +13,12 @@ public final class PlayerMarkerPolicy {
         return viewerTags.contains("inTalk") || viewerTags.contains("inDream");
     }
 
-    public static boolean showBesideNameTag(Collection<String> targetTags) {
+    public static boolean showBesideNameTag(Collection<String> targetTags,
+                                            int meetingPhase, int markerGlowsReady) {
+        // inTalk is set during the bell intro, while every body is still on the map.
+        if (meetingPhase < 1 || meetingPhase > 2 || markerGlowsReady != 1) {
+            return false;
+        }
         return targetTags.contains("players")
                 && (targetTags.contains("inTalk") || targetTags.contains("inDream"))
                 && !targetTags.contains("spectator")
