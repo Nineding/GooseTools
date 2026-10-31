@@ -537,6 +537,8 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                 }
                 p.addTag("inTask");
                 if(interactionCase==1)command(p,"item replace entity @s hotbar.1 with carrot_on_a_stick[custom_data={task:1b,dreamProbe:1b,ggdManagedHotbar:1b,ggdHotbarSlot:1,ggdHotbarState:\"dream_interaction_probe\"}]");
+                else if(interactionCase==4)command(p,"item replace entity @s hotbar.1 with brush[custom_data={task:1b,dreamProbe:1b}]");
+                else if(interactionCase==5)command(p,"item replace entity @s hotbar.1 with porkchop[custom_data={task:1b,dreamProbe:1b}]");
                 else if(interactionCase>=2)command(p,"item replace entity @s hotbar.1 with copper_axe[custom_data={task:1b,dreamProbe:1b}]");
                 else command(p,"item replace entity @s hotbar.1 with air");
                 p.getInventory().setSelectedSlot(1);
@@ -545,6 +547,10 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                 target.setWidth(1);target.setHeight(2.5F);target.setResponse(true);
                 target.absSnapTo(actor.getX(),actor.getY(),actor.getZ()+(interactionCase==3?14:2));
                 target.addTag("dreamInteractionProbe");actor.level().addFreshEntity(target);interactionTarget=target.getId();
+                if (interactionCase==5) {
+                    target.discard();
+                    actor.level().setBlock(BlockPos.containing(actor.position()).offset(0,0,2),Blocks.CAMPFIRE.defaultBlockState(),3);
+                }
                 p.inventoryMenu.sendAllDataToRemote();assertSeated(p);
             });
             ticks=1;targetWait=0;return;
@@ -552,17 +558,21 @@ public final class DreamAvatarRegression implements ClientModInitializer {
         if(ticks==1) {
             var target=mc.level.getEntity(interactionTarget);
             boolean itemReady=interactionCase==0?mc.player.getInventory().getItem(1).isEmpty()
-                    :mc.player.getInventory().getItem(1).is(interactionCase==1?Items.CARROT_ON_A_STICK:Items.COPPER_AXE);
-            if(target==null||!itemReady){require(++targetWait<120,"interaction fixture timeout: case="+interactionCase+", target="+target+", slot="+mc.player.getInventory().getItem(1)+", expectedItemReady="+itemReady);return;}
+                    :mc.player.getInventory().getItem(1).is(interactionCase==1?Items.CARROT_ON_A_STICK:interactionCase==4?Items.BRUSH:interactionCase==5?Items.PORKCHOP:Items.COPPER_AXE);
+            if((target==null && interactionCase!=5)||!itemReady){require(++targetWait<120,"interaction fixture timeout: case="+interactionCase+", target="+target+", slot="+mc.player.getInventory().getItem(1)+", expectedItemReady="+itemReady);return;}
             mc.player.getInventory().setSelectedSlot(1);
-            var hit=new net.minecraft.world.phys.EntityHitResult(target,target.getBoundingBox().getCenter());
-            mc.hitResult=hit;
+            if (interactionCase==5) {
+                var actor=DreamStandInClient.liveAvatar(mc.player.getUUID());
+                var pos=BlockPos.containing(actor.position()).offset(0,0,2);
+                if (!mc.level.getBlockState(pos).is(Blocks.CAMPFIRE)) {require(++targetWait<120,"campfire fixture sync timeout");return;}
+                mc.hitResult=new net.minecraft.world.phys.BlockHitResult(Vec3.atCenterOf(pos),net.minecraft.core.Direction.NORTH,pos,false);
+            } else mc.hitResult=new net.minecraft.world.phys.EntityHitResult(target,target.getBoundingBox().getCenter());
             try {
                 var use=Minecraft.class.getDeclaredMethod("startUseItem");use.setAccessible(true);
                 var attack=Minecraft.class.getDeclaredMethod("startAttack");attack.setAccessible(true);
                 // Inject only the picked target; vanilla client range checks and both native packets still run.
-                if(interactionCase<2||interactionCase==3)use.invoke(mc);
-                if(interactionCase>=2)attack.invoke(mc);
+                if(interactionCase<2||interactionCase>=3)use.invoke(mc);
+                if(interactionCase==2||interactionCase==3)attack.invoke(mc);
             } catch(ReflectiveOperationException error){throw new AssertionError(error);}
             ticks=2;return;
         }
@@ -571,25 +581,33 @@ public final class DreamAvatarRegression implements ClientModInitializer {
         pending=server(mc,p -> {
             var actor=DreamAvatarServer.actor(p);
             var target=actor.level().getEntity(interactionTarget);
+            if (completedCase==5) {
+                var pos=BlockPos.containing(actor.position()).offset(0,0,2);
+                var fire=(net.minecraft.world.level.block.entity.CampfireBlockEntity)actor.level().getBlockEntity(pos);
+                require(fire!=null && fire.getItems().stream().anyMatch(stack->stack.is(Items.PORKCHOP)),"dream food use did not reach native campfire");
+                actor.level().setBlock(pos,Blocks.AIR.defaultBlockState(),3);
+            } else {
             require(target!=null,"interaction fixture vanished");
             var data=new EntityDataAccessor(target).getData();
             if(completedCase==3)require(!data.contains("attack")&&!data.contains("interaction"),"remote interaction bypassed native reach limit");
             else {
-                String action=completedCase<2?"interaction":"attack";
+                String action=completedCase<2 || completedCase==4?"interaction":"attack";
                 require(data.contains(action),"native "+action+" did not reach distant task entity in scenario="+scenario+", case="+completedCase);
                 var recorded=data.getCompound(action).orElseThrow();
                 var ids=recorded.getIntArray("player").orElseThrow();
                 var owner=net.minecraft.core.UUIDUtil.uuidFromIntArray(ids);
                 require(owner.equals(p.getUUID()),"interaction credited the detached avatar instead of the authenticated player");
             }
-            target.discard();assertSeated(p);
-            if(completedCase==3){
+            target.discard();
+            }
+            assertSeated(p);
+            if(completedCase==5){
                 p.removeTag("inTask");command(p,"item replace entity @s hotbar.1 with air");
                 command(p,"advancement grant @s only mainsys:test/ifinvchange");
                 assertDreamToolbar(p);expectedEquipment=p.getMainHandItem().copy();
             }
         });
-        if(++interactionCase<4){ticks=0;return;}
+        if(++interactionCase<6){ticks=0;return;}
         // The queued server assertion must use its own immutable case index.
         stage=2;ticks=0;targetWait=0;
         movementStart=DreamStandInClient.liveAvatar(mc.player.getUUID()).position();previousFlightZ=movementStart.z;
