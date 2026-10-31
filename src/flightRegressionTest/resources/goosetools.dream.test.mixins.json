@@ -2,6 +2,6 @@
   "required": true,
   "package": "com.goosethings.tools.client.dream.testmixin",
   "compatibilityLevel": "JAVA_25",
-  "client": ["DreamServerLatencyMixin", "DreamClientLatencyMixin", "ProjectionLocalBodyMixin", "MimeCameraPacketsMixin", "ProjectionMovementEffectsMixin", "ProjectionStepSoundMixin"],
+  "client": ["DreamServerLatencyMixin", "DreamClientLatencyMixin", "ProjectionLocalBodyMixin", "MimeCameraPacketsMixin", "MimeInputPacketsMixin", "ProjectionMovementEffectsMixin", "ProjectionStepSoundMixin"],
   "injectors": {"defaultRequire": 1}
 }

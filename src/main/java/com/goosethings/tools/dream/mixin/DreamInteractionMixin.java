@@ -2,6 +2,7 @@ package com.goosethings.tools.dream.mixin;
 
 import com.goosethings.tools.dream.DreamAvatarServer;
 import com.goosethings.tools.dream.DreamSpatialContext;
+import com.goosethings.tools.mime.MimeControlSync;
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
@@ -16,6 +17,9 @@ import org.spongepowered.asm.mixin.injection.At;
 @Mixin(ServerGamePacketListenerImpl.class)
 public abstract class DreamInteractionMixin {
     @Shadow public ServerPlayer player;
+    private boolean dream$blocksWorldInput() {
+        return DreamAvatarServer.observing(player) || MimeControlSync.blocksLocalInput(player);
+    }
     private boolean dream$observationControl() {
         var data = player.getMainHandItem().getOrDefault(net.minecraft.core.component.DataComponents.CUSTOM_DATA,
                 net.minecraft.world.item.component.CustomData.EMPTY).copyTag();
@@ -41,19 +45,19 @@ public abstract class DreamInteractionMixin {
     @WrapMethod(method="handlePlayerAction")
     private void dream$blockAction(ServerboundPlayerActionPacket packet,Operation<Void> original) {
         net.minecraft.network.protocol.PacketUtils.ensureRunningOnSameThread(packet, (ServerGamePacketListenerImpl)(Object)this, player.level());
-        if (DreamAvatarServer.observing(player)) return;
+        if (dream$blocksWorldInput()) return;
         DreamSpatialContext.runFor(player,()-> {original.call(packet);return null;});
     }
     @WrapMethod(method="handleUseItemOn")
     private void dream$block(ServerboundUseItemOnPacket packet,Operation<Void> original) {
         net.minecraft.network.protocol.PacketUtils.ensureRunningOnSameThread(packet, (ServerGamePacketListenerImpl)(Object)this, player.level());
-        if (dream$observationControl() || DreamAvatarServer.observing(player)) return;
+        if (MimeControlSync.blocksLocalInput(player) || dream$observationControl() || DreamAvatarServer.observing(player)) return;
         DreamSpatialContext.runFor(player,()-> {original.call(packet);return null;});
     }
     @WrapMethod(method="handleUseItem")
     private void dream$item(ServerboundUseItemPacket packet,Operation<Void> original) {
         net.minecraft.network.protocol.PacketUtils.ensureRunningOnSameThread(packet, (ServerGamePacketListenerImpl)(Object)this, player.level());
-        if (dream$observationControl() || DreamAvatarServer.observing(player)) return;
+        if (MimeControlSync.blocksLocalInput(player) || dream$observationControl() || DreamAvatarServer.observing(player)) return;
         float yaw=player.getYRot(),pitch=player.getXRot();
         DreamSpatialContext.runFor(player,()-> {original.call(packet);return null;});
         if(DreamAvatarServer.active(player)) {player.setYRot(yaw);player.setXRot(pitch);}
@@ -62,13 +66,13 @@ public abstract class DreamInteractionMixin {
     @WrapMethod(method="handleAttack")
     private void dream$attack(ServerboundAttackPacket packet, Operation<Void> original) {
         net.minecraft.network.protocol.PacketUtils.ensureRunningOnSameThread(packet, (ServerGamePacketListenerImpl)(Object)this, player.level());
-        if (DreamAvatarServer.observing(player)) return;
+        if (dream$blocksWorldInput()) return;
         DreamSpatialContext.runFor(player, () -> { original.call(packet); return null; });
     }
     @WrapMethod(method="handleInteract")
     private void dream$entity(ServerboundInteractPacket packet,Operation<Void> original) {
         net.minecraft.network.protocol.PacketUtils.ensureRunningOnSameThread(packet, (ServerGamePacketListenerImpl)(Object)this, player.level());
-        if (dream$observationControl() || DreamAvatarServer.observing(player)) return;
+        if (MimeControlSync.blocksLocalInput(player) || dream$observationControl() || DreamAvatarServer.observing(player)) return;
         DreamSpatialContext.runFor(player,()-> {original.call(packet);return null;});
     }
     @WrapMethod(method="handleContainerClick")

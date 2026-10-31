@@ -5,6 +5,7 @@ import com.goosethings.tools.dream.DreamAvatarServer;
 import net.minecraft.network.protocol.PacketUtils;
 import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 import net.minecraft.network.protocol.game.ServerboundPlayerInputPacket;
+import net.minecraft.network.protocol.game.ServerboundPlayerCommandPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import org.spongepowered.asm.mixin.Mixin;
@@ -21,12 +22,18 @@ public abstract class MimeServerMovementMixin {
     @Inject(method = "handleMovePlayer", at = @At("HEAD"), cancellable = true)
     private void mime$ignoreMove(ServerboundMovePlayerPacket packet, CallbackInfo callback) {
         PacketUtils.ensureRunningOnSameThread(packet, (ServerGamePacketListenerImpl)(Object)this, player.level());
-        if (MimeControlSync.followsBody(player) || DreamAvatarServer.retainsProjectionBody(player)) callback.cancel();
+        if (MimeControlSync.blocksLocalInput(player) || DreamAvatarServer.retainsProjectionBody(player)) callback.cancel();
     }
 
     @Inject(method = "handlePlayerInput", at = @At("HEAD"), cancellable = true)
     private void mime$ignoreInput(ServerboundPlayerInputPacket packet, CallbackInfo callback) {
         PacketUtils.ensureRunningOnSameThread(packet, (ServerGamePacketListenerImpl)(Object)this, player.level());
-        if (MimeControlSync.followsBody(player)) callback.cancel();
+        if (MimeControlSync.blocksLocalInput(player)) callback.cancel();
+    }
+
+    @Inject(method = "handlePlayerCommand", at = @At("HEAD"), cancellable = true)
+    private void mime$ignoreCommand(ServerboundPlayerCommandPacket packet, CallbackInfo callback) {
+        PacketUtils.ensureRunningOnSameThread(packet, (ServerGamePacketListenerImpl)(Object)this, player.level());
+        if (MimeControlSync.blocksLocalInput(player)) callback.cancel();
     }
 }

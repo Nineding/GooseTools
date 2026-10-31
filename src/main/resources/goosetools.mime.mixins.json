@@ -10,6 +10,7 @@
     "KeyboardInputMimeControlMixin",
     "MimeEntityRenderDispatcherMixin",
     "MimeLocalPlayerMixin",
+    "MinecraftMimeControlMixin",
     "MouseHandlerMimeControlMixin"
   ],
   "injectors": {

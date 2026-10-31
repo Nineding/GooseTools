@@ -290,7 +290,7 @@ if (providers.gradleProperty('dreamGooseThingsJar').isPresent()) {
 if (providers.gradleProperty('ghostFixture').isPresent()) {
     dependencies {
         flightRegressionTestRuntimeOnly fileTree(dir: providers.gradleProperty('ghostFixture').get(),
-                include: ['sound-physics-remastered-*.jar', 'cloth-config-*.jar'])
+                include: ['sound-physics-remastered-*.jar', 'cloth-config-*.jar', 'voicechat-*.jar'])
     }
 }
 tasks.named('runGhostRegressionTest') {

@@ -31,11 +31,17 @@ public final class MimeControlClient {
             if (followsBody() && client.player != null) client.player.getInventory().tick();
         });
         ClientTickEvents.END_CLIENT_TICK.register(MimeControlClient::tickCamera);
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> reset());
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> reset());
     }
 
     public static boolean isControlled() {
         return controlled;
+    }
+
+    /** A controlled projection keeps its own remote input; an ordinary body does not. */
+    public static boolean blocksLocalInput() {
+        return controlled && !DreamAvatarClient.retainedProjection();
     }
 
     public static UUID controllerId() {
