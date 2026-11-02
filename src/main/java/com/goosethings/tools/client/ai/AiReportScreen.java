@@ -39,7 +39,7 @@ public final class AiReportScreen extends Screen {
         long id=report.get("game_id").getAsLong();
         if(AiSummaryClient.has(id)) addRenderableWidget(net.minecraft.client.gui.components.Button.builder(
                 Component.translatableWithFallback("screen.goosetools.ai.view_settlement","View settlement"),
-                b->AiSummaryClient.open(id,this)).bounds(width-MARGIN-166,17,106,18).build());
+                b->AiSummaryClient.open(id,this,report)).bounds(width-MARGIN-166,17,106,18).build());
     }
 
     @Override

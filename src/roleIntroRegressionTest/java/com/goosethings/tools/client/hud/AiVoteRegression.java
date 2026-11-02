@@ -23,7 +23,8 @@ final class AiVoteRegression {
             if(scenario==4) {reportScenario(mc);return;}
             if (scenario == 5) {
                 AiReviewFlowClient.clear();
-                Files.writeString(Path.of("result.txt"), "PASS protocol 38: name votes defer through role/result/blackout/summary, accelerated countdown and scoped clear; two background reports survive the role screen and open in order during gameplay; matching previous-match settlement opens and returns to its report. Seven GPU screenshots.\n");
+                net.fabricmc.loader.api.FabricLoader.getInstance().getObjectShare().remove("gooseaccount:pending_rewards");
+                Files.writeString(Path.of("result.txt"), "PASS protocol 50: name votes defer through role/result/blackout/summary; two background reports open in order; same-player report repairs zero summary to 315; own-account request returns pending 6692; previous-match settlement opens and returns to its report. Seven GPU screenshots.\n");
                 finished=true;mc.stop();return;
             }
             UUID id=mc.player.getUUID();String name=mc.player.getGameProfile().name();
@@ -75,10 +76,14 @@ final class AiVoteRegression {
     private void reportScenario(Minecraft mc) throws Exception {
         UUID id=mc.player.getUUID();String name=mc.player.getGameProfile().name();
         if(phase==0) {
+            net.fabricmc.loader.api.FabricLoader.getInstance().getObjectShare().put("gooseaccount:pending_rewards",
+                    (java.util.function.BiConsumer<UUID,java.util.function.Consumer<Long>>)(viewer,reply)->{
+                        require(viewer.equals(id),"payment query targeted another player");reply.accept(6692L);
+                    });
             var cache=com.goosethings.tools.client.ai.AiSummaryClient.class.getDeclaredField("CACHE");cache.setAccessible(true);
             @SuppressWarnings("unchecked") var summaries=(java.util.Map<Long,SummaryPayload>)cache.get(null);
             var appearance=new MatchResultPayload(true,"good_elimination",List.of(new MatchResultPayload.Player(id,name,"Goose",0x77ff55,1,false,true,false,com.goosethings.tools.intro.PresentationAppearance.emptyEquipment())));
-            summaries.put(901L,new SummaryPayload(true,UUID.randomUUID(),appearance,1,0,2818,true,28,20,0,33,70,1,0,2,13,100,0,List.of(20,30),new SummaryRoster(List.of(new SummaryRoster.Entry(id,name,"Goose",0,1,0x77ff55,false,2818,1)),3)));
+            summaries.put(901L,new SummaryPayload(true,UUID.randomUUID(),appearance,1,0,2818,true,28,20,0,33,0,1,0,2,13,100,0,List.of(20,30),new SummaryRoster(List.of(new SummaryRoster.Entry(id,name,"Goose",0,1,0x77ff55,false,2818,1)),3)));
             RoleIntroScreen.apply(new RoleIntroPayload(true,"Duck",1,0,List.of(new RoleIntroPayload.Appearance(id,name,false))));
             protectedScreen=mc.gui.screen();
             var field=com.goosethings.tools.client.GooseToolsClient.class.getDeclaredField("AI_REPORT");field.setAccessible(true);Object receiver=field.get(null);
@@ -86,7 +91,7 @@ final class AiVoteRegression {
             for(long game:new long[]{901,902}) {
                 com.google.gson.JsonObject report=new com.google.gson.JsonObject();report.addProperty("game_id",game);
                 var global=new com.google.gson.JsonObject();global.addProperty("title","上一局在后台完成分析");global.addProperty("summary","玩家已经进入下一局；上一局的指数和奖励独立结算。");global.add("turning_points",new com.google.gson.JsonArray());report.add("global",global);report.add("highlights",new com.google.gson.JsonArray());
-                var personal=new com.google.gson.JsonObject();personal.addProperty("player_name",name);personal.addProperty("settled_index",2818);personal.addProperty("index_grade","N");personal.addProperty("score_source","ai");personal.addProperty("index_reasoning","按上一局证据评定，与当前新局身份无关。");personal.addProperty("gained_xp",33);personal.addProperty("gained_coins",70);personal.addProperty("award",1);report.add("personal",personal);
+                var personal=new com.google.gson.JsonObject();personal.addProperty("player_uuid",id.toString());personal.addProperty("player_name",name);personal.addProperty("settled_index",2818);personal.addProperty("index_grade","N");personal.addProperty("score_source","ai");personal.addProperty("index_reasoning","按上一局证据评定，与当前新局身份无关。");personal.addProperty("gained_xp",33);personal.addProperty("gained_coins",315);personal.addProperty("award",1);report.add("personal",personal);
                 byte[] compressed;
                 try(var out=new java.io.ByteArrayOutputStream()) {try(var gzip=new java.util.zip.GZIPOutputStream(out)){gzip.write(report.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));}compressed=out.toByteArray();}
                 var begin=receiver.getClass().getDeclaredMethod("begin",GooseToolsPayloads.AiReportStartS2C.class);begin.setAccessible(true);begin.invoke(receiver,new GooseToolsPayloads.AiReportStartS2C(game,compressed.length,1,true));
@@ -118,8 +123,10 @@ final class AiVoteRegression {
         }
         if(phase==3) {
             require(mc.gui.screen() instanceof PostgameSummaryScreen,"queued report interrupted the settlement view");
-            if(age<10)return;
+            if(age<45)return;
             require(((PostgameSummaryScreen)mc.gui.screen()).payload().spotlightIndex()==2818,"settlement used the new match");
+            require(((PostgameSummaryScreen)mc.gui.screen()).payload().coins()==315,"zero summary did not recover the report's reward");
+            require(com.goosethings.tools.client.ai.PendingRewardsClient.description().getString().contains("6692"),"own-account pending status missing");
             screenshot(mc,"ai-previous-summary.png");
             mc.gui.screen().onClose();require(reportId(mc.gui.screen())==901,"settlement did not return to its report");
             mc.gui.screen().onClose();phase=4;age=0;return;
