@@ -13,6 +13,9 @@ public final class ObserverDreamPolicy {
     public static boolean valid(Set<String> tags, int phase) {
         return tags.contains("spectatorDream") && allowed(tags, phase);
     }
+    public static boolean listeningControl(boolean mainHand, int slot, boolean carrot, boolean focus, boolean deadOnly) {
+        return mainHand && carrot && (slot == 0 && focus || slot == 1 && deadOnly);
+    }
     public static boolean highlight(int kind, boolean ownAvatar) {
         return kind == 1 || kind == 2 || kind == 3 && !ownAvatar; // Map evidence and other dreamers, never meeting bodies or the observer.
     }
