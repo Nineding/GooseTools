@@ -8,6 +8,7 @@ import com.goosethings.tools.client.vision.BirdwatcherWallTransparency;
 import com.goosethings.tools.client.voice.GgdSpeakingIcon;
 import com.goosethings.tools.nametag.NameTagSync;
 import com.goosethings.tools.nametag.NameTagCorpseMarkerPolicy;
+import com.goosethings.tools.nametag.MeetingPetLayout;
 import net.minecraft.world.entity.Display;
 import com.goosethings.tools.network.GooseToolsPayloads;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -80,7 +81,7 @@ public final class NameTagRenderer {
             return;
         }
         emitPlate(destination, poses,
-                new Vec3(relativeX, relativeY + boundingBoxHeight + 0.5D, relativeZ),
+                new Vec3(relativeX, relativeY + boundingBoxHeight + 0.5D+MeetingPetLayout.lift(entry.attachmentFlags()), relativeZ),
                 cameraRotation, entity, sourceId, entry, 1.0F);
     }
 
@@ -126,7 +127,7 @@ public final class NameTagRenderer {
             }
             emitPlate(context.submitNodeCollector(), context.poseStack(),
                     new Vec3(position.x - cameraPosition.x,
-                            position.y - cameraPosition.y + entity.getBbHeight() + 0.5D,
+                            position.y - cameraPosition.y + entity.getBbHeight() + 0.5D+MeetingPetLayout.lift(entry.attachmentFlags()),
                             position.z - cameraPosition.z),
                     camera.rotation(), entity, sourceId, entry, visibility);
         }
@@ -141,7 +142,9 @@ public final class NameTagRenderer {
                 || !hasLineOfSight(client, cameraPosition, entity, position)) return;
         var poses = context.poseStack();
         poses.pushPose();
-        poses.translate(position.x-cameraPosition.x, position.y-cameraPosition.y+entity.getBbHeight()+.85D,
+        var entry=NameTagClientState.entry(NameTagClientState.sourcePlayerId(entity));
+        double lift=entry==null?0:MeetingPetLayout.lift(entry.attachmentFlags());
+        poses.translate(position.x-cameraPosition.x, position.y-cameraPosition.y+entity.getBbHeight()+.85D+lift,
                 position.z-cameraPosition.z);
         poses.mulPose(new Matrix4f().rotate(camera.rotation()));
         poses.scale(SCALE,-SCALE,SCALE);

@@ -218,11 +218,12 @@ public final class NameTagSync {
                     // sentinel for drawing no custom plate or attachments.
                     entries.add(new GooseToolsPayloads.NameTagEntry(
                             target.getUUID(), identity.playerId(), target.getScoreboardName(),
-                            "", 0, 0, 0, markerCode, false, List.of()));
+                            "", 0, 0, fullBlood?MeetingPetBridge.flags(target):0, markerCode, false, List.of()));
                     continue;
                 }
                 int flags = fullBlood ? attachmentFlags(
                         viewer, labelPlayer, identity, activeLoverCount, spectatorStatusView) : 0;
+                if(fullBlood)flags|=MeetingPetBridge.flags(target);
                 int exchangeTargetId = readScore(server, "ggdExId", target.getScoreboardName(), 0);
                 boolean exchangeMarked = ExchangerNameTagPolicy.visible(
                         viewer.entityTags(), target.entityTags(), exchangeTargetId,
