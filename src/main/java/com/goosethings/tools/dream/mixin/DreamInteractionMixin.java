@@ -57,7 +57,23 @@ public abstract class DreamInteractionMixin {
     @WrapMethod(method="handleUseItem")
     private void dream$item(ServerboundUseItemPacket packet,Operation<Void> original) {
         net.minecraft.network.protocol.PacketUtils.ensureRunningOnSameThread(packet, (ServerGamePacketListenerImpl)(Object)this, player.level());
-        if (MimeControlSync.blocksLocalInput(player) || dream$observationControl() || DreamAvatarServer.observing(player)) return;
+        if (MimeControlSync.blocksLocalInput(player) || dream$observationControl()) return;
+        if (DreamAvatarServer.observing(player)) {
+            var held = player.getMainHandItem();
+            var data = held.getOrDefault(net.minecraft.core.component.DataComponents.CUSTOM_DATA,
+                    net.minecraft.world.item.component.CustomData.EMPTY).copyTag();
+            if (player.entityTags().contains("spectator")
+                    && com.goosethings.tools.dream.ObserverDreamPolicy.listeningControl(
+                            packet.hand() == net.minecraft.world.InteractionHand.MAIN_HAND,
+                            player.getInventory().getSelectedSlot(), held.is(net.minecraft.world.item.Items.CARROT_ON_A_STICK),
+                            data.getBooleanOr("FocusMode", false), data.getBooleanOr("DeadChannelOnly", false))) {
+                // Listening is owned by the seated player, never a remote world interaction.
+                float yaw = player.getYRot(), pitch = player.getXRot();
+                try { original.call(packet); }
+                finally { player.setYRot(yaw); player.setXRot(pitch); }
+            }
+            return;
+        }
         float yaw=player.getYRot(),pitch=player.getXRot();
         DreamSpatialContext.runFor(player,()-> {original.call(packet);return null;});
         if(DreamAvatarServer.active(player)) {player.setYRot(yaw);player.setXRot(pitch);}
