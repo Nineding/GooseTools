@@ -411,9 +411,11 @@ public final class NameTagRenderer {
                                  int colour) {
         float right = x + width;
         float bottom = y + height;
-        if (texture.equals(Identifier.withDefaultNamespace("textures/item/self_boom.png"))) {
+        if (texture.equals(Identifier.withDefaultNamespace("textures/item/self_boom.png"))
+                || texture.equals(Identifier.withDefaultNamespace("textures/item/blade_of_flames.png"))) {
             var atlas = Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(AtlasIds.ITEMS);
-            var sprite = atlas.getSprite(Identifier.withDefaultNamespace("item/self_boom"));
+            String spritePath = texture.getPath().substring("textures/".length(), texture.getPath().length() - ".png".length());
+            var sprite = atlas.getSprite(Identifier.fromNamespaceAndPath(texture.getNamespace(), spritePath));
             destination.submitCustomGeometry(poses, RenderTypes.text(atlas.location()), (pose, out) -> {
                 Matrix4fc matrix = pose.pose();
                 out.addVertex(matrix, x, bottom, ICON_DEPTH).setColor(colour).setUv(sprite.getU0(), sprite.getV1()).setLight(FULL_BRIGHT);

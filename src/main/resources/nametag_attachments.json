@@ -181,6 +181,34 @@
       "width": 10.0,
       "height": 10.0,
       "color": "#FFFFFF"
+    },
+    {
+      "id": "phoenix_flame",
+      "texture": "minecraft:textures/item/blade_of_flames.png",
+      "viewer_tags_all": [
+        "spectator"
+      ],
+      "viewer_tags_none": [
+        "inTutorial",
+        "endGame",
+        "spectatorDream"
+      ],
+      "target_tags_all": [
+        "players",
+        "phoenixFlameMarked"
+      ],
+      "target_tags_none": [
+        "spectator",
+        "deadInMap",
+        "inPelican",
+        "endGame"
+      ],
+      "hide_self": true,
+      "tag_source": "rendered",
+      "requires_full_blood": true,
+      "width": 12.0,
+      "height": 12.0,
+      "color": "#FFFFFF"
     }
   ]
 }
