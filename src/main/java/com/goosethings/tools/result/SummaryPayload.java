@@ -56,5 +56,10 @@ public record SummaryPayload(boolean open, UUID round, MatchResultPayload appear
         return new SummaryPayload(true,round,appearance,award,action,spotlightIndex,participant,baseXp,bonusPercent,deathPercent,
                 gainedXp,coins,startLevel,startXp,endLevel,endXp,cap,bankGain,thresholds,scoreboard);
     }
+    /** Presentation-only repair from the same player's server-authored private report. */
+    public SummaryPayload withCoins(int value) {
+        return new SummaryPayload(open,round,appearance,award,action,spotlightIndex,participant,baseXp,bonusPercent,deathPercent,
+                gainedXp,value,startLevel,startXp,endLevel,endXp,cap,bankGain,thresholds,scoreboard);
+    }
     @Override public Type<SummaryPayload> type() { return TYPE; }
 }
