@@ -899,5 +899,10 @@
   "intro.goosetools.counts.players": "当局玩家",
   "intro.goosetools.counts.geese": "鹅阵营",
   "intro.goosetools.counts.ducks": "鸭阵营",
-  "intro.goosetools.counts.birds": "鸟阵营"
+  "intro.goosetools.counts.birds": "鸟阵营",
+  "summary.goosetools.coins_due": "本局应得鹅鹅币",
+  "summary.goosetools.payment_checking": "正在查询账户支付状态…",
+  "summary.goosetools.payment_unavailable": "账户支付状态暂不可用",
+  "summary.goosetools.payment_clear": "账户当前没有待支付奖励",
+  "summary.goosetools.payment_pending": "账户累计待支付：%s 鹅鹅币"
 }

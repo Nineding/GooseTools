@@ -39,6 +39,7 @@ public final class PostgameSummaryScreen extends Screen implements ProtectedInpu
     public static boolean waiting() {return waiting!=null;}
     private final SummaryPayload payload;
     private final Screen returnTo;
+    private final boolean aiSettlement;
     private final long started=System.nanoTime();
     private MeetingAlertRemotePlayer model;
     private boolean skipped,acknowledged;
@@ -53,7 +54,7 @@ public final class PostgameSummaryScreen extends Screen implements ProtectedInpu
     }
     public PostgameSummaryScreen(SummaryPayload payload,Screen returnTo,long gameId) {
         super(gameId>0?tr("previous_title","Match #%s settlement",gameId):tr("title","Match summary"));
-        this.payload=payload;this.returnTo=returnTo;soundedLevel=payload.startLevel();
+        this.payload=payload;this.returnTo=returnTo;this.aiSettlement=gameId>0;soundedLevel=payload.startLevel();
     }
     public SummaryPayload payload() {return payload;}
     public static void register() {
@@ -110,6 +111,7 @@ public final class PostgameSummaryScreen extends Screen implements ProtectedInpu
     }
     @Override public void tick() {
         if(minecraft.player==null||minecraft.level==null) {minecraft.gui.setScreen(null);return;}
+        if(aiSettlement)com.goosethings.tools.client.ai.PendingRewardsClient.request();
         double fraction=progress();
         var state=SummaryProgress.at(payload,fraction);
         if(!skipped&&!rosterPage&&payload.participant()&&payload.gainedXp()>0) {
@@ -169,7 +171,8 @@ public final class PostgameSummaryScreen extends Screen implements ProtectedInpu
             int w=34+i*8,top=72+i*7;
             g.fill(171-w/2,top,171+w/2,top+8,0x036ABDD0);
         }
-        g.fill(318,70,610,314,0x78101A2B);g.outline(318,70,292,244,0x304C6477);
+        int panelBottom=aiSettlement?320:314;
+        g.fill(318,70,610,panelBottom,0x78101A2B);g.outline(318,70,292,panelBottom-70,0x304C6477);
         g.fill(318,70,610,72,0xFFDFC180);
         label(g,title,40,27,1.65F,0xFFF7E8BD);
         g.horizontalLine(42,597,65,0x405C718B);
@@ -290,7 +293,8 @@ public final class PostgameSummaryScreen extends Screen implements ProtectedInpu
         row(g,t,1,251,tr("death","Death deduction"),Component.literal("−"+payload.deathPercent()+"%"),payload.deathPercent()>0?0xFFDB999F:0xFF71869B);
         row(g,t,1.2,272,tr("total","XP earned"),Component.literal("+"+payload.gainedXp()+" XP"),0xFF8FF3D5);
         label(g,symbol('\uE082'),337,291,1.8F,0xFFFFFFFF);
-        row(g,t,1.4,295,tr("coins","Goose coins"),Component.literal("+"+payload.coins()),0xFFFFD37C,359);
+        row(g,t,1.4,295,aiSettlement?tr("coins_due","Coins earned"):tr("coins","Goose coins"),Component.literal("+"+payload.coins()),0xFFFFD37C,359);
+        if(aiSettlement)label(g,com.goosethings.tools.client.ai.PendingRewardsClient.description(),337,307,.75F,0xFFC5B28A);
         if(levelFlash>0) icon(g,3,553,104,27+levelFlash*13);
     }
     private void row(GuiGraphicsExtractor g,double t,double delay,int y,Component key,Component value,int color) {row(g,t,delay,y,key,value,color,337);}
