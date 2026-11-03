@@ -904,5 +904,6 @@
   "summary.goosetools.payment_checking": "Checking account payment status...",
   "summary.goosetools.payment_unavailable": "Account payment status unavailable",
   "summary.goosetools.payment_clear": "Account has no pending rewards",
-  "summary.goosetools.payment_pending": "Account pending: %s coins"
+  "summary.goosetools.payment_pending": "Account pending: %s coins",
+  "marker.ggd_xaero_map.last_position_label": "Before meeting"
 }
