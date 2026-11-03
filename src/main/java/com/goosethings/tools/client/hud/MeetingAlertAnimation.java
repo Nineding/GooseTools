@@ -3,8 +3,9 @@ package com.goosethings.tools.client.hud;
 /** Frame-rate-independent timing for the meeting alert sweep. */
 final class MeetingAlertAnimation {
     static final long ENTER_NANOS = 320_000_000L;
-    static final long EXIT_START_NANOS = 2_400_000_000L;
-    static final long DURATION_NANOS = 3_200_000_000L;
+    static final long FADE_IN_NANOS = 200_000_000L;
+    static final long EXIT_START_NANOS = 2_200_000_000L;
+    static final long DURATION_NANOS = 3_000_000_000L;
 
     private MeetingAlertAnimation() {
     }
@@ -16,7 +17,7 @@ final class MeetingAlertAnimation {
         if (elapsedNanos < ENTER_NANOS) {
             float progress = elapsedNanos / (float) ENTER_NANOS;
             float eased = 1.0F - cube(1.0F - progress);
-            float alpha = Math.clamp(elapsedNanos / 120_000_000.0F, 0.0F, 1.0F);
+            float alpha = Math.clamp(elapsedNanos / (float) FADE_IN_NANOS, 0.0F, 1.0F);
             return new Frame(Math.round(-viewportWidth * (1.0F - eased)), alpha, progress);
         }
         if (elapsedNanos < EXIT_START_NANOS) {

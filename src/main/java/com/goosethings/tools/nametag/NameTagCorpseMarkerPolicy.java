@@ -2,11 +2,22 @@ package com.goosethings.tools.nametag;
 
 import java.util.Collection;
 
-/** Marker-only overlays bind to public meeting corpse labels, never to spectator avatars. */
+/** Public number badges and private marks bind to the existing corpse labels. */
 public final class NameTagCorpseMarkerPolicy {
     public static final int CORPSE_MARKER_ONLY = 1 << 7;
 
+    public static final int BADGE_RGB = 0x969da6;
+
     private NameTagCorpseMarkerPolicy() {}
+
+    public static boolean viewerCanSeeNumber(boolean meeting, Collection<String> tags) {
+        return meeting && (tags.contains("inTalk") || tags.contains("spectator"))
+                && !tags.contains("inDream") && !tags.contains("spectatorDream") && !tags.contains("endGame");
+    }
+
+    public static boolean suppressLivingPlate(Collection<String> tags) {
+        return tags.contains("talk") && tags.contains("meetingBodySupper");
+    }
 
     public static boolean viewerCanSee(boolean fullBlood, Collection<String> tags) {
         return fullBlood && !tags.contains("spectator") && !tags.contains("deadInMap")

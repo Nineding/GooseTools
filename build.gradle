@@ -147,6 +147,7 @@ loom {
             source sourceSets.roleIntroRegressionTest
             runDir 'build/role-intro-regression-test'
             vmArg '-Dgoosetools.roleIntroRegressionTest=true'
+            vmArg '-Dgoosetools.meetingBlackoutRegression=' + providers.gradleProperty('meetingBlackoutRegression').isPresent()
             vmArg '-Dgoosetools.trainingRegression=' + providers.gradleProperty('trainingRegression').isPresent()
             vmArg '-Dgoosetools.twoActRegression=' + providers.gradleProperty('twoActRegression').isPresent()
             vmArg '-Dgoosetools.artworkRegression=' + providers.gradleProperty('artworkRegression').isPresent()

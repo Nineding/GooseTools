@@ -76,5 +76,6 @@
   "intro.goosetools.counts.players": "参加者",
   "intro.goosetools.counts.geese": "ガチョウ陣営",
   "intro.goosetools.counts.ducks": "アヒル陣営",
-  "intro.goosetools.counts.birds": "中立陣営"
+  "intro.goosetools.counts.birds": "中立陣営",
+  "marker.ggd_xaero_map.last_position_label": "会議前の位置"
 }

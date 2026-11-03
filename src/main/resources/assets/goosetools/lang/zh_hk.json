@@ -9,5 +9,6 @@
   "intro.goosetools.counts.players": "當局玩家",
   "intro.goosetools.counts.geese": "鵝陣營",
   "intro.goosetools.counts.ducks": "鴨陣營",
-  "intro.goosetools.counts.birds": "鳥陣營"
+  "intro.goosetools.counts.birds": "鳥陣營",
+  "marker.ggd_xaero_map.last_position_label": "會前位置"
 }

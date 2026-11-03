@@ -1,6 +1,9 @@
 package com.goosethings.tools.client.hud;
 
 import com.goosethings.tools.meeting.MeetingAlertIdentityPolicy;
+import com.goosethings.tools.client.presence.GamePresenceClient;
+import com.goosethings.tools.presence.GamePresencePhase;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import com.goosethings.tools.network.GooseToolsPayloads;
 import com.mojang.authlib.GameProfile;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -37,11 +40,19 @@ public final class MeetingAlertHud {
 
     public static void register() {
         MeetingAlertTrueSkinCache.register();
+        ClientTickEvents.END_CLIENT_TICK.register(MeetingAlertHud::tick);
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> clear());
     }
 
     public static void apply(GooseToolsPayloads.MeetingAlertS2C payload) {
-        active = new Alert(payload, System.nanoTime());
+        MeetingAlertTransition transition = new MeetingAlertTransition();
+        String phase = GamePresenceClient.phaseId();
+        // The server broadcasts alerts to lobby viewers too; they do not teleport.
+        // In-match viewers wait for the existing authoritative post-meeting snapshot.
+        if (!phase.equals("playing") && !phase.equals("spectating") && !phase.equals("preparing")) {
+            transition.meetingReady();
+        }
+        active = new Alert(payload, System.nanoTime(), transition);
         callerModel = null;
         victimModel = null;
     }
@@ -49,8 +60,37 @@ public final class MeetingAlertHud {
     /** True while the meeting transition owns non-spectator movement input. */
     public static boolean blocksMovement() {
         Alert alert = active;
-        return alert != null
-                && System.nanoTime() - alert.startedNanos() < MeetingAlertAnimation.DURATION_NANOS;
+        return alert != null;
+    }
+
+    /** Existing end-of-server-tick presence data follows the meeting teleports. */
+    public static void onPresencePhase(GamePresencePhase phase) {
+        Alert alert = active;
+        if (alert != null && (phase == GamePresencePhase.MEETING
+                || phase == GamePresencePhase.RESULTS || phase == GamePresencePhase.LOBBY)) {
+            alert.transition().meetingReady();
+        }
+    }
+
+    private static boolean sceneLoaded(Minecraft minecraft) {
+        if (minecraft.level == null || minecraft.player == null
+                || !minecraft.player.connection.hasClientLoaded()
+                || minecraft.gui.screen() instanceof net.minecraft.client.gui.screens.LevelLoadingScreen) return false;
+        // A loaded center chunk alone can expose a half-built room after teleport.
+        var center = minecraft.player.blockPosition();
+        for (int x = -1; x <= 1; x++) for (int z = -1; z <= 1; z++) {
+            if (!minecraft.level.hasChunkAt(center.offset(x * 16, 0, z * 16))) return false;
+        }
+        return minecraft.levelRenderer.hasRenderedAllSections();
+    }
+
+    private static void tick(Minecraft minecraft) {
+        Alert alert = active;
+        if (alert != null && alert.transition().opacity(
+                System.nanoTime() - alert.startedNanos(), sceneLoaded(minecraft)) <= 0.0F
+                && System.nanoTime() - alert.startedNanos() >= MeetingAlertAnimation.DURATION_NANOS) {
+            clear();
+        }
     }
 
     public static void render(GuiGraphicsExtractor graphics) {
@@ -59,20 +99,18 @@ public final class MeetingAlertHud {
             return;
         }
         long elapsed = System.nanoTime() - alert.startedNanos();
-        if (elapsed >= MeetingAlertAnimation.DURATION_NANOS) {
+        Minecraft minecraft = Minecraft.getInstance();
+        float blackout = alert.transition().opacity(elapsed, sceneLoaded(minecraft));
+        if (blackout <= 0.0F && elapsed >= MeetingAlertAnimation.DURATION_NANOS) {
             clear();
             return;
         }
-
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.level == null) {
-            return;
-        }
-        MeetingAlertTrueSkinCache.capture(minecraft);
-        ensureModels(minecraft, alert.payload());
-
         int width = graphics.guiWidth();
         int height = graphics.guiHeight();
+        graphics.fill(0, 0, width, height, argb(0x000000, blackout));
+        if (minecraft.level == null || elapsed >= MeetingAlertAnimation.DURATION_NANOS) return;
+        MeetingAlertTrueSkinCache.capture(minecraft);
+        ensureModels(minecraft, alert.payload());
         MeetingAlertAnimation.Frame frame = MeetingAlertAnimation.sample(elapsed, width);
         float alpha = frame.alpha();
         int offset = frame.xOffset();
@@ -81,7 +119,6 @@ public final class MeetingAlertHud {
         int bottom = top + bandHeight;
         int kind = alert.payload().kind();
 
-        graphics.fill(0, 0, width, height, argb(0x000000, alpha * 0.44F));
         drawBand(graphics, offset, width, top, bottom, kind, alpha, frame.pulse());
         drawContents(graphics, minecraft, offset, width, top, bottom, kind, alpha, alert.payload());
     }
@@ -331,6 +368,7 @@ public final class MeetingAlertHud {
         victimModel = null;
     }
 
-    private record Alert(GooseToolsPayloads.MeetingAlertS2C payload, long startedNanos) {
+    private record Alert(GooseToolsPayloads.MeetingAlertS2C payload, long startedNanos,
+                         MeetingAlertTransition transition) {
     }
 }

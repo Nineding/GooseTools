@@ -7,6 +7,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MeetingAlertAnimationTest {
     @Test
+    void requestedFadeAndTotalDuration() {
+        assertEquals(0.0F, MeetingAlertAnimation.sample(0,640).alpha());
+        assertEquals(0.5F, MeetingAlertAnimation.sample(100_000_000L,640).alpha());
+        assertEquals(1.0F, MeetingAlertAnimation.sample(200_000_000L,640).alpha());
+        assertEquals(0.0F, MeetingAlertAnimation.sample(3_000_000_000L,640).alpha());
+    }
+
+    @Test
     void entersFromTheLeftAndSettlesAtTheViewport() {
         MeetingAlertAnimation.Frame start = MeetingAlertAnimation.sample(0L, 640);
         MeetingAlertAnimation.Frame middle = MeetingAlertAnimation.sample(

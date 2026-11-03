@@ -24,6 +24,7 @@ public final class GamePresenceClient {
         connected = true;
         phase = GamePresencePhase.fromCode(phaseCode);
         mapId = currentMapId;
+        com.goosethings.tools.client.hud.MeetingAlertHud.onPresencePhase(phase);
         CraftPresenceCompat.refresh();
     }
 

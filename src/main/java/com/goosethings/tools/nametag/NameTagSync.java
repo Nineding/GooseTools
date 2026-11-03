@@ -171,12 +171,17 @@ public final class NameTagSync {
             identities.put(target.getUUID(), identityOf(server, target, playersBySeat, fullBlood));
         }
         List<GooseToolsPayloads.NameTagAlias> aliases = dreamAliases(server, playersBySeat);
-        Map<UUID, ServerPlayer> openingModels = openingModels(server);
+        Map<UUID, UUID> supperModels = new HashMap<>();
+        Map<UUID, ServerPlayer> openingModels = openingModels(server, supperModels);
         List<Entity> corpseLabels = onlinePlayers.stream().anyMatch(player ->
-                NameTagCorpseMarkerPolicy.viewerCanSee(fullBlood, player.entityTags()))
+                NameTagCorpseMarkerPolicy.viewerCanSeeNumber(meetingPhase > 0, player.entityTags())
+                        || NameTagCorpseMarkerPolicy.viewerCanSee(fullBlood, player.entityTags()))
                 ? meetingCorpseLabels(server) : List.of();
         List<GooseToolsPayloads.NameTagAlias> allAliases = new ArrayList<>(aliases);
         openingModels.keySet().stream()
+                .limit(GooseToolsPayloads.NameTagSnapshotS2C.MAX_ALIASES - allAliases.size())
+                .forEach(id -> allAliases.add(new GooseToolsPayloads.NameTagAlias(id, id)));
+        supperModels.keySet().stream()
                 .limit(GooseToolsPayloads.NameTagSnapshotS2C.MAX_ALIASES - allAliases.size())
                 .forEach(id -> allAliases.add(new GooseToolsPayloads.NameTagAlias(id, id)));
         for (ServerPlayer viewer : onlinePlayers) {
@@ -259,6 +264,14 @@ public final class NameTagSync {
                 entries.add(openingEntry(server, viewer, target, RoleIntroScene.modelId(target.getUUID()),
                         fullBlood, activeLoverCount));
             }
+            // Bind only this corpse model to an empty identity. Never blank its real owner,
+            // their role metadata, or unrelated map bodies sharing the player's profile.
+            for (var model : supperModels.entrySet()) {
+                if (allAliases.stream().noneMatch(alias -> alias.entityId().equals(model.getKey()))) continue;
+                if (entries.size() >= GooseToolsPayloads.NameTagSnapshotS2C.MAX_ENTRIES) break;
+                entries.add(new GooseToolsPayloads.NameTagEntry(model.getKey(), model.getValue(),
+                        "", "", 0, 0, 0, 0, false, List.of()));
+            }
             appendCorpseMarkers(server, viewer, fullBlood, corpseLabels, entries, viewerAliases);
             GooseToolsPayloads.NameTagSnapshotS2C snapshot =
                     new GooseToolsPayloads.NameTagSnapshotS2C(entries, viewerAliases);
@@ -282,20 +295,23 @@ public final class NameTagSync {
     private static void appendCorpseMarkers(MinecraftServer server, ServerPlayer viewer, boolean fullBlood,
             List<Entity> labels, List<GooseToolsPayloads.NameTagEntry> entries,
             List<GooseToolsPayloads.NameTagAlias> aliases) {
-        if (!NameTagCorpseMarkerPolicy.viewerCanSee(fullBlood, viewer.entityTags())) return;
+        boolean numbers = NameTagCorpseMarkerPolicy.viewerCanSeeNumber(readScore(server, "ggdSession", "#MeetingPhase", 0) > 0, viewer.entityTags());
+        boolean marks = NameTagCorpseMarkerPolicy.viewerCanSee(fullBlood, viewer.entityTags());
+        if (!numbers && !marks) return;
         var roles = server.getCommandStorage().get(Identifier.fromNamespaceAndPath("ggd", "role"));
         for (Entity label : labels) {
             if (label.level() != viewer.level()) continue;
             int seat = NameTagCorpseMarkerPolicy.sourceSeat(label.entityTags());
-            int code = PlayerMarkerPolicy.validCodeOrZero(readScore(server,
-                    PlayerMarkerPolicy.objectiveForSeat(seat), viewer.getScoreboardName(), 0));
-            if (code == 0) continue;
+            int code = marks ? PlayerMarkerPolicy.validCodeOrZero(readScore(server,
+                    PlayerMarkerPolicy.objectiveForSeat(seat), viewer.getScoreboardName(), 0)) : 0;
+            if (!numbers && code == 0) continue;
             var role = roles.getCompoundOrEmpty("p" + seat);
-            if (!role.contains("UUID")) continue;
-            UUID source = UUIDUtil.CODEC.parse(NbtOps.INSTANCE, role.get("UUID")).result().orElse(null);
-            if (source == null) continue;
-            // A metadata-only entry lets the same offline identity retain its mark in the menu.
-            if (entries.stream().noneMatch(entry -> entry.playerId().equals(source))) {
+            UUID source = role.contains("UUID")
+                    ? UUIDUtil.CODEC.parse(NbtOps.INSTANCE, role.get("UUID")).result().orElse(null) : null;
+            // The frozen pN is sufficient for a public number, even if profile data is missing.
+            if (source == null) source = label.getUUID();
+            UUID resolvedSource = source;
+            if (code > 0 && entries.stream().noneMatch(entry -> entry.playerId().equals(resolvedSource))) {
                 if (entries.size() >= GooseToolsPayloads.NameTagSnapshotS2C.MAX_ENTRIES) break;
                 entries.add(new GooseToolsPayloads.NameTagEntry(source, source,
                         role.getStringOr("real_name", "p" + seat), "", 0, 0, 0, code, false, List.of()));
@@ -303,18 +319,23 @@ public final class NameTagSync {
             if (entries.size() >= GooseToolsPayloads.NameTagSnapshotS2C.MAX_ENTRIES
                     || aliases.size() >= GooseToolsPayloads.NameTagSnapshotS2C.MAX_ALIASES) break;
             entries.add(new GooseToolsPayloads.NameTagEntry(label.getUUID(), source,
-                    "", "", 0, 0, NameTagCorpseMarkerPolicy.CORPSE_MARKER_ONLY, code, true, List.of()));
-            // Self aliases are rendered entities, not replacement player/profile metadata.
+                    "", "", NameTagCorpseMarkerPolicy.BADGE_RGB, numbers ? seat : 0,
+                    NameTagCorpseMarkerPolicy.CORPSE_MARKER_ONLY, code, true, List.of()));
             aliases.add(new GooseToolsPayloads.NameTagAlias(label.getUUID(), label.getUUID()));
         }
     }
 
-    private static Map<UUID, ServerPlayer> openingModels(MinecraftServer server) {
+    private static Map<UUID, ServerPlayer> openingModels(MinecraftServer server, Map<UUID, UUID> supperModels) {
         Map<UUID, ServerPlayer> result = new HashMap<>();
         for (ServerLevel level : server.getAllLevels()) {
             for (Entity entity : level.getAllEntities()) {
-                if (!(entity instanceof Mannequin mannequin)
-                        || !entity.entityTags().contains("showFaction")) continue;
+                if (!(entity instanceof Mannequin mannequin)) continue;
+                if (NameTagCorpseMarkerPolicy.suppressLivingPlate(entity.entityTags())) {
+                    UUID owner = mannequin.getProfile().partialProfile().id();
+                    supperModels.put(entity.getUUID(), owner == null ? entity.getUUID() : owner);
+                    continue;
+                }
+                if (!entity.entityTags().contains("showFaction")) continue;
                 ServerPlayer source = server.getPlayerList().getPlayer(mannequin.getProfile().partialProfile().id());
                 if (source != null && source.entityTags().contains("parasiteInside")
                         && RoomOrderManager.orderOf(server, source) > 0) {

@@ -82,9 +82,6 @@ public final class GooseToolsClient implements ClientModInitializer {
         HudElementRegistry.addLast(
                 Identifier.fromNamespaceAndPath(GooseTools.MOD_ID, "ai_progress_hud"),
                 (graphics, delta) -> AiProgressHud.render(graphics));
-        HudElementRegistry.addLast(
-                Identifier.fromNamespaceAndPath(GooseTools.MOD_ID, "meeting_alert_hud"),
-                (graphics, delta) -> MeetingAlertHud.render(graphics));
         GooseTools.LOGGER.info(
                 "GooseTools client initialized (Web UI + Xaero + stand-in visual continuity)");
     }

@@ -90,19 +90,11 @@ public final class GgdMapElementRenderer
             return true;
         }
 
-        if (element.kind() == ElementKind.LAST_POSITION) {
-            Component marker = Component.translatable("marker.ggd_xaero_map.last_position");
-            int width = minecraft.font.width(marker);
-            graphics.fill(-width / 2 - 3, -6, width / 2 + 4, 6, 0xD0171717);
-            graphics.drawCenteredString(minecraft.font, marker, 0, -4, 0xFFFFD54A);
-            return true;
-        }
-
-        if (element.kind() == ElementKind.REPORTED_BODY) {
-            Component marker = Component.translatable("marker.ggd_xaero_map.reported_body");
-            int width = minecraft.font.width(marker);
-            graphics.fill(-width / 2 - 3, -6, width / 2 + 4, 6, 0xD0171717);
-            graphics.drawCenteredString(minecraft.font, marker, 0, -4, 0xFFFF3030);
+        if (element.kind() == ElementKind.LAST_POSITION || element.kind() == ElementKind.REPORTED_BODY) {
+            boolean last = element.kind() == ElementKind.LAST_POSITION;
+            MeetingMapMarkerStyle.draw(last, (x,y,color)->graphics.fill(x,y,x+1,y+1,color));
+            if (last) graphics.drawCenteredString(minecraft.font,
+                    Component.translatable("marker.ggd_xaero_map.last_position_label"), 0, -28, 0xFFFFF3EF);
             return true;
         }
 
@@ -214,19 +206,11 @@ public final class GgdMapElementRenderer
             return;
         }
 
-        if (element.kind() == ElementKind.LAST_POSITION) {
-            Component marker = Component.translatable("marker.ggd_xaero_map.last_position");
-            int width = minecraft.font.width(marker);
-            graphics.fill(-width / 2 - 3, -6, width / 2 + 4, 6, 0xD0171717);
-            graphics.centeredText(minecraft.font, marker, 0, -4, 0xFFFFD54A);
-            return;
-        }
-
-        if (element.kind() == ElementKind.REPORTED_BODY) {
-            Component marker = Component.translatable("marker.ggd_xaero_map.reported_body");
-            int width = minecraft.font.width(marker);
-            graphics.fill(-width / 2 - 3, -6, width / 2 + 4, 6, 0xD0171717);
-            graphics.centeredText(minecraft.font, marker, 0, -4, 0xFFFF3030);
+        if (element.kind() == ElementKind.LAST_POSITION || element.kind() == ElementKind.REPORTED_BODY) {
+            boolean last = element.kind() == ElementKind.LAST_POSITION;
+            MeetingMapMarkerStyle.draw(last, (x,y,color)->graphics.fill(x,y,x+1,y+1,color));
+            if (last) graphics.centeredText(minecraft.font,
+                    Component.translatable("marker.ggd_xaero_map.last_position_label"), 0, -28, 0xFFFFF3EF);
             return;
         }
 
@@ -402,12 +386,14 @@ public final class GgdMapElementRenderer
                     result.add(Element.room(room, room == currentRoom));
                 }
 
-                addSpecialMarker(result, active,
-                        GgdMapState.findMarker(minecraft, GgdMapState.MEETING_LAST_POSITION),
-                        ElementKind.LAST_POSITION);
-                addSpecialMarker(result, active,
-                        GgdMapState.findMarker(minecraft, GgdMapState.REPORTED_BODY),
-                        ElementKind.REPORTED_BODY);
+                var last = GgdMapState.findMarker(minecraft, GgdMapState.MEETING_LAST_POSITION);
+                var body = GgdMapState.findMarker(minecraft, GgdMapState.REPORTED_BODY);
+                addSpecialMarker(result, active, last, ElementKind.LAST_POSITION);
+                if (body != null && (last == null || !active.contains(last.position().x, last.position().z)
+                        || !MeetingMapMarkerStyle.hideBody(body.position().x, body.position().z,
+                                last.position().x, last.position().z))) {
+                    addSpecialMarker(result, active, body, ElementKind.REPORTED_BODY);
+                }
             }
 
             for (GgdMapState.Marker marker : GgdMapState.cachedMarkers()) {
@@ -438,6 +424,9 @@ public final class GgdMapElementRenderer
                             "gold".equalsIgnoreCase(kind), isEmergencyTask(kind)));
                 }
             }
+            // Meeting marks stay above task and room labels.
+            result.sort(java.util.Comparator.comparingInt(e ->
+                    e.kind() == ElementKind.LAST_POSITION ? 2 : e.kind() == ElementKind.REPORTED_BODY ? 1 : 0));
             frameElements = result;
         }
 

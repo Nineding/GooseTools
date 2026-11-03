@@ -156,9 +156,12 @@ public final class NameTagRenderer {
     private static void renderCorpseMarker(LevelRenderContext context, Minecraft client, Camera camera,
             Vec3 cameraPosition, float partialTick, Entity entity, GooseToolsPayloads.NameTagEntry entry) {
         if (!(entity instanceof Display.TextDisplay label) || entity.isRemoved()
-                || !entry.markerNameTagVisible() || entity.isInvisibleTo(client.player)) return;
-        PlayerMarkerCatalog.Definition marker = PlayerMarkerCatalog.byCode(entry.markerCode());
-        if (marker == null) return;
+                || entity.isInvisibleTo(client.player)) return;
+        // Public numbers do not depend on a private player-marker assignment.
+        PlayerMarkerCatalog.Definition marker = entry.markerNameTagVisible()
+                ? PlayerMarkerCatalog.byCode(entry.markerCode()) : null;
+        boolean number = entry.serialNumber() >= 1 && entry.serialNumber() <= 21;
+        if (marker == null && !number) return;
         Vec3 position = entity.getPosition(partialTick);
         if (position.distanceToSqr(cameraPosition) > MAX_DISTANCE_SQUARED
                 || !clearRay(client, cameraPosition, position)) return;
@@ -171,11 +174,23 @@ public final class NameTagRenderer {
         poses.translate(position.x-cameraPosition.x, position.y-cameraPosition.y, position.z-cameraPosition.z);
         poses.mulPose(new Matrix4f().rotate(camera.rotation()));
         poses.scale(SCALE*labelScale, -SCALE*labelScale, SCALE*labelScale);
+        int opacity = Math.clamp(Math.round(alpha*255),0,255);
+        if (number) {
+            poses.pushPose();
+            poses.translate(0, -24.0F, 0);
+            poses.scale(1.5F, 1.5F, 1.5F);
+            emitIcon(context.submitNodeCollector(), poses, SerialBadgeStyle.TEXTURE,
+                    -BADGE_SIZE*.5F, -BADGE_SIZE*.5F, BADGE_SIZE, BADGE_SIZE,
+                    opacity<<24 | NameTagCorpseMarkerPolicy.BADGE_RGB);
+            emitBadgeNumber(context.submitNodeCollector(), poses, -BADGE_SIZE*.5F, entry.serialNumber(),
+                    opacity<<24 | SerialBadgeStyle.contrastColour(NameTagCorpseMarkerPolicy.BADGE_RGB));
+            poses.popPose();
+        }
+        if (marker == null) { poses.popPose(); return; }
         String text = Component.translatableWithFallback(marker.translationKey(), marker.fallback()).getString();
         Identifier texture = Identifier.tryParse(marker.texture());
         float left = client.font.width(label.getText())*.5F+GAP;
         float width = client.font.width(text)+4.0F+(texture==null?0:GAP+ICON_HEIGHT);
-        int opacity = Math.clamp(Math.round(alpha*255),0,255);
         emitSolidRect(context.submitNodeCollector(),poses,left,-6,width,12,
                 Math.clamp(Math.round(alpha*190),0,255)<<24 | marker.style().cardRgb());
         float x = left+2;
