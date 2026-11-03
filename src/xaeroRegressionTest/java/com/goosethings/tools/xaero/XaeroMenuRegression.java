@@ -95,6 +95,9 @@ public final class XaeroMenuRegression implements ClientModInitializer {
             if (++readyTicks < 30) return;
             require(mc.player.hasEffect(Effects.NO_WAYPOINTS), "disabled-waypoint crash condition missing");
             MinimapSession session = (MinimapSession) BuiltInHudModules.MINIMAP.getCurrentSession();
+            require(GgdXaeroConfigLock.isLocked(xaero.hud.minimap.common.config.option.MinimapProfiledConfigOptions.AUTO_CAVE_MODE), "automatic cave detection must be locked for every player");
+            require(HudMod.INSTANCE.getHudConfigs().getClientConfigManager().getEffective(xaero.hud.minimap.common.config.option.MinimapProfiledConfigOptions.AUTO_CAVE_MODE) == 1, "minimap automatic cave detection must use 1x1");
+            require(xaero.map.WorldMap.INSTANCE.getConfigs().getClientConfigManager().getEffective(xaero.map.common.config.option.WorldMapProfiledConfigOptions.AUTO_CAVE_MODE) == 1, "world map automatic cave detection must use 1x1");
             previousPermissions = mc.player.permissions();
             for (PermissionSet permissions : new PermissionSet[] {
                     PermissionSet.NO_PERMISSIONS, LevelBasedPermissionSet.OWNER}) {

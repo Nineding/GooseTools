@@ -10,6 +10,7 @@
     "DancePartMixin",
     "EntityRenderDispatcherMixin",
     "KeyboardInputMeetingAlertMixin",
+    "HudMeetingAlertMixin",
     "LocalPlayerMeetingAlertMixin",
     "NametagEntityRendererMixin",
     "GuiRenderPipelinesAccessor",
