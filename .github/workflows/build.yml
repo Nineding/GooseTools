@@ -13,6 +13,9 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      sha256: ${{ steps.digest.outputs.sha256 }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -28,12 +31,23 @@ jobs:
         run: bash ./gradlew clean test build
 
       - name: Prepare release from Changelog
-        if: startsWith(github.ref, 'refs/tags/v')
         id: release
-        run: python3 scripts/release_info.py "$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            python3 scripts/release_info.py "$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+          else
+            python3 scripts/release_info.py >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Hash tested runtime JAR
+        id: digest
+        env:
+          JAR_PATH: ${{ steps.release.outputs.jar }}
+        run: echo "sha256=$(sha256sum "$JAR_PATH" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
 
       - name: Upload runtime JAR and Changelog entry
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
         uses: actions/upload-artifact@v4
         with:
           name: release
@@ -43,7 +57,7 @@ jobs:
           if-no-files-found: error
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -59,19 +73,29 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          VERSION: ${{ needs.build.outputs.version }}
+          EXPECTED_SHA256: ${{ needs.build.outputs.sha256 }}
         shell: bash
         run: |
-          version="${GITHUB_REF_NAME#v}"
+          set -euo pipefail
+          version="$VERSION"
+          tag="v$version"
+          printf '%s  %s\n' "$EXPECTED_SHA256" "release/libs/goosetools-$version.jar" | sha256sum --check --strict
           args=()
           if [[ "$version" == *Alpha* ]]; then
             args+=(--prerelease --latest=false)
           fi
           existing_tags="$(gh api --paginate "repos/$GH_REPO/releases" --jq '.[].tag_name')"
-          if grep -Fxq -- "$GITHUB_REF_NAME" <<< "$existing_tags"; then
-            echo "Release $GITHUB_REF_NAME already exists; preserving its assets."
+          if grep -Fxq -- "$tag" <<< "$existing_tags"; then
+            echo "Release $tag already exists; preserving its assets."
             exit 0
           fi
-          gh release create "$GITHUB_REF_NAME" \
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            args+=(--verify-tag)
+          else
+            args+=(--target "$GITHUB_SHA")
+          fi
+          gh release create "$tag" \
             "release/libs/goosetools-$version.jar" \
-            --verify-tag --title "GooseTools $version" \
+            --title "GooseTools $version" \
             --notes-file release/release-notes.md "${args[@]}"

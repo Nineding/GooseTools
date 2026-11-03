@@ -1,0 +1,7 @@
+{
+  "required": true,
+  "package": "com.goosethings.tools.client.pet.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": ["PetMovementEffectsMixin"],
+  "injectors": {"defaultRequire": 1}
+}

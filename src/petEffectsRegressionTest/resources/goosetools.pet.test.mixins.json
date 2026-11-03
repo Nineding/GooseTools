@@ -1,0 +1,7 @@
+{
+  "required": true,
+  "package": "com.goosethings.tools.client.pet.testmixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": ["PetSoundProbeMixin"],
+  "injectors": {"defaultRequire": 1}
+}
