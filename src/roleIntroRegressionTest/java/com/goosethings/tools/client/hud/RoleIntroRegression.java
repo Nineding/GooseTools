@@ -39,6 +39,9 @@ public final class RoleIntroRegression implements ClientModInitializer {
             ClientTickEvents.END_CLIENT_TICK.register(new MeetingAlertRegression()::tick);
             return;
         }
+        if(Boolean.getBoolean("goosetools.trainingRegression")) {
+            ClientTickEvents.END_CLIENT_TICK.register(new TrainingClientRegression()::tick);return;
+        }
         if (Boolean.getBoolean("goosetools.blindDuckRegression")) {
             ClientTickEvents.END_CLIENT_TICK.register(new BlindDuckRegression()::tick);
             return;

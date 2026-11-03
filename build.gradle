@@ -148,6 +148,7 @@ loom {
             runDir 'build/role-intro-regression-test'
             vmArg '-Dgoosetools.roleIntroRegressionTest=true'
             vmArg '-Dgoosetools.meetingBlackoutRegression=' + providers.gradleProperty('meetingBlackoutRegression').isPresent()
+            vmArg '-Dgoosetools.trainingRegression=' + providers.gradleProperty('trainingRegression').isPresent()
             vmArg '-Dgoosetools.twoActRegression=' + providers.gradleProperty('twoActRegression').isPresent()
             vmArg '-Dgoosetools.artworkRegression=' + providers.gradleProperty('artworkRegression').isPresent()
             vmArg '-Dgoosetools.aiVoteRegression=' + providers.gradleProperty('aiVoteRegression').isPresent()
@@ -350,7 +351,7 @@ tasks.named('runRoleIntroRegressionTest') {
     timeout = java.time.Duration.ofMinutes(4)
     doFirst {
         java.nio.file.Files.deleteIfExists(layout.buildDirectory.file('role-intro-regression-test/result.txt').get().asFile.toPath())
-        if (providers.gradleProperty('blindDuckRegression').isPresent()) {
+        if (providers.gradleProperty('blindDuckRegression').isPresent() || providers.gradleProperty('trainingRegression').isPresent()) {
             def run = layout.buildDirectory.dir('role-intro-regression-test').get().asFile
             def pack = file(providers.gradleProperty('blindDuckPack').getOrElse('../../../GooseGooseDuck'))
             copy {
