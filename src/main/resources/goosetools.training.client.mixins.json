@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "package": "com.goosethings.tools.client.training",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "TrainingNpcSkinMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

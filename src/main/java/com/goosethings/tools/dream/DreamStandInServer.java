@@ -160,7 +160,7 @@ public final class DreamStandInServer {
 
     private static int snapshot(MinecraftServer server, Iterable<ServerPlayer> players) {
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            if (DreamAvatarServer.active(player)) {
+            if (!player.entityTags().contains("ggdTraining") && DreamAvatarServer.active(player)) {
                 DreamAvatarServer.end(player);
             }
         }
@@ -309,7 +309,7 @@ public final class DreamStandInServer {
         int count = SESSIONS.size() + RETIRING.size();
         clearState();
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            if (DreamAvatarServer.active(player)) {
+            if (!player.entityTags().contains("ggdTraining") && DreamAvatarServer.active(player)) {
                 DreamAvatarServer.end(player);
             }
         }

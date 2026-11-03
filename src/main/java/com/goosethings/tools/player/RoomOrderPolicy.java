@@ -41,7 +41,8 @@ public final class RoomOrderPolicy {
      * Dead players keep their slot because they use the spectator tag until cleanup.
      */
     public static boolean ownsMatchSlot(Set<String> tags) {
-        return !tags.contains("debug")
+        return !tags.contains("ggdTraining")
+                && !tags.contains("debug")
                 && !tags.contains("inTutorial")
                 && !tags.contains("lobbySpectate");
     }
