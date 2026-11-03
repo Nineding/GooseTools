@@ -66,6 +66,11 @@ jobs:
           if [[ "$version" == *Alpha* ]]; then
             args+=(--prerelease --latest=false)
           fi
+          existing_tags="$(gh api --paginate "repos/$GH_REPO/releases" --jq '.[].tag_name')"
+          if grep -Fxq -- "$GITHUB_REF_NAME" <<< "$existing_tags"; then
+            echo "Release $GITHUB_REF_NAME already exists; preserving its assets."
+            exit 0
+          fi
           gh release create "$GITHUB_REF_NAME" \
             "release/libs/goosetools-$version.jar" \
             --verify-tag --title "GooseTools $version" \

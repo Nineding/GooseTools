@@ -51,4 +51,9 @@ final class RoomOrderPolicyTest {
         assertEquals(true, RoomOrderPolicy.ownsMatchSlot(Set.of("gamingGGD", "spectator")));
         assertEquals(false, RoomOrderPolicy.ownsMatchSlot(Set.of("lobbySpectate", "spectator")));
     }
+    @Test
+    void practicePlayersAndTargetsDoNotConsumeFormalRoomSlots() {
+        assertEquals(false,RoomOrderPolicy.ownsLobbySlot(Set.of("ggdTraining","lobby")));
+        assertEquals(false,RoomOrderPolicy.ownsMatchSlot(Set.of("ggdTraining","ggdTrainingNpc","gamingGGD")));
+    }
 }

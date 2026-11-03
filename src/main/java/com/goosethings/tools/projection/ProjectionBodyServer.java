@@ -484,11 +484,16 @@ public final class ProjectionBodyServer {
     }
 
     private static int cleanup(MinecraftServer server) {
-        int count = SESSIONS.size();
-        clearState(server);
-        dirty = true;
-        syncAll(server);
-        return Math.max(1, count);
+        int count=0;
+        for(Session session:List.copyOf(SESSIONS.values())) {
+            ServerPlayer owner=server.getPlayerList().getPlayer(session.playerId);
+            if(owner!=null&&owner.entityTags().contains("ggdTraining"))continue;
+            if(owner!=null)abandon(server,owner);
+            else {SESSIONS.remove(session.playerId);discardAnchor(server,session.anchorId);}
+            count++;
+        }
+        LAST_SCENES.clear();LAST_SENT_TICKS.clear();
+        dirty=true;syncAll(server);return Math.max(1,count);
     }
 
     private static void tick(MinecraftServer server) {
