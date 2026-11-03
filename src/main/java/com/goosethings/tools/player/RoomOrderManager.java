@@ -96,7 +96,7 @@ public final class RoomOrderManager {
         matchEligible.forEach(RoomOrderManager::rememberJoin);
 
         boolean taggedActive = matchEligible.stream().anyMatch(player ->
-                player.entityTags().contains("gamingGGD"));
+                player.entityTags().contains("gamingGGD") && !player.entityTags().contains("ggdTraining"));
         // Keep disconnected players' slots through the end screen and even when the
         // last participant disconnects. The datapack removes gamingGGD only when its
         // return-to-lobby cleanup runs, which is the point at which compaction is safe.
