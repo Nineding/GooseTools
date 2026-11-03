@@ -26,6 +26,23 @@ class NameTagCorpseMarkerPolicyTest {
             assertEquals(0,NameTagCorpseMarkerPolicy.sourceSeat(Set.of("talk","ggd.corpseLabel",invalid)));
         assertEquals(0,NameTagCorpseMarkerPolicy.sourceSeat(Set.of("talk","ggd.corpseLabel","p1","p2")));
     }
+    @Test void greyNumbersArePublicInMeetingsButNotInDreamsOrTheMap() {
+        assertTrue(NameTagCorpseMarkerPolicy.viewerCanSeeNumber(true, Set.of("inTalk")));
+        assertTrue(NameTagCorpseMarkerPolicy.viewerCanSeeNumber(true, Set.of("spectator")));
+        assertFalse(NameTagCorpseMarkerPolicy.viewerCanSeeNumber(false, Set.of("inTalk")));
+        assertFalse(NameTagCorpseMarkerPolicy.viewerCanSeeNumber(true, Set.of("spectator", "spectatorDream")));
+        assertTrue(NameTagCorpseMarkerPolicy.viewerCanSeeNumber(true, Set.of("inTalk","spectator")));
+        assertTrue(NameTagCorpseMarkerPolicy.viewerCanSeeNumber(true, Set.of("inTalk","deadInMap")));
+        assertFalse(NameTagCorpseMarkerPolicy.viewerCanSeeNumber(true, Set.of("inTalk","inDream")));
+        assertFalse(NameTagCorpseMarkerPolicy.viewerCanSeeNumber(true, Set.of("inTalk","endGame")));
+        assertFalse(NameTagCorpseMarkerPolicy.viewerCanSeeNumber(true, Set.of("gamingGGD")));
+    }
+    @Test void onlyTheSupperMeetingModelLosesItsLivingPlate() {
+        assertTrue(NameTagCorpseMarkerPolicy.suppressLivingPlate(Set.of("talk","meetingBodySupper")));
+        assertFalse(NameTagCorpseMarkerPolicy.suppressLivingPlate(Set.of("meetingBodySupper")));
+        assertFalse(NameTagCorpseMarkerPolicy.suppressLivingPlate(Set.of("deadbody")));
+        assertFalse(NameTagCorpseMarkerPolicy.suppressLivingPlate(Set.of("players","inTalk")));
+    }
     @Test void onlyTheExplicitOverlayFlagSelectsMarkerOnlyRendering() {
         for(int prior=0;prior<128;prior++) {
             assertFalse(NameTagCorpseMarkerPolicy.markerOnly(prior));
