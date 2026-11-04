@@ -209,6 +209,7 @@ loom {
             source sourceSets.xaeroRegressionTest
             runDir 'build/xaero-regression-test'
             vmArg '-Dgoosetools.xaeroRegressionTest=true'
+            vmArg '-Dgoosetools.trainingMapRegression=' + providers.gradleProperty('trainingMapRegression').isPresent()
         }
         xaeroServerSmokeTest {
             server()
