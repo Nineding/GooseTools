@@ -905,5 +905,9 @@
   "summary.goosetools.payment_unavailable": "账户支付状态暂不可用",
   "summary.goosetools.payment_clear": "账户当前没有待支付奖励",
   "summary.goosetools.payment_pending": "账户累计待支付：%s 鹅鹅币",
-  "marker.ggd_xaero_map.last_position_label": "会前位置"
+  "marker.ggd_xaero_map.last_position_label": "会前位置",
+  "screen.goosetools.fairplay.title": "检测到不允许的游戏模组",
+  "screen.goosetools.fairplay.message": "以下模组可获取正常视野以外的信息。请从当前游戏实例中移除这些模组，并重启 Minecraft 后再进入游戏。",
+  "screen.goosetools.fairplay.mod": "%s（ID：%s）",
+  "screen.goosetools.fairplay.quit": "退出游戏"
 }
