@@ -18,6 +18,10 @@ abstract class TrainingNpcSkinMixin {
     @Inject(method="getSkin",at=@At("HEAD"),cancellable=true)
     private void goose$trainingSkin(CallbackInfoReturnable<PlayerSkin> ci) {
         var player=(AbstractClientPlayer)(Object)this;
-        if(player.getGameProfile().name().startsWith("GT_NPC_"))ci.setReturnValue(TRAINING_SKIN);
+        var connection=net.minecraft.client.Minecraft.getInstance().getConnection();
+        var info=connection==null?null:connection.getPlayerInfo(player.getUUID());
+        var profile=info==null?player.getGameProfile():info.getProfile();
+        if(profile.name().startsWith("GT_NPC_")||profile.properties().get("textures").stream()
+            .anyMatch(property->property.value().equals("eyJ0ZXh0dXJlcyI6e30sImdvb3NldG9vbHNfdHJhaW5pbmdfbnBjIjp0cnVlfQ==")))ci.setReturnValue(TRAINING_SKIN);
     }
 }

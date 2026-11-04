@@ -51,12 +51,35 @@ public final class TrainingMapRegression implements ClientModInitializer {
                 if(!captured){captured=true;Screenshot.takeScreenshot(mc.gameRenderer.mainRenderTarget(),image->{try(image){image.writeToFile(mc.gameDirectory.toPath().resolve("training-minimap.png"));saved=true;}catch(Exception e){throw new RuntimeException(e);}});}
                 if(saved){
                     var server=mc.getSingleplayerServer();var id=mc.player.getUUID();
-                    server.execute(()->server.getPlayerList().getPlayer(id).teleportTo(server.overworld(),0,64,0,Set.of(),0,0,true));
-                    phase=2;ticks=0;
+                    server.execute(()->{
+                        var level=server.getLevel(ResourceKey.create(Registries.DIMENSION,Identifier.parse("ggd_training:eagleton_simplify")));
+                        if(level==null)throw new AssertionError("Eagleton fixture dimension missing");
+                        for(int x=-1664>>4;x<=-1614>>4;x++)for(int z=-564>>4;z<=-540>>4;z++)level.getChunk(x,z);
+                        var source=server.createCommandSourceStack().withLevel(level).withSuppressedOutput();
+                        server.getCommands().performPrefixedCommand(source,"fill -1664 73 -564 -1639 73 -540 yellow_concrete");
+                        server.getCommands().performPrefixedCommand(source,"fill -1638 73 -564 -1614 73 -540 lime_concrete");
+                        server.getCommands().performPrefixedCommand(source,"fill -1664 86 -564 -1614 86 -540 black_concrete");
+                        server.getPlayerList().getPlayer(id).teleportTo(level,-1639,74,-553,Set.of(),0,15,true);
+                    });
+                    phase=2;ticks=0;saved=false;captured=false;
                 }
-            }else if(phase==2&&mc.level.dimension().identifier().toString().equals("minecraft:overworld")&&ticks>20){
+            }else if(phase==2&&mc.level.dimension().identifier().toString().equals("ggd_training:eagleton_simplify")&&ticks>180){
+                require(GgdMapState.currentBounds(mc)==GameMapBounds.EAGLETON_SIMPLIFY,"Eagleton training bounds missing");
+                require(GgdMapState.currentCaveTopY(mc)==78,"Eagleton cave cap must follow the player's room");
+                require(!mc.player.hasEffect(xaero.common.effect.Effects.NO_CAVE_MAPS),"surface map left a stale cave-blocking effect");
+                var session=xaero.map.WorldMapSession.getCurrentSession();
+                if(session==null)return;
+                var processor=session.getMapProcessor();int x=-1635,z=-553;
+                var tile=processor.getMapTile(processor.getCurrentCaveLayer(),x>>4,z>>4);
+                if(tile==null||tile.getBlock(x&15,z&15)==null||tile.getBlock(x&15,z&15).getHeight()!=73){
+                    if(ticks>800)throw new AssertionError("Eagleton map still renders roof rather than room floor");
+                    return;
+                }
+                if(!captured){captured=true;Screenshot.takeScreenshot(mc.gameRenderer.mainRenderTarget(),image->{try(image){image.writeToFile(mc.gameDirectory.toPath().resolve("training-cave-minimap.png"));saved=true;}catch(Exception e){throw new RuntimeException(e);}});}
+                if(saved){var server=mc.getSingleplayerServer();var id=mc.player.getUUID();server.execute(()->server.getPlayerList().getPlayer(id).teleportTo(server.overworld(),0,64,0,Set.of(),0,0,true));phase=3;ticks=0;}
+            }else if(phase==3&&mc.level.dimension().identifier().toString().equals("minecraft:overworld")&&ticks>20){
                 require(!GgdMapState.isGameActive(mc),"leaving training leaked an active match flag into the lobby");
-                finish(mc,"PASS real training dimension: minimap terrain renders, PoolCore expansion enabled, no meeting context, lobby flag cleared; training-minimap.png");
+                finish(mc,"PASS real training dimensions: PoolCore surface; Eagleton cave floor Y=73 below black roof Y=86; cave cap Y=78; stale NO_CAVE_MAPS cleared; lobby flag cleared; training-minimap.png and training-cave-minimap.png");
             }
             if(ticks>1100)throw new AssertionError("training map client timeout phase="+phase);
         }catch(Throwable e){e.printStackTrace();finish(mc,"FAIL "+e);}
