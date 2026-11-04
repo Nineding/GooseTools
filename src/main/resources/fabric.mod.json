@@ -23,6 +23,10 @@
   },
   "mixins": [
     {
+      "config": "goosetools.pet.client.mixins.json",
+      "environment": "client"
+    },
+    {
       "config": "goosetools.input.mixins.json",
       "environment": "client"
     },
