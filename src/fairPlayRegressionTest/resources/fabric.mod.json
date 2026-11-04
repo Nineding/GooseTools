@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "freecam",
+  "version": "0.0.0-test",
+  "name": "Harmless renamed camera fixture",
+  "environment": "client",
+  "description": "Test-only Fabric inventory fixture. Contains no camera implementation and is never included in the release JAR.",
+  "entrypoints": {
+    "client": ["com.goosethings.tools.client.fairplay.BlockedModsRegression"]
+  },
+  "depends": {"goosetools": "*"}
+}

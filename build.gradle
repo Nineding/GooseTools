@@ -78,6 +78,10 @@ tasks.named('jar') {
 
 // An isolated client mod exercises real GPU draws; it is never packaged in the release JAR.
 sourceSets {
+    fairPlayRegressionTest {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
     roleIntroRegressionTest {
         compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
         runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
@@ -112,6 +116,8 @@ sourceSets {
     }
 }
 configurations {
+    fairPlayRegressionTestImplementation.extendsFrom implementation
+    fairPlayRegressionTestRuntimeOnly.extendsFrom runtimeOnly
     roleIntroRegressionTestImplementation.extendsFrom implementation
     roleIntroRegressionTestRuntimeOnly.extendsFrom runtimeOnly
     stationRegressionTestImplementation.extendsFrom implementation
@@ -131,6 +137,7 @@ configurations {
 }
 loom {
     mods {
+        goosetools_fairplay_test { sourceSet sourceSets.fairPlayRegressionTest }
         goosetools_intro_test { sourceSet sourceSets.roleIntroRegressionTest }
         goosetools_station_test { sourceSet sourceSets.stationRegressionTest }
         goosetools_game_test { sourceSet sourceSets.gameRegressionTest }
@@ -142,6 +149,15 @@ loom {
         goosetools_flight_test { sourceSet sourceSets.flightRegressionTest }
     }
     runs {
+        fairPlayRegressionTest {
+            client()
+            source sourceSets.fairPlayRegressionTest
+            runDir 'build/fairplay-regression-test'
+            programArg '--width'
+            programArg '1024'
+            programArg '--height'
+            programArg '720'
+        }
         roleIntroRegressionTest {
             client()
             source sourceSets.roleIntroRegressionTest
@@ -454,12 +470,30 @@ tasks.named('runGameRegressionTest') {
 tasks.named('runXaeroRegressionTest') {
     timeout = java.time.Duration.ofMinutes(3)
     doFirst {
+        file('build/xaero-regression-test').mkdirs()
+        file('build/xaero-regression-test/options.txt').text = 'lang:en_us\nguiScale:2\nrenderDistance:4\nsimulationDistance:4\npauseOnLostFocus:false\ntutorialStep:none\n'
         java.nio.file.Files.deleteIfExists(layout.buildDirectory.file('xaero-regression-test/result.txt').get().asFile.toPath())
     }
     doLast {
         def result = layout.buildDirectory.file('xaero-regression-test/result.txt').get().asFile
         if (!result.isFile() || !result.text.startsWith('PASS ')) {
             throw new GradleException('Xaero menu regression failed; inspect build/xaero-regression-test/logs/latest.log and result.txt')
+        }
+        logger.lifecycle(result.text)
+    }
+}
+
+tasks.named('runFairPlayRegressionTest') {
+    timeout = java.time.Duration.ofMinutes(3)
+    doFirst {
+        def directory = file('build/fairplay-regression-test'); directory.mkdirs()
+        new File(directory, 'result.txt').delete()
+        new File(directory, 'options.txt').text = 'lang:zh_cn\nguiScale:2\npauseOnLostFocus:false\ntutorialStep:none\n'
+    }
+    doLast {
+        def result = file('build/fairplay-regression-test/result.txt')
+        if (!result.isFile() || !result.text.startsWith('PASS ')) {
+            throw new GradleException('Blocked mods regression failed; inspect result.txt and logs/latest.log')
         }
         logger.lifecycle(result.text)
     }
