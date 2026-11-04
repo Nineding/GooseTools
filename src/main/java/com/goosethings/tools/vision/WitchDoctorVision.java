@@ -120,8 +120,14 @@ public final class WitchDoctorVision {
     }
 
     private static double directRange(MinecraftServer server, ServerPlayer viewer) {
+        int training = -1;
+        if (viewer.entityTags().contains("ggdTraining")) {
+            var objective = server.getScoreboard().getObjective("ggdTrainingVision");
+            var score = objective == null ? null : server.getScoreboard().getPlayerScoreInfo(viewer, objective);
+            if (score != null) training = score.value();
+        }
         boolean limitedVision = readSetting(server, "FullBloodDLC", 0) == 1
-                && readSetting(server, "DLCVisionFog", 0) == 1;
+                && (training < 0 ? readSetting(server, "DLCVisionFog", 0) == 1 : training == 1);
         return sightRange(
                 limitedVision,
                 readSetting(server, "DLCVisionRange", VisionSync.DEFAULT_CLEAR_RADIUS),
