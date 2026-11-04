@@ -59,6 +59,10 @@ public final class GgdMapState {
         return playerPosition;
     }
 
+    public static boolean isTraining(Minecraft minecraft) {
+        return minecraft.level != null && minecraft.level.dimension().identifier().getNamespace().equals("ggd_training");
+    }
+
     public static GameMapBounds currentBounds(Minecraft minecraft) {
         if (!isGameActive(minecraft)) {
             return null;

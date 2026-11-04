@@ -60,13 +60,14 @@ public abstract class GgdMinimapWriterMeetingMixin {
             net.minecraft.world.level.Level level,
             CallbackInfoReturnable<Integer> cir) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (!GgdMapState.isMeetingView(minecraft)) {
+        if (!GgdMapState.isMeetingView(minecraft) && !GgdMapState.isTraining(minecraft)) {
             return;
         }
         Integer caveTopY = GgdMapState.currentCaveTopY(minecraft);
         if (caveTopY != null) {
-            // The chapel chunks can unload after the meeting teleport. Avoid
-            // rescanning those remote chunks and keep the pre-meeting layer.
+            // Training uses a copied overworld dimension even for interior maps.
+            // Keep the playable room layer instead of rescanning the copied roof.
+            // Meetings retain their last room layer even when its chunks unload.
             cir.setReturnValue(caveTopY);
         }
     }

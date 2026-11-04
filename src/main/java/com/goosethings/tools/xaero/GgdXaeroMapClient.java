@@ -68,6 +68,8 @@ public final class GgdXaeroMapClient implements ClientModInitializer {
         if (Effects.NO_CAVE_MAPS != null && (bounds == null || !bounds.usesCaveMode())) {
             client.player.addEffect(new MobEffectInstance(
                     Effects.NO_CAVE_MAPS, MobEffectInstance.INFINITE_DURATION, 0, true, false, false));
+        } else if (Effects.NO_CAVE_MAPS != null) {
+            client.player.removeEffect(Effects.NO_CAVE_MAPS);
         }
     }
 
