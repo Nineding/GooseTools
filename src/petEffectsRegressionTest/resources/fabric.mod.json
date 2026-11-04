@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "goosetools_pet_test",
+  "version": "1.0.0",
+  "name": "GooseTools isolated pet effects regression",
+  "environment": "client",
+  "entrypoints": {"client": ["com.goosethings.tools.client.pet.PetEffectsRegression"]},
+  "mixins": ["goosetools.pet.test.mixins.json"],
+  "depends": {"goosetools": "*"}
+}

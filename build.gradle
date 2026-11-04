@@ -852,3 +852,34 @@ tasks.named('runSwordmanRegressionTest') {
         logger.lifecycle(result.text)
     }
 }
+
+// One isolated client verifies native rabbit jump events without changing their animation.
+sourceSets { petEffectsRegressionTest {
+    compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+    runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+} }
+configurations {
+    petEffectsRegressionTestImplementation.extendsFrom implementation
+    petEffectsRegressionTestRuntimeOnly.extendsFrom runtimeOnly
+}
+loom {
+    mods { goosetools_pet_test { sourceSet sourceSets.petEffectsRegressionTest } }
+    runs { petEffectsRegressionTest {
+        client()
+        source sourceSets.petEffectsRegressionTest
+        runDir 'build/pet-effects-regression-test'
+    } }
+}
+tasks.named('runPetEffectsRegressionTest') {
+    timeout = java.time.Duration.ofMinutes(4)
+    doFirst {
+        def run = file('build/pet-effects-regression-test'); run.mkdirs()
+        new File(run,'options.txt').text = 'lang:en_us\nrenderDistance:2\nsimulationDistance:2\npauseOnLostFocus:false\ntutorialStep:none\nparticles:0\n'
+        new File(run,'result.txt').delete()
+    }
+    doLast {
+        def result = file('build/pet-effects-regression-test/result.txt')
+        if (!result.isFile() || !result.text.startsWith('PASS ')) throw new GradleException('Pet effects regression failed; inspect result.txt and logs/latest.log')
+        logger.lifecycle(result.text)
+    }
+}
