@@ -6,7 +6,7 @@ GooseTools 是 Whoiskiller 鹅鸭杀玩法使用的 Fabric 客户端/服务端�
 
 GooseTools is the required Fabric client/server foundation for the Whoiskiller Goose Goose Duck experience. It provides protocol and release compatibility checks, secure UI, HUD and nametag features, camera and vision effects, and Xaero map integration.
 
-当前源码版本为 1.16.0+Alpha0.4，整合会议转场遮罩、死者号码、地图标记和 1×1 洞穴检测，并保留训练场 NPC 皮肤、独立大厅座位和训练状态清理支持，配套 GooseThings 1.16.0+Alpha0.4 及当前数据包、资源包。1.16.0 稳定版汇总 1.15.0 Alpha0.1–Alpha0.32 的角色展示、梦境与旁观、盲鸭模式、会议标记及宠物文字避让和 AI 结算显示修复；其发布记录保留在 [CHANGELOG.md](CHANGELOG.md)。
+当前源码版本为 1.16.0+Alpha0.4，修复训练维度的小地图底图和池核扩展版识别，支持训练手机的个人视野开关；保留会议转场、死者号码、地图标记和训练 NPC 皮肤等主线功能。训练修复配套 GooseThings 1.16.0+Alpha0.10 及本次数据包、资源包，发布记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 官网商城可按需启用[本人皮肤动作预览](docs/website-skin-preview.md)，支持客户端实际加载的 CSL／皮肤站／本地皮肤；默认关闭，需配套网站与共享快照目录配置。
 
