@@ -46,6 +46,7 @@ public final class XaeroMenuRegression implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        if(Boolean.getBoolean("goosetools.trainingMapRegression")){new TrainingMapRegression().onInitializeClient();return;}
         if (Boolean.getBoolean("goosetools.xaeroRegressionTest")) {
             ClientTickEvents.END_CLIENT_TICK.register(this::tick);
         }

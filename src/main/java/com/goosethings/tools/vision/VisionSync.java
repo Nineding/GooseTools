@@ -91,8 +91,9 @@ public final class VisionSync {
     }
 
     private static boolean isActive(MinecraftServer server, ServerPlayer player, boolean powerBlackout, boolean invisibility) {
-        if (readSetting(server, DLC_SCORE, 0) != 1
-                || !invisibility && readSetting(server, ENABLED_SCORE, 0) != 1) {
+        int training=player.entityTags().contains("ggdTraining")?readScore(server,"ggdTrainingVision",player.getScoreboardName(),-1):-1;
+        if (readSetting(server, DLC_SCORE, 0) != 1 || training==0
+                || !invisibility && training!=1 && readSetting(server, ENABLED_SCORE, 0) != 1) {
             return false;
         }
         Set<String> tags = player.entityTags();
@@ -121,7 +122,7 @@ public final class VisionSync {
         if (tags.contains("evil") || tags.contains("dlcGhostEvil")) {
             return false;
         }
-        int mapId = readScore(server, MAP_OBJECTIVE, MAP_SCORE, 0);
+        int mapId = player.entityTags().contains("ggdTraining")?readScore(server,"ggdGameId",player.getScoreboardName(),0):readScore(server, MAP_OBJECTIVE, MAP_SCORE, 0);
         return PowerBlackoutMaps.isActive(mapId, tags);
     }
 

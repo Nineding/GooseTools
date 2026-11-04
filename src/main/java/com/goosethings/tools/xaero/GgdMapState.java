@@ -107,10 +107,12 @@ public final class GgdMapState {
     }
 
     public static boolean isPoolcoreAdvanced(Minecraft minecraft) {
+        if(minecraft.level!=null&&minecraft.level.dimension().identifier().toString().equals("ggd_training:poolcore"))return true;
         return findMarker(minecraft, LAYOUT_POOLCORE_ADVANCE) != null;
     }
 
     public static boolean isGameActive(Minecraft minecraft) {
+        if(minecraft.level!=null&&minecraft.level.dimension().identifier().getNamespace().equals("ggd_training"))return true;
         if (!GgdServerContext.isGooseServer()) {
             return false;
         }
