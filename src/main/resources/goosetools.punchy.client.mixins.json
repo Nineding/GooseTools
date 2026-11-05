@@ -7,6 +7,8 @@
     "ItemRenderLayerAccess",
     "ItemRenderStateAccess",
     "PunchyHeldItemMixin",
-    "PunchySkillSwordKindMixin"
+    "PunchySkillSwordKindMixin",
+    "PunchyWornHeadFaceMixin",
+    "PunchyWornHeadGlintsMixin"
   ]
 }
