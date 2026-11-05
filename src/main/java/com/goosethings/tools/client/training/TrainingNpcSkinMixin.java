@@ -1,6 +1,7 @@
 package com.goosethings.tools.client.training;
 
 import net.minecraft.client.player.AbstractClientPlayer;
+import com.goosethings.tools.client.skin.TrainingNpcSkins;
 import net.minecraft.core.ClientAsset;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.PlayerSkin;
@@ -21,7 +22,6 @@ abstract class TrainingNpcSkinMixin {
         var connection=net.minecraft.client.Minecraft.getInstance().getConnection();
         var info=connection==null?null:connection.getPlayerInfo(player.getUUID());
         var profile=info==null?player.getGameProfile():info.getProfile();
-        if(profile.name().startsWith("GT_NPC_")||profile.properties().get("textures").stream()
-            .anyMatch(property->property.value().equals("eyJ0ZXh0dXJlcyI6e30sImdvb3NldG9vbHNfdHJhaW5pbmdfbnBjIjp0cnVlfQ==")))ci.setReturnValue(TRAINING_SKIN);
+        if(TrainingNpcSkins.packaged(profile))ci.setReturnValue(TRAINING_SKIN);
     }
 }

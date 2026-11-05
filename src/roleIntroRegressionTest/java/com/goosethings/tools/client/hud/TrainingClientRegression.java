@@ -41,7 +41,12 @@ final class TrainingClientRegression {
             if(!expected.equals(target.getSkin()))throw new AssertionError("training NPC skin mixin did not apply");
             if(mc.getResourceManager().getResource(Identifier.parse("minecraft:textures/entity/player/slim/unknow.png")).isEmpty())
                 throw new AssertionError("supplied unknow texture was not loaded");
-            finish(mc,"PASS actual remote-player skin mixin; local packaged unknow texture; slim model; dedicated-server side already checked");
+            var marked=new GameProfile(UUID.randomUUID(),"GT_NPC_Mirrored",new com.mojang.authlib.properties.PropertyMap(com.google.common.collect.ImmutableMultimap.of(
+                "textures",new com.mojang.authlib.properties.Property("textures","astral-viewer-texture"),
+                "goosethings_csl_override",new com.mojang.authlib.properties.Property("goosethings_csl_override","1"))));
+            var mirrored=new RemotePlayer(mc.level,marked);
+            if(com.goosethings.tools.client.skin.TrainingNpcSkins.packaged(marked)||expected.equals(mirrored.getSkin()))throw new AssertionError("NPC fallback overrides Astral viewer profile");
+            finish(mc,"PASS actual client NPC skin fallback and Astral/disguise override precedence; packaged unknown texture loaded");
         }catch(Throwable error){finish(mc,"FAIL "+error);}
     }
     private net.minecraft.client.gui.screens.inventory.ContainerScreen chest(Minecraft mc,int rows){
