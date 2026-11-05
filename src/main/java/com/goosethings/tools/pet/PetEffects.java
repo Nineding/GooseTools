@@ -10,7 +10,7 @@ public final class PetEffects {
 
     public static boolean suppress(Entity entity) {
         var team = entity.getTeam();
-        return (entity.getType() == EntityTypes.CHICKEN || entity.getType() == EntityTypes.RABBIT)
+        return (entity.getType() == EntityTypes.CHICKEN || entity.getType() == EntityTypes.RABBIT || entity.getType() == EntityTypes.AXOLOTL)
                 && team != null && team.getName().equals("ggdPetNoCollide")
                 && team.getCollisionRule() == Team.CollisionRule.NEVER;
     }

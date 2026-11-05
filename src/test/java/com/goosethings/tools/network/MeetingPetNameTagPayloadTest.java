@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class MeetingPetNameTagPayloadTest {
     @Test void existingWireFormatPreservesHeadroomAttachmentsAndStandInAlias() {
         UUID owner=UUID.randomUUID(),proxy=UUID.randomUUID();
-        for(int flags:new int[]{0,127,127|MeetingPetLayout.HEADROOM}) {
+        for(int flags:new int[]{0,127,127|MeetingPetLayout.HEADROOM,127|MeetingPetLayout.flags(.12),127|MeetingPetLayout.flags(.4)}) {
             var entry=new GooseToolsPayloads.NameTagEntry(owner,owner,"Owner","Owner",0x55aaee,3,flags,0,false,
                     List.of(new GooseToolsPayloads.NameTagIcon("minecraft:textures/item/feather.png",10,10,0xffffff)));
             var snapshot=new GooseToolsPayloads.NameTagSnapshotS2C(List.of(entry),List.of(new GooseToolsPayloads.NameTagAlias(proxy,owner)));
@@ -22,7 +22,7 @@ class MeetingPetNameTagPayloadTest {
                 var decoded=GooseToolsPayloads.NameTagSnapshotS2C.CODEC.decode(buffer);
                 assertEquals(snapshot,decoded);assertEquals(0,buffer.readableBytes());
                 assertFalse(NameTagCorpseMarkerPolicy.markerOnly(decoded.entries().getFirst().attachmentFlags()));
-                assertEquals((flags&MeetingPetLayout.HEADROOM)==0?0:1.25,MeetingPetLayout.lift(decoded.entries().getFirst().attachmentFlags()));
+                assertEquals(MeetingPetLayout.lift(flags),MeetingPetLayout.lift(decoded.entries().getFirst().attachmentFlags()));
             }finally{buffer.release();}
         }
     }
