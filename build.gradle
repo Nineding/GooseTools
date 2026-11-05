@@ -165,6 +165,7 @@ loom {
             vmArg '-Dgoosetools.roleIntroRegressionTest=true'
             vmArg '-Dgoosetools.meetingBlackoutRegression=' + providers.gradleProperty('meetingBlackoutRegression').isPresent()
             vmArg '-Dgoosetools.trainingRegression=' + providers.gradleProperty('trainingRegression').isPresent()
+            vmArg '-Dgoosetools.menuCursorRegression=' + providers.gradleProperty('menuCursorRegression').isPresent()
             vmArg '-Dgoosetools.twoActRegression=' + providers.gradleProperty('twoActRegression').isPresent()
             vmArg '-Dgoosetools.artworkRegression=' + providers.gradleProperty('artworkRegression').isPresent()
             vmArg '-Dgoosetools.aiVoteRegression=' + providers.gradleProperty('aiVoteRegression').isPresent()
