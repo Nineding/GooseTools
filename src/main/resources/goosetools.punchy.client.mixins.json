@@ -6,6 +6,7 @@
   "client": [
     "ItemRenderLayerAccess",
     "ItemRenderStateAccess",
-    "PunchyHeldItemMixin"
+    "PunchyHeldItemMixin",
+    "PunchySkillSwordKindMixin"
   ]
 }
