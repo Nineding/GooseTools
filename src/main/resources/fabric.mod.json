@@ -22,6 +22,7 @@
     ]
   },
   "mixins": [
+    "goosetools.training.mixins.json",
     {
       "config": "goosetools.fairplay.client.mixins.json",
       "environment": "client"

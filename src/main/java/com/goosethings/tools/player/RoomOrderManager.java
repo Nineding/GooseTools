@@ -37,6 +37,8 @@ public final class RoomOrderManager {
     }
 
     public static void register() {
+        net.fabricmc.loader.api.FabricLoader.getInstance().getObjectShare().put("goosetools:room_order_refresh",
+                (java.util.function.Consumer<MinecraftServer>)RoomOrderManager::tick);
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             JOIN_SEQUENCE.clear();
             nextSequence = 0L;
