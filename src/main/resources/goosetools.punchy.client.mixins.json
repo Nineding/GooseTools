@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.goosethings.tools.client.punchy.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "ItemRenderLayerAccess",
+    "ItemRenderStateAccess",
+    "PunchyHeldItemMixin"
+  ]
+}
