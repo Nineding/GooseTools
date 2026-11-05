@@ -135,15 +135,21 @@ public final class MatchResultScreen extends Screen implements ProtectedInputScr
                 if (state instanceof LivingEntityRenderState living) {
                     living.bodyRot = 180; living.yRot = 0; living.xRot = 0;
                     living.walkAnimationSpeed = 0;
-                    if (appearance.dead()) living.isInvisibleToPlayer = true;
+
                 }
-                if (appearance.dead()) state.isInvisible = true;
+                applyDeathVisibility(state, appearance.dead());
                 int pixelScale = Math.max(5, Math.round(scale));
                 g.entity(state, pixelScale, new Vector3f(0, (floor-modelTop)*.5F/pixelScale, 0),
                         new Quaternionf().rotateZ((float)Math.PI), new Quaternionf(),
                         Math.round(center-step*.48F), Math.round(modelTop), Math.round(center+step*.48F), Math.round(floor));
             }
         }
+    }
+    static void applyDeathVisibility(net.minecraft.client.renderer.entity.state.EntityRenderState state, boolean dead) {
+        if(!dead)return;
+        boolean silhouette=com.goosethings.tools.client.outfit.OutfitClient.enabled();
+        state.isInvisible=silhouette;
+        if(state instanceof LivingEntityRenderState living)living.isInvisibleToPlayer=silhouette;
     }
     private RemotePlayer model(MatchResultPayload.Player appearance, int index) {
         var model = new MeetingAlertRemotePlayer(minecraft.level,
@@ -156,7 +162,7 @@ public final class MatchResultScreen extends Screen implements ProtectedInputScr
                 });
         model.setId(0x6A130000+index);
         model.showAllSkinLayers();
-        model.setInvisible(appearance.dead());
+        model.setInvisible(appearance.dead() && com.goosethings.tools.client.outfit.OutfitClient.enabled());
         for (EquipmentSlot slot : EquipmentSlot.values()) {
             boolean visible = slot != EquipmentSlot.MAINHAND && slot != EquipmentSlot.OFFHAND
                     && (!appearance.dead() || slot == EquipmentSlot.HEAD || slot == EquipmentSlot.CHEST);

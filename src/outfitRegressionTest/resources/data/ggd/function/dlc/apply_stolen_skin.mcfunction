@@ -1,0 +1,25 @@
+# FullBloodDLC or hidden outfits: disguise the actual skin instead of revealing the owner.
+# 执行者：已带 StealP1..StealP16 的身份窃贼或变形者
+execute unless score FullBloodDLC ggdadv matches 1 unless score HideOutfits ggdadv matches 1 run return fail
+
+execute as @s[tag=StealP1] run gt skin copy @s @a[tag=p1,limit=1]
+execute as @s[tag=StealP2] run gt skin copy @s @a[tag=p2,limit=1]
+execute as @s[tag=StealP3] run gt skin copy @s @a[tag=p3,limit=1]
+execute as @s[tag=StealP4] run gt skin copy @s @a[tag=p4,limit=1]
+execute as @s[tag=StealP5] run gt skin copy @s @a[tag=p5,limit=1]
+execute as @s[tag=StealP6] run gt skin copy @s @a[tag=p6,limit=1]
+execute as @s[tag=StealP7] run gt skin copy @s @a[tag=p7,limit=1]
+execute as @s[tag=StealP8] run gt skin copy @s @a[tag=p8,limit=1]
+execute as @s[tag=StealP9] run gt skin copy @s @a[tag=p9,limit=1]
+execute as @s[tag=StealP10] run gt skin copy @s @a[tag=p10,limit=1]
+execute as @s[tag=StealP11] run gt skin copy @s @a[tag=p11,limit=1]
+execute as @s[tag=StealP12] run gt skin copy @s @a[tag=p12,limit=1]
+execute as @s[tag=StealP13] run gt skin copy @s @a[tag=p13,limit=1]
+execute as @s[tag=StealP14] run gt skin copy @s @a[tag=p14,limit=1]
+execute as @s[tag=StealP15] run gt skin copy @s @a[tag=p15,limit=1]
+execute as @s[tag=StealP16] run gt skin copy @s @a[tag=p16,limit=1]
+execute as @s[tag=StealP17] run gt skin copy @s @a[tag=p17,limit=1]
+execute as @s[tag=StealP18] run gt skin copy @s @a[tag=p18,limit=1]
+execute as @s[tag=StealP19] run gt skin copy @s @a[tag=p19,limit=1]
+execute as @s[tag=StealP20] run gt skin copy @s @a[tag=p20,limit=1]
+execute as @s[tag=StealP21] run gt skin copy @s @a[tag=p21,limit=1]

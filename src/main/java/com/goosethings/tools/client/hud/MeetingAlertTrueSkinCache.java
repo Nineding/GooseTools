@@ -16,7 +16,7 @@ import java.util.UUID;
  * packets mark the stolen profile, so the cache keeps the real CSL/Mojang skin
  * for meeting-alert models.
  */
-final class MeetingAlertTrueSkinCache {
+public final class MeetingAlertTrueSkinCache {
     private static final Map<UUID, PlayerSkin> SKINS = new HashMap<>();
 
     private MeetingAlertTrueSkinCache() {
@@ -42,7 +42,7 @@ final class MeetingAlertTrueSkinCache {
         }
     }
 
-    static PlayerSkin get(UUID playerId) {
+    public static PlayerSkin get(UUID playerId) {
         return playerId == null ? null : SKINS.get(playerId);
     }
 }

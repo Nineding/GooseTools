@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.goosethings.tools.client.outfit.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "OutfitAvatarMixin",
+    "OutfitDispatcherMixin",
+    "OutfitFinalizeMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

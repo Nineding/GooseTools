@@ -64,6 +64,10 @@
     {
       "config": "goosetools.training.client.mixins.json",
       "environment": "client"
+    },
+    {
+      "config": "goosetools.outfit.client.mixins.json",
+      "environment": "client"
     }
   ],
   "depends": {

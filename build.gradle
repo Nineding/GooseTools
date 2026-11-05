@@ -918,3 +918,32 @@ tasks.named('runPetEffectsRegressionTest') {
         logger.lifecycle(result.text)
     }
 }
+
+sourceSets { outfitRegressionTest {
+ compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+ runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+} }
+loom {
+ mods { goosetools_outfit_test { sourceSet sourceSets.outfitRegressionTest } }
+ runs { outfitRegressionTest { client(); source sourceSets.outfitRegressionTest; runDir 'build/outfit-regression-test'; programArg '--width'; programArg '1000'; programArg '--height'; programArg '700' } }
+}
+tasks.named('runOutfitRegressionTest') {
+ timeout=java.time.Duration.ofMinutes(4)
+ doFirst { file('build/outfit-regression-test').mkdirs(); file('build/outfit-regression-test/outfit-result.txt').delete(); file('build/outfit-regression-test/options.txt').text='lang:zh_cn\nrenderDistance:3\npauseOnLostFocus:false\ntutorialStep:none\n' }
+ doLast {def result=file('build/outfit-regression-test/outfit-result.txt');if(!result.exists()||!result.text.startsWith('PASS '))throw new GradleException(result.exists()?result.text:'Missing outfit result');println result.text}
+}
+
+// Optional production gameplay service: tests the real gt skin command without depending on it in the client mod.
+if(providers.gradleProperty('outfitGameplayMods').isPresent()) {
+ dependencies { outfitRegressionTestRuntimeOnly files(fileTree(providers.gradleProperty('outfitModsRoot').get()) {
+  include 'goosethings-*.jar', 'voicechat-fabric-*.jar', 'cloth-config-*.jar', 'sound-physics-remastered-*.jar'
+ }) }
+}
+
+// Optional production visual-mod stack, confined to the isolated outfit regression.
+if(providers.gradleProperty('outfitCompatMods').isPresent()) {
+ dependencies { outfitRegressionTestRuntimeOnly files(
+  new File(file(providers.gradleProperty('outfitModsRoot').get()), 'entity_texture_features-7.2.4-26.3-fabric.jar'),
+  new File(file(providers.gradleProperty('outfitModsRoot').get()), 'entity_model_features-3.3.8-26.3-fabric.jar'),
+  new File(file(providers.gradleProperty('outfitModsRoot').get()), 'skinlayers3d-fabric-1.11.3-mc26.3.jar')) }
+}

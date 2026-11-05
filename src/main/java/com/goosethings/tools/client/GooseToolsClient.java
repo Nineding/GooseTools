@@ -40,6 +40,7 @@ public final class GooseToolsClient implements ClientModInitializer {
         com.goosethings.tools.client.input.GuiMovementGuard.register();
         RestartGuard.register();
         GamePresenceClient.register();
+        com.goosethings.tools.client.outfit.OutfitClient.register();
         ClientClickActions.register();
         ClientHandshake.register();
         com.goosethings.tools.client.appearance.SkinPreviewClient.register();

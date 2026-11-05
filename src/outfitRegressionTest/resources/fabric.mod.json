@@ -1,0 +1,1 @@
+{"schemaVersion":1,"id":"goosetools_outfit_test","version":"1","environment":"client","entrypoints":{"client":["com.goosethings.tools.client.outfit.OutfitRegression"]}}
