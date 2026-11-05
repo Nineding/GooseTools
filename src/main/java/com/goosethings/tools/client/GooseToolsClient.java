@@ -67,6 +67,8 @@ public final class GooseToolsClient implements ClientModInitializer {
         NameTagClientState.register();
         com.goosethings.tools.client.spectator.SpectatorGlowClient.register();
         NameTagRenderer.register();
+        if (net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("voicechat"))
+            com.goosethings.tools.client.meetingvoice.MeetingVoice.onClientInitialize();
         PlayerMarkerItemDecorator.register();
         WEB_MANAGER.register();
         AI_REPORT.register();

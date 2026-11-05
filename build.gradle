@@ -16,6 +16,7 @@ repositories {
         url = "https://chocolateminecraft.com/maven"
     }
     mavenCentral()
+    maven { url = "https://maven.maxhenkel.de/repository/public" }
 }
 
 dependencies {
@@ -24,6 +25,10 @@ dependencies {
     implementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
     implementation "xaero.minimap:xaerominimap-fabric-${minecraft_version}:${xaero_version}"
     implementation "xaero.map:xaeroworldmap-fabric-${minecraft_version}:${xaero_world_map_version}"
+
+    // Optional Simple Voice Chat plugin API: never bundle Voice Chat itself.
+    compileOnly "de.maxhenkel.voicechat:voicechat-api:2.6.0"
+    testImplementation "de.maxhenkel.voicechat:voicechat-api:2.6.0"
 
     // Embedded, client-safe libraries for the restricted server-driven Web UI.
     include(implementation("org.jsoup:jsoup:1.18.3"))

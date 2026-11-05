@@ -19,6 +19,9 @@
     ],
     "client": [
       "com.goosethings.tools.client.GooseToolsClient"
+    ],
+    "voicechat": [
+      "com.goosethings.tools.client.meetingvoice.MeetingVoice"
     ]
   },
   "mixins": [
