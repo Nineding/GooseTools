@@ -163,12 +163,14 @@ public final class NameTagSync {
                 .filter(player -> LoverVisualPolicy.isActiveLover(player.entityTags()))
                 .count();
         List<ServerPlayer> targets = onlinePlayers.stream()
-                .filter(player -> RoomOrderManager.orderOf(server, player) > 0)
+                .filter(player -> TrainingNameTags.training(player)||RoomOrderManager.orderOf(server, player) > 0)
                 .sorted(Comparator.comparingInt(player -> RoomOrderManager.orderOf(server, player)))
                 .toList();
         Map<UUID, VisualIdentity> identities = new HashMap<>();
         for (ServerPlayer target : onlinePlayers) {
-            identities.put(target.getUUID(), identityOf(server, target, playersBySeat, fullBlood));
+            var scopedSeats=new HashMap<Integer,ServerPlayer>();
+            for(var candidate:onlinePlayers)if(TrainingNameTags.same(target,candidate)){int seat=DisguiseIdentityPolicy.playerSeat(candidate.entityTags());if(seat>0)scopedSeats.put(seat,candidate);}
+            identities.put(target.getUUID(), identityOf(server, target, scopedSeats, fullBlood));
         }
         List<GooseToolsPayloads.NameTagAlias> aliases = dreamAliases(server, playersBySeat);
         Map<UUID, UUID> supperModels = new HashMap<>();
@@ -193,21 +195,22 @@ public final class NameTagSync {
                     fullBlood, roleVisible, viewer.entityTags());
             int exchangeFirst = readScore(server, "ggdExA", viewer.getScoreboardName(), 0);
             int exchangeSecond = readScore(server, "ggdExB", viewer.getScoreboardName(), 0);
-            List<ServerPlayer> viewerTargets = targets;
+            List<ServerPlayer> viewerTargets = targets.stream().filter(target->TrainingNameTags.same(viewer,target)).toList();
             boolean alreadyOrdered = targets.contains(viewer);
             if (NameTagTargetPolicy.includeUnorderedSelf(
                     alreadyOrdered, viewer.isSpectator(), viewer.entityTags())) {
-                viewerTargets = new ArrayList<>(targets);
+                viewerTargets = new ArrayList<>(viewerTargets);
                 viewerTargets.add(viewer);
             }
             List<GooseToolsPayloads.NameTagEntry> entries = new ArrayList<>(viewerTargets.size());
-            List<GooseToolsPayloads.NameTagAlias> viewerAliases = new ArrayList<>(allAliases);
+            List<GooseToolsPayloads.NameTagAlias> viewerAliases = new ArrayList<>(TrainingNameTags.training(viewer)?List.of():allAliases);
             for (ServerPlayer target : viewerTargets) {
                 // Keep the real body as the entry/visibility owner, but mirror the
                 // viewer's effective identity and complete label with its skin.
                 ServerPlayer labelPlayer = fullBlood && AppearanceMirrorBridge.isMirrored(
                         viewer.getUUID(), target.getUUID()) ? viewer : target;
                 VisualIdentity identity = identities.get(labelPlayer.getUUID());
+                identity=new VisualIdentity(identity.playerId(),identity.name(),identity.rgb(),identity.serialNumber(),TrainingNameTags.tags(viewer,identity.tags()),identity.seat(),identity.gravyBounty(),identity.heliumLevel());
                 int markerCode = markerCode(server, viewer, labelPlayer, fullBlood);
                 boolean markerNameTagVisible = markerCode != 0
                         && PlayerMarkerPolicy.showBesideNameTag(
@@ -254,12 +257,14 @@ public final class NameTagSync {
             // Opening stand-ins are visible identities, independently of the Parasite's
             // hidden camera body. Their own UUIDs keep world hiding rules intact.
             for (var model : openingModels.entrySet()) {
+                if(TrainingNameTags.training(viewer))continue;
                 if (allAliases.stream().noneMatch(alias -> alias.entityId().equals(model.getKey()))) continue;
                 if (entries.size() >= GooseToolsPayloads.NameTagSnapshotS2C.MAX_ENTRIES) break;
                 entries.add(openingEntry(server, viewer, model.getValue(), model.getKey(),
                         fullBlood, activeLoverCount));
             }
             for (ServerPlayer target : RoleIntroServer.appearancePlayers(server, viewer)) {
+                if(TrainingNameTags.training(viewer))continue;
                 if (entries.size() >= GooseToolsPayloads.NameTagSnapshotS2C.MAX_ENTRIES) break;
                 entries.add(openingEntry(server, viewer, target, RoleIntroScene.modelId(target.getUUID()),
                         fullBlood, activeLoverCount));
@@ -267,6 +272,7 @@ public final class NameTagSync {
             // Bind only this corpse model to an empty identity. Never blank its real owner,
             // their role metadata, or unrelated map bodies sharing the player's profile.
             for (var model : supperModels.entrySet()) {
+                if(TrainingNameTags.training(viewer))continue;
                 if (allAliases.stream().noneMatch(alias -> alias.entityId().equals(model.getKey()))) continue;
                 if (entries.size() >= GooseToolsPayloads.NameTagSnapshotS2C.MAX_ENTRIES) break;
                 entries.add(new GooseToolsPayloads.NameTagEntry(model.getKey(), model.getValue(),
@@ -423,7 +429,7 @@ public final class NameTagSync {
         }
         if (NameTagAttachmentPolicy.showChamberlainWard(
                 viewer.getUUID().equals(renderedPlayer.getUUID()),
-                viewer.entityTags(), renderedPlayer.entityTags(), fullBlood)) {
+                viewer.entityTags(), TrainingNameTags.tags(viewer,renderedPlayer.entityTags()), fullBlood)) {
             result.add(new GooseToolsPayloads.NameTagIcon(
                     "minecraft:textures/item/wing_of_guard.png", 10.0F, 10.0F, 0xffffff));
         }
@@ -445,7 +451,7 @@ public final class NameTagSync {
             return List.copyOf(result);
         }
         Set<String> viewerTags = viewer.entityTags();
-        Set<String> renderedTags = renderedPlayer.entityTags();
+        Set<String> renderedTags = TrainingNameTags.tags(viewer,renderedPlayer.entityTags());
         boolean samePlayer = viewer.getUUID().equals(renderedPlayer.getUUID());
         for (NameTagAttachmentConfig.Attachment attachment : config.attachments()) {
             if (!attachment.visible(
@@ -489,7 +495,7 @@ public final class NameTagSync {
                 player.getUUID(),
                 PlayerDisplayNames.name(player),
                 colourOf(server, player, fullBlood),
-                RoomOrderManager.orderOf(server, player),
+                player.entityTags().contains("ggdTrainingNpc")?0:TrainingNameTags.training(player)?DisguiseIdentityPolicy.playerSeat(player.entityTags()):RoomOrderManager.orderOf(server, player),
                 Set.copyOf(player.entityTags()),
                 DisguiseIdentityPolicy.playerSeat(player.entityTags()),
                 readScore(server, "ggdGravyBounty", player.getScoreboardName(), 0),
@@ -502,7 +508,7 @@ public final class NameTagSync {
                                        int activeLoverCount,
                                        boolean spectatorStatusView) {
         Set<String> viewerTags = viewer.entityTags();
-        Set<String> renderedTags = renderedPlayer.entityTags();
+        Set<String> renderedTags = TrainingNameTags.tags(viewer,renderedPlayer.entityTags());
         Set<String> identityTags = identity.tags();
         int flags = 0;
         if (NameTagAttachmentPolicy.showGravyBounty(
@@ -539,7 +545,7 @@ public final class NameTagSync {
             flags |= LOVER;
         }
         if (NameTagAttachmentPolicy.showWitchDoctorCurse(
-                spectatorStatusView, renderedTags)) {
+                spectatorStatusView||TrainingNameTags.training(viewer)&&NameTagRolePolicy.hasRole(viewerTags,"WitchDoctor"), renderedTags)) {
             flags |= WITCH_DOCTOR_CURSE;
         }
         return flags;
