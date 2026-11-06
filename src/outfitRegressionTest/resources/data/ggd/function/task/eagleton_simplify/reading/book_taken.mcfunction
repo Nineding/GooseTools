@@ -1,0 +1,44 @@
+# captainlib-style inventory detection, keeping the borrowed book's original components.
+execute store result score #Taken ggdReading run clear @s *[custom_data~{readingShelf:1b}] 0
+execute if items entity @s container.* *[custom_data~{readingLoan:1b}] run return run function ggd:task/eagleton_simplify/reading/fail {reason:"lost"}
+execute if items entity @s player.cursor *[custom_data~{readingLoan:1b}] run return run function ggd:task/eagleton_simplify/reading/fail {reason:"lost"}
+execute if score #Taken ggdReading matches 2.. run return run function ggd:task/eagleton_simplify/reading/fail {reason:"extra"}
+execute unless score #Taken ggdReading matches 1 run return 0
+execute if items entity @s container.0 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.0",index:0}
+execute if items entity @s container.1 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.1",index:1}
+execute if items entity @s container.2 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.2",index:2}
+execute if items entity @s container.3 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.3",index:3}
+execute if items entity @s container.4 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.4",index:4}
+execute if items entity @s container.5 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.5",index:5}
+execute if items entity @s container.6 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.6",index:6}
+execute if items entity @s container.7 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.7",index:7}
+execute if items entity @s container.8 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.8",index:8}
+execute if items entity @s container.9 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.9",index:9}
+execute if items entity @s container.10 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.10",index:10}
+execute if items entity @s container.11 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.11",index:11}
+execute if items entity @s container.12 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.12",index:12}
+execute if items entity @s container.13 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.13",index:13}
+execute if items entity @s container.14 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.14",index:14}
+execute if items entity @s container.15 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.15",index:15}
+execute if items entity @s container.16 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.16",index:16}
+execute if items entity @s container.17 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.17",index:17}
+execute if items entity @s container.18 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.18",index:18}
+execute if items entity @s container.19 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.19",index:19}
+execute if items entity @s container.20 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.20",index:20}
+execute if items entity @s container.21 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.21",index:21}
+execute if items entity @s container.22 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.22",index:22}
+execute if items entity @s container.23 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.23",index:23}
+execute if items entity @s container.24 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.24",index:24}
+execute if items entity @s container.25 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.25",index:25}
+execute if items entity @s container.26 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.26",index:26}
+execute if items entity @s container.27 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.27",index:27}
+execute if items entity @s container.28 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.28",index:28}
+execute if items entity @s container.29 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.29",index:29}
+execute if items entity @s container.30 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.30",index:30}
+execute if items entity @s container.31 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.31",index:31}
+execute if items entity @s container.32 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.32",index:32}
+execute if items entity @s container.33 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.33",index:33}
+execute if items entity @s container.34 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.34",index:34}
+execute if items entity @s container.35 *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"container.35",index:35}
+execute if items entity @s weapon.offhand *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"weapon.offhand",index:40}
+execute if items entity @s player.cursor *[custom_data~{readingShelf:1b}] run return run function ggd:task/eagleton_simplify/reading/book_taken_slot {source_slot:"player.cursor",index:-1}

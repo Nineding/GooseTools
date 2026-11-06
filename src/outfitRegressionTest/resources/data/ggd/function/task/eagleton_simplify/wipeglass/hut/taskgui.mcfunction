@@ -1,0 +1,8 @@
+# The hut shares a proximity area with the bell. Its entry owns slot three.
+scoreboard players set #hutReady ggd_temp 0
+execute if dimension minecraft:overworld if entity @s[tag=players,tag=!spectatorDream,tag=!endGame,tag=!inTask,tag=!inTalk,tag=!menuSuppress,tag=!proxGuiLock,tag=!astralProjected,tag=!sniperScoped,tag=!esperPossessing,tag=!inTaskMenuGUI,tag=!inHelpInfo,tag=!inGameRoleInfo,tag=task.wipeglass.available,tag=task.wipeglass_hut.available,tag=!task.wipeglass_hut.finished] if entity @e[type=marker,tag=task,tag=wipeglass_hut,distance=..3,limit=1] run scoreboard players set #hutReady ggd_temp 1
+execute if entity @s[tag=spectator,tag=!dlcGhostActive] run scoreboard players set #hutReady ggd_temp 0
+execute if entity @s[tag=LucidDreamer,tag=inDream,tag=dreamTaskCap] run scoreboard players set #hutReady ggd_temp 0
+execute unless score #hutReady ggd_temp matches 1 if items entity @s hotbar.2 *[custom_data~{ggdHotbarState:"wipeglass_hut_accept"}] run item replace entity @s hotbar.2 with air
+execute unless score #hutReady ggd_temp matches 1 run return 0
+execute unless items entity @s hotbar.2 *[custom_data~{ggdHotbarState:"wipeglass_hut_accept"}] run item replace entity @s hotbar.2 with carrot_on_a_stick[item_name={"color": "#b3f793", "italic": false, "translate": "item.task.wipeglass_hut.available", "fallback": "Wipe Glass: Collapsed Hut"},lore=[{"color": "#d9f5cc", "italic": false, "translate": "item.task.wipeglass_hut.available.lore", "fallback": "Wipe all glass stains. Complete every location to finish this series."}],custom_model_data={strings:["33"]},custom_data={ggdManagedHotbar:1b,ggdHotbarSlot:2,ggdHotbarState:"wipeglass_hut_accept",task:1b,wipeglass_hut:1b,ghost_interaction:1b}] 1

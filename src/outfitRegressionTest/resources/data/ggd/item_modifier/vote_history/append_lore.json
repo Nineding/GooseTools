@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:set_lore",
+  "entity": "this",
+  "mode": "append",
+  "lore": [
+    {
+      "nbt": "display.line",
+      "storage": "ggd:vote_history",
+      "interpret": true
+    }
+  ]
+}

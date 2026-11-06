@@ -1,0 +1,29 @@
+scoreboard players set #Books ggdReading 0
+kill @e[type=marker,tag=reading_empty]
+execute if block -1581 74 -550 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:74,z:-550}
+execute if block -1581 74 -549 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:74,z:-549}
+execute if block -1581 74 -548 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:74,z:-548}
+execute if block -1581 74 -547 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:74,z:-547}
+execute if block -1581 74 -546 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:74,z:-546}
+execute if block -1581 74 -545 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:74,z:-545}
+execute if block -1581 74 -544 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:74,z:-544}
+execute if block -1581 74 -543 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:74,z:-543}
+execute if block -1581 74 -542 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:74,z:-542}
+execute if block -1581 75 -550 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:75,z:-550}
+execute if block -1581 75 -549 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:75,z:-549}
+execute if block -1581 75 -548 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:75,z:-548}
+execute if block -1581 75 -547 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:75,z:-547}
+execute if block -1581 75 -546 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:75,z:-546}
+execute if block -1581 75 -545 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:75,z:-545}
+execute if block -1581 75 -544 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:75,z:-544}
+execute if block -1581 75 -543 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:75,z:-543}
+execute if block -1581 75 -542 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:75,z:-542}
+execute if block -1581 76 -550 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:76,z:-550}
+execute if block -1581 76 -549 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:76,z:-549}
+execute if block -1581 76 -548 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:76,z:-548}
+execute if block -1581 76 -547 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:76,z:-547}
+execute if block -1581 76 -546 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:76,z:-546}
+execute if block -1581 76 -545 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:76,z:-545}
+execute if block -1581 76 -544 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:76,z:-544}
+execute if block -1581 76 -543 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:76,z:-543}
+execute if block -1581 76 -542 minecraft:chiseled_bookshelf run function ggd:task/eagleton_simplify/reading/scan_shelf {y:76,z:-542}

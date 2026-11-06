@@ -19,7 +19,7 @@ import java.util.concurrent.*;
 
 /** Real integrated server, network rule synchronization and production render extraction. */
 public final class OutfitRegression implements ClientModInitializer {
- boolean opened,done;int stage,ticks,checks;long began=System.nanoTime();UUID standId;
+ boolean opened,done;boolean eagletonPrepared;int stage,ticks,checks;long began=System.nanoTime();UUID standId;
  CompletableFuture<Void> pending;
  @Override public void onInitializeClient(){ClientTickEvents.END_CLIENT_TICK.register(this::tick);}
  void tick(Minecraft mc){
@@ -31,6 +31,7 @@ public final class OutfitRegression implements ClientModInitializer {
     mc.createWorldOpenFlows().createFreshLevel("outfit-"+System.currentTimeMillis(),new LevelSettings("Outfit checks",GameType.CREATIVE,new LevelSettings.DifficultySettings(Difficulty.PEACEFUL,false,false),true,WorldDataConfiguration.DEFAULT),new WorldOptions(42,false,false),p->p.lookupOrThrow(Registries.WORLD_PRESET).getOrThrow(WorldPresets.FLAT).value().createWorldDimensions(),null);return;}
    if(pending!=null){if(!pending.isDone())return;pending.join();pending=null;ticks=0;}
    if(mc.player==null||mc.level==null||mc.getSingleplayerServer()==null||!mc.player.connection.hasClientLoaded()||++ticks<25)return;
+   if(stage==0&&!eagletonPrepared){eagletonPrepared=true;server(mc,()->EagletonInputChecks.prepare(mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst()));return;}
    if(stage==0){server(mc,()->{
      var s=mc.getSingleplayerServer();var p=s.getPlayerList().getPlayers().getFirst();var source=s.createCommandSourceStack().withEntity(p).withPosition(p.position());
      s.getCommands().performPrefixedCommand(source,"scoreboard objectives add ggdadv dummy");s.getCommands().performPrefixedCommand(source,"scoreboard objectives add ggdYuik dummy");
@@ -40,6 +41,7 @@ public final class OutfitRegression implements ClientModInitializer {
      stand.setHeadPose(new net.minecraft.core.Rotations(68,0,301));stand.setBodyPose(new net.minecraft.core.Rotations(42,0,0));stand.setLeftLegPose(new net.minecraft.core.Rotations(280,0,0));stand.setRightLegPose(new net.minecraft.core.Rotations(280,0,0));
      stand.setItemSlot(EquipmentSlot.HEAD,p.getItemBySlot(EquipmentSlot.HEAD).copy());stand.setItemSlot(EquipmentSlot.CHEST,p.getItemBySlot(EquipmentSlot.CHEST).copy());p.level().addFreshEntity(stand);standId=stand.getUUID();
      checks+=CorpseOwnerChecks.run(p);
+     checks+=VoteHistoryChecks.run(p);
      check(OutfitServer.enabled(s),"Missing preference defaults to visible");
      s.getCommands().performPrefixedCommand(source,"function lobby:invreplace/menu_main");
      check(!p.getInventory().getItem(15).is(net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(net.minecraft.resources.Identifier.parse("minecraft:white_wool"))),"Ordinary players do not see debug toggle");
@@ -48,6 +50,25 @@ public final class OutfitRegression implements ClientModInitializer {
      p.addTag("Debugger");p.addTag("inDebugMenu");s.getCommands().performPrefixedCommand(source,"function lobby:invreplace/menu_debug");
      check(p.getInventory().getItem(30).is(net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(net.minecraft.resources.Identifier.parse("minecraft:white_wool"))),"Debugger-menu button occupies inventory.21");
      s.getCommands().performPrefixedCommand(source,"function lobby:invreplace/menu_main");check(!p.getInventory().getItem(15).is(net.minecraft.core.registries.BuiltInRegistries.ITEM.getValue(net.minecraft.resources.Identifier.parse("minecraft:white_wool"))),"Main settings no longer contain the outfit button");
+     command(mc,"scoreboard objectives add ggdSession dummy");
+     command(mc,"scoreboard players set #MeetingPhase ggdSession 2");
+     command(mc,"summon minecraft:block_display ~ ~ ~ {Tags:[\"talk\",\"meetingBallotModel\"],block_state:{id:\"minecraft:jukebox\"}}");
+     command(mc,"summon minecraft:text_display ~ ~1 ~ {Tags:[\"talk\",\"ballotbox\",\"ggd.ballotRevealPending\"],text:\"Skip\"}");
+     command(mc,"function ggd:talker/roundtable/ballot_label");
+     command(mc,"function ggd:talker/ticketdisplay/summon_vote {x:0,y:0}");
+     command(mc,"execute as @e[type=minecraft:text_display,tag=ballotbox,limit=1] at @s run function ggd:talker/ticketdisplay/summon_vote {x:0,y:0}");
+     int goldBoxes=0,goldTickets=0,skipTickets=0;
+     for(var entity:p.level().getAllEntities()){
+       if(!entity.hasGlowingTag()||entity.getTeamColor()!=0xFFD700)continue;
+       if(entity.entityTags().contains("meetingBallotModel"))goldBoxes++;
+       if(entity.entityTags().contains("vote_display"))goldTickets++;
+       if(entity.entityTags().contains("ggdSkipVoteTicket"))skipTickets++;
+     }
+     check(goldBoxes==1&&goldTickets==2&&skipTickets==1,"Ballot box and both types of ticket receive real gold glow");
+     command(mc,"kill @e[tag=talk,tag=meetingBallotModel]");
+     command(mc,"kill @e[tag=talk,tag=ballotbox]");
+     command(mc,"kill @e[tag=talk,tag=vote_display]");
+     command(mc,"scoreboard players set #MeetingPhase ggdSession 0");
     });stage=1;
    }else if(stage==1){
     check(OutfitClient.enabled(),"Client receives enabled global rule");mc.player.setYRot(180);mc.player.setXRot(8);
@@ -115,6 +136,8 @@ public final class OutfitRegression implements ClientModInitializer {
     net.minecraft.client.Screenshot.takeScreenshot(mc.gameRenderer.mainRenderTarget(),image->{try(image){image.writeToFile(Path.of("outfit-hidden-results.png"));}catch(Exception e){throw new RuntimeException(e);}});
     stage=5;ticks=0;
    }else if(stage==5){
+    server(mc,()->{try{checks+=EagletonInputChecks.run(mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst());}catch(Exception failure){throw new RuntimeException(failure);}});stage=6;
+   }else if(stage==6){
     finish(mc,"PASS "+checks+" outfit assertions: menu, global network switch, stored wardrobe, corpse skin/pose/outline, duplicate label suppression, match lock and restoration");
    }
   }catch(Throwable e){e.printStackTrace();finish(mc,"FAIL "+e);}

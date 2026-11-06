@@ -11,6 +11,12 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 class MeetingPetNameTagPayloadTest {
+    @Test void oldServerFlagsAndNewFlagsRespectTheQuarterBlockLimit() {
+        int olderThreeBlockLift=MeetingPetLayout.HEADROOM|(1<<9)|(192<<16);
+        assertEquals(.25, MeetingPetLayout.lift(olderThreeBlockLift));
+        assertEquals(.25, MeetingPetLayout.lift(MeetingPetLayout.flags(3)));
+        assertEquals(0, MeetingPetLayout.lift(MeetingPetLayout.flags(0)));
+    }
     @Test void existingWireFormatPreservesHeadroomAttachmentsAndStandInAlias() {
         UUID owner=UUID.randomUUID(),proxy=UUID.randomUUID();
         for(int flags:new int[]{0,127,127|MeetingPetLayout.HEADROOM,127|MeetingPetLayout.flags(.12),127|MeetingPetLayout.flags(.4)}) {

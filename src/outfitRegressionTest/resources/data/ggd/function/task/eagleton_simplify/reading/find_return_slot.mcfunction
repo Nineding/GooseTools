@@ -1,0 +1,2 @@
+$execute if items block -1581 $(y) $(z) container.$(slot) *[custom_data~{readingLoan:1b,readingOwner:$(owner),readingReturnedBy:$(owner)}] run scoreboard players add #Returned ggdReading 1
+$execute if items block -1581 $(y) $(z) container.$(slot) *[custom_data~{readingLoan:1b,readingOwner:$(owner),readingReturnedBy:$(owner)}] run data modify storage ggd:reading return_args set from storage ggd:reading args
