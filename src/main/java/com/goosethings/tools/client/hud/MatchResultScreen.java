@@ -148,9 +148,12 @@ public final class MatchResultScreen extends Screen implements ProtectedInputScr
         }
     }
     static void applyDeathVisibility(net.minecraft.client.renderer.entity.state.EntityRenderState state, boolean dead) {
-        if (!dead) return;
-        state.isInvisible = false;
-        if (state instanceof LivingEntityRenderState living) living.isInvisibleToPlayer = false;
+        if (state instanceof com.goosethings.tools.client.animation.ResultDeathFade fade)
+            fade.goosetools$resultDeathFade(dead && !com.goosethings.tools.client.outfit.OutfitClient.enabled());
+        if(!dead)return;
+        boolean silhouette=com.goosethings.tools.client.outfit.OutfitClient.enabled();
+        state.isInvisible=silhouette;
+        if(state instanceof LivingEntityRenderState living)living.isInvisibleToPlayer=silhouette;
     }
 
     /** Screen-space ring stays independent of equipment and the avatar render layer. */
