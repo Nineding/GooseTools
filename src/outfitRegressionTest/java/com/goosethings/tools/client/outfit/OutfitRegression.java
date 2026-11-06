@@ -141,8 +141,8 @@ public final class OutfitRegression implements ClientModInitializer {
     net.minecraft.client.Screenshot.takeScreenshot(mc.gameRenderer.mainRenderTarget(),image->{try(image){image.writeToFile(Path.of("outfit-hidden-results-speaking.png"));}catch(Exception e){throw new RuntimeException(e);}});
     stage=5;ticks=0;
    }else if(stage==5){
-    server(mc,()->{try{checks+=EagletonInputChecks.run(mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst());}catch(Exception failure){throw new RuntimeException(failure);}});stage=6;
-   }else if(stage==6){
+    server(mc,()->{try{checks+=EagletonInputChecks.run(mc.getSingleplayerServer().getPlayerList().getPlayers().getFirst());}catch(Exception failure){throw new RuntimeException(failure);}});stage=7;
+   }else if(stage==7){
     finish(mc,"PASS "+checks+" outfit assertions: menu, global network switch, stored wardrobe, corpse skin/pose/outline, duplicate label suppression, match lock and restoration");
    }
   }catch(Throwable e){e.printStackTrace();finish(mc,"FAIL "+e);}
