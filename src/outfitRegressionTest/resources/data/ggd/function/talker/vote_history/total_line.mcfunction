@@ -1,0 +1,1 @@
+$data modify storage ggd:vote_history line set value {translate:"item.vote_history.total",with:[{nbt:"records.r$(round).names.$(set)",storage:"ggd:vote_history",interpret:true},{text:"$(votes)"}],extra:[{text:""}],color:"#BAEBC6",italic:false}

@@ -1,0 +1,10 @@
+{
+  "item.vote_history.round": "会议票型 · 第 %s 轮",
+  "item.vote_history.total": "%s — %s 票",
+  "item.vote_history.skip": "弃票 — %s 票",
+  "item.vote_history.empty": "本轮尚未结算",
+  "item.vote_history.anonymous": "匿名投票",
+  "item.vote_history.named": "实名投票",
+  "item.debug.vote_history": "会议票型记录",
+  "item.debug.vote_history.lore": "全局开关，默认关闭。普通会议背包底排显示第 1～9 轮票型，投票操作时临时让位。"
+}

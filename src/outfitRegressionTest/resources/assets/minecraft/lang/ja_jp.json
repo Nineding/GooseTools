@@ -1,0 +1,10 @@
+{
+  "item.vote_history.round": "会議投票 · 第%s回",
+  "item.vote_history.total": "%s — %s票",
+  "item.vote_history.skip": "棄権 — %s票",
+  "item.vote_history.empty": "この回は未集計です",
+  "item.vote_history.anonymous": "匿名投票",
+  "item.vote_history.named": "記名投票",
+  "item.debug.vote_history": "会議の投票履歴",
+  "item.debug.vote_history.lore": "全体設定、初期状態はオフ。通常の会議インベントリの最下段に第1～9回を表示し、投票操作中は場所を空けます。"
+}

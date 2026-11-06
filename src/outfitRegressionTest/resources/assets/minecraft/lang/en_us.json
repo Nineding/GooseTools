@@ -1,0 +1,10 @@
+{
+  "item.vote_history.round": "Meeting votes · Round %s",
+  "item.vote_history.total": "%s — %s votes",
+  "item.vote_history.skip": "Skip — %s votes",
+  "item.vote_history.empty": "This round has not been tallied",
+  "item.vote_history.anonymous": "Anonymous voting",
+  "item.vote_history.named": "Public voting",
+  "item.debug.vote_history": "Meeting vote history",
+  "item.debug.vote_history.lore": "Global, off by default. The bottom row shows rounds 1–9 in the normal meeting inventory and yields to voting controls."
+}

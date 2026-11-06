@@ -102,7 +102,8 @@ public final class MatchResultScreen extends Screen implements ProtectedInputScr
         int widest = group.stream().mapToInt(p -> font.width(p.name()) + font.width(
                 com.goosethings.tools.client.nametag.SerialBadgeStyle.glyphComponent(p.serial(), p.rgb()))).max().orElse(1);
         labelScale = Math.min(labelScale, (width*.9F/columns-6)/Math.max(1, widest+1));
-        float scale = Math.max(5F, Math.min(maxScale, (rowHeight-24*labelScale)/2.05F));
+        int haloSpace = group.stream().anyMatch(MatchResultPayload.Player::dead) ? (maxColumns == 21 ? 9 : 14) : 0;
+        float scale = Math.max(5F, Math.min(maxScale, (rowHeight-24*labelScale-haloSpace)/2.05F));
         if (maxColumns == 21) scale = Math.min(scale, width*.9F/columns*.4F);
         for (int row = 0; row < rows; row++) {
             int first = row*columns, count = Math.min(columns, group.size()-first);
@@ -112,7 +113,7 @@ public final class MatchResultScreen extends Screen implements ProtectedInputScr
             for (int column = 0; column < count; column++) {
                 var appearance = group.get(first+column);
                 float center = left+step*(column+.5F), modelTop = floor-scale*2.05F;
-                float nameY = modelTop-23*labelScale;
+                float nameY = modelTop-23*labelScale-haloSpace;
                 MeetingNameTagHud.drawFrozen(g, minecraft, appearance.name(), appearance.rgb(), appearance.serial(),
                         appearance.lover(), center, nameY, labelScale, Math.max(12, (int)((step-4)/labelScale)));
                 var role = RoleIntroCatalog.byTag(appearance.role());
@@ -120,7 +121,7 @@ public final class MatchResultScreen extends Screen implements ProtectedInputScr
                 if (appearance.lover()) roleText = Component.empty().append(roleText)
                         .append(Component.translatableWithFallback(role.faction()==1 ? "role.lover.duck_suffix" : "role.lover.goose_suffix",
                                 role.faction()==1 ? " [Lover Duck]" : " [Lover Goose]"));
-                centered(g, roleText, center, modelTop-10*labelScale,
+                centered(g, roleText, center, modelTop-10*labelScale-haloSpace,
                         Math.min(labelScale, (step-4)/Math.max(1, font.width(roleText))), 0xFF000000|role.color());
                 RemotePlayer model = models.computeIfAbsent(appearance.id(), id -> model(appearance, models.size()));
                 var camera = minecraft.getCameraEntity();
@@ -142,6 +143,7 @@ public final class MatchResultScreen extends Screen implements ProtectedInputScr
                 g.entity(state, pixelScale, new Vector3f(0, (floor-modelTop)*.5F/pixelScale, 0),
                         new Quaternionf().rotateZ((float)Math.PI), new Quaternionf(),
                         Math.round(center-step*.48F), Math.round(modelTop), Math.round(center+step*.48F), Math.round(floor));
+                if (appearance.dead()) drawHalo(g, Math.round(center), Math.round(modelTop)-2, pixelScale);
             }
         }
     }
@@ -152,6 +154,24 @@ public final class MatchResultScreen extends Screen implements ProtectedInputScr
         boolean silhouette=com.goosethings.tools.client.outfit.OutfitClient.enabled();
         state.isInvisible=silhouette;
         if(state instanceof LivingEntityRenderState living)living.isInvisibleToPlayer=silhouette;
+    }
+
+    /** Screen-space ring stays independent of equipment and the avatar render layer. */
+    private static void drawHalo(GuiGraphicsExtractor g, int center, int bottom, int scale) {
+        int halfWidth = Math.clamp(Math.round(scale*.44F),5,22);
+        int height = Math.clamp(Math.round(scale*.21F),4,12);
+        int stroke = height >= 10 ? 3 : height >= 7 ? 2 : 1;
+        for (int row = 0; row < height; row++) {
+            double y = (2.0*row+1)/height-1;
+            int outer = Math.max(1, (int)Math.round(halfWidth*Math.sqrt(1-y*y)));
+            double holeY = y*height/(height-2.0*stroke);
+            int inner = Math.abs(holeY) >= 1 ? 0
+                    : (int)Math.round((halfWidth-2*stroke)*Math.sqrt(1-holeY*holeY));
+            int top = bottom-height+row;
+            int gold = row < stroke ? 0xFFFFEDAA : row < height-stroke ? 0xFFFFD86D : 0xFFEFA733;
+            g.fill(center-outer,top,center-inner,top+1,gold);
+            g.fill(center+inner,top,center+outer,top+1,gold);
+        }
     }
     private RemotePlayer model(MatchResultPayload.Player appearance, int index) {
         var model = new MeetingAlertRemotePlayer(minecraft.level,
@@ -164,10 +184,8 @@ public final class MatchResultScreen extends Screen implements ProtectedInputScr
                 });
         model.setId(0x6A130000+index);
         model.showAllSkinLayers();
-        model.setInvisible(appearance.dead() && com.goosethings.tools.client.outfit.OutfitClient.enabled());
         for (EquipmentSlot slot : EquipmentSlot.values()) {
-            boolean visible = slot != EquipmentSlot.MAINHAND && slot != EquipmentSlot.OFFHAND
-                    && (!appearance.dead() || slot == EquipmentSlot.HEAD || slot == EquipmentSlot.CHEST);
+            boolean visible = slot != EquipmentSlot.MAINHAND && slot != EquipmentSlot.OFFHAND;
             model.setItemSlot(slot, visible ? appearance.equipment().get(slot.ordinal()).copy() : ItemStack.EMPTY);
         }
         model.refreshDimensions();

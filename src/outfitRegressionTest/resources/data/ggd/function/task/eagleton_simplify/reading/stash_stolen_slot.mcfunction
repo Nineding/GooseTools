@@ -1,0 +1,1 @@
+$execute unless items block -1581 $(y) $(z) container.$(slot) * store success score #Stashed ggdReading run item replace block -1581 $(y) $(z) container.$(slot) from entity @a[tag=readingStolenPlayer,limit=1] $(source_slot)

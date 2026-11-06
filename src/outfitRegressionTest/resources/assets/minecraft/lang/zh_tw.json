@@ -1,0 +1,10 @@
+{
+  "item.vote_history.round": "會議票型 · 第 %s 輪",
+  "item.vote_history.total": "%s — %s 票",
+  "item.vote_history.skip": "棄票 — %s 票",
+  "item.vote_history.empty": "本輪尚未結算",
+  "item.vote_history.anonymous": "匿名投票",
+  "item.vote_history.named": "實名投票",
+  "item.debug.vote_history": "會議票型紀錄",
+  "item.debug.vote_history.lore": "全域開關，預設關閉。一般會議背包底排顯示第 1～9 輪票型，投票操作時暫時讓位。"
+}
