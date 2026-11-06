@@ -29,6 +29,6 @@ void main() {
     if (edge == 0.0) discard;
     fragColor = vec4(vertexColor.rgb, vertexColor.a * edge) * ColorModulator;
 #ifdef RESULT_DEATH_FADE
-    fragColor.a *= smoothstep(0.02, 0.48, texCoord0.y);
+    fragColor.a *= smoothstep(0.02, 0.70, texCoord0.y);
 #endif
 }
