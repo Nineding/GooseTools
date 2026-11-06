@@ -51,6 +51,7 @@ public final class OutfitRegression implements ClientModInitializer {
     });stage=1;
    }else if(stage==1){
     check(OutfitClient.enabled(),"Client receives enabled global rule");mc.player.setYRot(180);mc.player.setXRot(8);
+    checks+=com.goosethings.tools.client.hud.PresentationOutfitChecks.visibleMode();
     var original=mc.getEntityRenderDispatcher().getRenderer(mc.player).createRenderState(mc.player,1);
     check(((AvatarRenderState)original).wornHeadType!=null||!((AvatarRenderState)original).headItem.isEmpty()||!((AvatarRenderState)original).headEquipment.isEmpty(),"Visible mode retains player head equipment");
     var stand=findCorpse(mc);
@@ -113,6 +114,10 @@ public final class OutfitRegression implements ClientModInitializer {
    }else if(stage==4){
     if(ticks<65)return;
     net.minecraft.client.Screenshot.takeScreenshot(mc.gameRenderer.mainRenderTarget(),image->{try(image){image.writeToFile(Path.of("outfit-hidden-results.png"));}catch(Exception e){throw new RuntimeException(e);}});
+    com.goosethings.tools.client.hud.PresentationOutfitChecks.highlight=true;stage=6;ticks=0;
+   }else if(stage==6){
+    if(ticks<45)return;
+    net.minecraft.client.Screenshot.takeScreenshot(mc.gameRenderer.mainRenderTarget(),image->{try(image){image.writeToFile(Path.of("outfit-hidden-results-speaking.png"));}catch(Exception e){throw new RuntimeException(e);}});
     stage=5;ticks=0;
    }else if(stage==5){
     finish(mc,"PASS "+checks+" outfit assertions: menu, global network switch, stored wardrobe, corpse skin/pose/outline, duplicate label suppression, match lock and restoration");

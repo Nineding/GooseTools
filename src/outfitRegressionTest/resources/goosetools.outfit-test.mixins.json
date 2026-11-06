@@ -1,0 +1,7 @@
+{
+  "required": true,
+  "package": "com.goosethings.tools.client.outfit.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": ["ResultSpeakingFixtureMixin"],
+  "injectors": {"defaultRequire": 1}
+}

@@ -28,4 +28,7 @@ void main() {
                      + abs(center - silhouette(texCoord0 + vec2(0.0, pixel.y))), 0.0, 1.0);
     if (edge == 0.0) discard;
     fragColor = vec4(vertexColor.rgb, vertexColor.a * edge) * ColorModulator;
+#ifdef RESULT_DEATH_FADE
+    fragColor.a *= smoothstep(0.02, 0.48, texCoord0.y);
+#endif
 }
