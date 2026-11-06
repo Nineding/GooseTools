@@ -146,6 +146,8 @@ public final class MatchResultScreen extends Screen implements ProtectedInputScr
         }
     }
     static void applyDeathVisibility(net.minecraft.client.renderer.entity.state.EntityRenderState state, boolean dead) {
+        if (state instanceof com.goosethings.tools.client.animation.ResultDeathFade fade)
+            fade.goosetools$resultDeathFade(dead && !com.goosethings.tools.client.outfit.OutfitClient.enabled());
         if(!dead)return;
         boolean silhouette=com.goosethings.tools.client.outfit.OutfitClient.enabled();
         state.isInvisible=silhouette;

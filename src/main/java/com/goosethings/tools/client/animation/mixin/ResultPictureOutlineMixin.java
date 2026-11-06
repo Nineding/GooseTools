@@ -1,6 +1,7 @@
 package com.goosethings.tools.client.animation.mixin;
 
 import com.goosethings.tools.client.animation.ResultOutline;
+import com.goosethings.tools.client.animation.ResultDeathFade;
 import com.goosethings.tools.client.animation.ResultOutlinePipeline;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.renderpearl.api.textures.FilterMode;
@@ -22,7 +23,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class ResultPictureOutlineMixin {
     @Shadow private GpuTextureView textureView;
 
-    @Inject(method = "blitTexture", at = @At("HEAD"))
+    // Queue the outline before the opacity compositor can cancel the vanilla blit.
+    @Inject(method = "blitTexture", at = @At("HEAD"), order = 900)
     private void goosetools$resultSilhouette(PictureInPictureRenderState state, GuiRenderState gui,
             CallbackInfo callback) {
         if (!(net.minecraft.client.Minecraft.getInstance().gui.screen()
@@ -32,7 +34,9 @@ public abstract class ResultPictureOutlineMixin {
                 || !(state instanceof GuiEntityRenderState entity)
                 || !(entity.renderState() instanceof ResultOutline outline)
                 || outline.goosetools$resultOutline() == 0) return;
-        gui.addBlitToCurrentLayer(new BlitRenderState(ResultOutlinePipeline.OUTLINE,
+        boolean deathFade = entity.renderState() instanceof ResultDeathFade fade && fade.goosetools$resultDeathFade();
+        gui.addBlitToCurrentLayer(new BlitRenderState(deathFade
+                ? ResultOutlinePipeline.DEATH_FADE_OUTLINE : ResultOutlinePipeline.OUTLINE,
                 TextureSetup.singleTexture(textureView,
                         RenderSystem.getSamplerCache().getRepeat(FilterMode.NEAREST)),
                 state.pose(), state.x0(), state.y0(), state.x1(), state.y1(), 0, 1, 1, 0,
