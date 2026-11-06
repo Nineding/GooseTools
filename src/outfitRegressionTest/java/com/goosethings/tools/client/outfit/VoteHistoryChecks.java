@@ -13,8 +13,10 @@ final class VoteHistoryChecks {
    cmd(p,"scoreboard objectives add ggdGetVote dummy");cmd(p,"function ggd:talker/vote_history/reset");
    cmd(p,"scoreboard players set ShowMeetingVotes ggdadv 1");cmd(p,"scoreboard players set DoNikeInVote ggdadv 1");
    p.addTag("inTalk");p.addTag("vote_for_"+p.getGameProfile().name());
-   cmd(p,"function ggd:talker/vote_history/begin");cmd(p,"scoreboard players set "+p.getScoreboardName()+" ggdGetVote 3");cmd(p,"scoreboard players set #skip ggdGetVote 2");
+   cmd(p,"function ggd:talker/vote_history/render");require(historyCount(p)==0,"No vote record before the first tally");
+   cmd(p,"function ggd:talker/vote_history/begin");cmd(p,"function ggd:talker/vote_history/render");require(historyCount(p)==0,"Starting a round does not create an untallied record");cmd(p,"scoreboard players set "+p.getScoreboardName()+" ggdGetVote 3");cmd(p,"scoreboard players set #skip ggdGetVote 2");
    cmd(p,"function ggd:talker/vote_history/capture");cmd(p,"function ggd:talker/vote_history/render");
+   require(historyCount(p)==1,"First tally creates exactly one record");
    var item=p.getInventory().getItem(27);require(item.getCount()==1&&item.get(DataComponents.LORE)!=null,"Round one is in the bottom-left inventory slot");
    String tooltip=item.get(DataComponents.LORE).lines().toString();require(tooltip.contains("HistoryAlias")&&tooltip.contains("3"),"Saved tooltip resolves names and vote totals on the server");
    require(!tooltip.contains("←"),"Anonymous records do not contain voter directions");
@@ -22,6 +24,16 @@ final class VoteHistoryChecks {
    cmd(p,"scoreboard players set "+p.getScoreboardName()+" ggdGetVote 0");cmd(p,"function ggd:talker/vote_history/render");
    String old=p.getInventory().getItem(27).get(DataComponents.LORE).lines().toString();require(old.contains("HistoryAlias")&&!old.contains("RenamedLater"),"Rename and vote reset cannot change round one");
    cmd(p,"scoreboard players set DoNikeInVote ggdadv 0");cmd(p,"function ggd:talker/vote_history/begin");cmd(p,"function ggd:talker/vote_history/capture");cmd(p,"function ggd:talker/vote_history/render");
+   require(historyCount(p)==2,"Second tally adds only its own record");
+   cmd(p,"scoreboard players set FullBloodDLC ggdadv 1");
+   p.removeTag("Assassin");cmd(p,"function ggd:talker/invreplace/replacetalk");
+   var ordinary=new java.util.ArrayList<net.minecraft.world.item.ItemStack>();for(int i=9;i<36;i++)ordinary.add(p.getInventory().getItem(i).copy());
+   p.addTag("Assassin");cmd(p,"function ggd:talker/invreplace/replacetalk");
+   boolean same=true;for(int i=9;i<36;i++)same &= net.minecraft.world.item.ItemStack.matches(ordinary.get(i-9),p.getInventory().getItem(i));
+   require(same&&historyCount(p)==2,"Assassin and ordinary meeting inventories have identical layouts");
+   p.addTag("assassinMenuAvailable");cmd(p,"function ggd:talker/assassin_menu/give");
+   require(p.getInventory().getItem(4).getOrDefault(DataComponents.CUSTOM_DATA,net.minecraft.world.item.component.CustomData.EMPTY).copyTag().contains("AssassinMenu"),"Assassin skill is available in hotbar slot five");
+   p.removeTag("Assassin");p.removeTag("assassinMenuAvailable");
    String named=p.getInventory().getItem(28).get(DataComponents.LORE).lines().toString();require(named.contains("←")&&named.contains("RenamedLater"),"Public vote history retains its voter direction and frozen name");
    var before=server.getCommandStorage().get(Identifier.parse("ggd:vote_history")).getCompoundOrEmpty("records").copy();cmd(p,"function ggd:talker/vote_history/capture");
    require(before.equals(server.getCommandStorage().get(Identifier.parse("ggd:vote_history")).getCompoundOrEmpty("records")),"Duplicate finalization is idempotent");
@@ -32,9 +44,10 @@ final class VoteHistoryChecks {
    p.addTag("gamingGGD");cmd(p,"function lobby:debug/toggle_vote_history");require(value(p,"ShowMeetingVotes")==1,"Global rule cannot change during a running match");p.removeTag("gamingGGD");
    cmd(p,"function lobby:debug/toggle_vote_history");require(value(p,"ShowMeetingVotes")==0&&p.getInventory().getItem(27).isEmpty(),"Disabling clears the record items");
    cmd(p,"function ggd:talker/vote_history/reset");require(server.getCommandStorage().get(Identifier.parse("ggd:vote_history")).getCompoundOrEmpty("records").isEmpty(),"New-match reset clears prior records");
-   return 12;
+   return 18;
   }finally{if(!originalDebugger)p.removeTag("Debugger");p.removeTag("inTalk");p.removeTag("vote_for_"+p.getGameProfile().name());server.getCommandStorage().set(storage,original);}
  }
+ static int historyCount(ServerPlayer p){int n=0;for(int i=9;i<36;i++)if(p.getInventory().getItem(i).getOrDefault(DataComponents.CUSTOM_DATA,net.minecraft.world.item.component.CustomData.EMPTY).copyTag().contains("VoteHistory"))n++;return n;}
  static int value(ServerPlayer p,String holder){return p.level().getServer().getScoreboard().getPlayerScoreInfo(net.minecraft.world.scores.ScoreHolder.forNameOnly(holder),p.level().getServer().getScoreboard().getObjective("ggdadv")).value();}
  static void cmd(ServerPlayer p,String command){var s=p.level().getServer();s.getCommands().performPrefixedCommand(s.createCommandSourceStack().withEntity(p).withPosition(p.position()),command);}
  static void require(boolean condition,String message){if(!condition)throw new AssertionError(message);}
