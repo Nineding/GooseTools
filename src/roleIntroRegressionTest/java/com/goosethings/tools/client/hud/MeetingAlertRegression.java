@@ -42,7 +42,9 @@ final class MeetingAlertRegression {
                 case 1 -> { commands(mc,"scoreboard objectives add ggdSession dummy","scoreboard players set #MeetingPhase ggdSession 0",
                         "tag @a add gamingGGD","gamerule minecraft:advance_time false","time set day");next(); }
                 case 2 -> { if(!GamePresenceClient.phaseId().equals("playing"))return;
-                    commands(mc,"execute as @p at @s run goosetools meeting-alert bell");next(); }
+                    commands(mc,"execute as @p at @s run goosetools meeting-alert bell",
+                            "scoreboard players set #MeetingSceneReady ggdSession 0",
+                            "scoreboard players set #MeetingPhase ggdSession 1");next(); }
                 case 3 -> { if(elapsed()<200_000_000L)return;
                     require(MeetingAlertHud.blocksMovement(),"entrance did not own movement");
                     capture(mc,"blackout-bell-entry.png",true);next(); }
@@ -50,9 +52,11 @@ final class MeetingAlertRegression {
                 case 5 -> { if(elapsed()<900_000_000L)return;capture(mc,"blackout-f1.png",true);next(); }
                 case 6 -> { if(mc.gui.hud.isHidden())mc.gui.hud.toggle();if(elapsed()<3_300_000_000L)return;
                     require(MeetingAlertHud.blocksMovement(),"late meeting exposed map after banner");
+                    require(revealStarted()<0,"meeting revealed before seating");
+                    require(GamePresenceClient.phaseId().equals("playing"),"meeting presence preceded seating");
                     capture(mc,"blackout-wait.png",true);next(); }
                 case 7 -> { commands(mc,"fill 144 -61 -16 176 -61 16 minecraft:gold_block",
-                        "tp @p 160 -60 0 0 0","scoreboard players set #MeetingPhase ggdSession 1");next(); }
+                        "tp @p 160 -60 0 0 0","scoreboard players set #MeetingSceneReady ggdSession 1");next(); }
                 case 8 -> { long reveal=revealStarted();if(reveal<0||elapsed()-reveal<160_000_000L)return;
                     capture(mc,"blackout-reveal.png",false);next(); }
                 case 9 -> { if(MeetingAlertHud.blocksMovement())return;
