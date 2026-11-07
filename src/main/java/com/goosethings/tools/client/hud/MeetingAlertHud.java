@@ -63,7 +63,7 @@ public final class MeetingAlertHud {
         return alert != null;
     }
 
-    /** Existing end-of-server-tick presence data follows the meeting teleports. */
+    /** The server sends meeting presence once the seating camera is ready. */
     public static void onPresencePhase(GamePresencePhase phase) {
         Alert alert = active;
         if (alert != null && (phase == GamePresencePhase.MEETING
@@ -76,19 +76,21 @@ public final class MeetingAlertHud {
         if (minecraft.level == null || minecraft.player == null
                 || !minecraft.player.connection.hasClientLoaded()
                 || minecraft.gui.screen() instanceof net.minecraft.client.gui.screens.LevelLoadingScreen) return false;
-        // A loaded center chunk alone can expose a half-built room after teleport.
-        var center = minecraft.player.blockPosition();
-        for (int x = -1; x <= 1; x++) for (int z = -1; z <= 1; z++) {
-            if (!minecraft.level.hasChunkAt(center.offset(x * 16, 0, z * 16))) return false;
+        var camera = minecraft.gameRenderer.mainCamera();
+        if (!camera.isInitialized()) return false;
+        var center = camera.blockPosition();
+        for (int x = -1; x <= 1; x++) {
+            for (int z = -1; z <= 1; z++) {
+                if (!minecraft.level.hasChunkAt(center.offset(x * 16, 0, z * 16))) return false;
+            }
         }
-        return minecraft.levelRenderer.hasRenderedAllSections();
+        // Only the camera's section needs to be built. Distant rebuilds can keep the global queue busy.
+        return minecraft.levelRenderer.isSectionCompiledAndVisible(center, 0L);
     }
 
     private static void tick(Minecraft minecraft) {
         Alert alert = active;
-        if (alert != null && alert.transition().opacity(
-                System.nanoTime() - alert.startedNanos(), sceneLoaded(minecraft)) <= 0.0F
-                && System.nanoTime() - alert.startedNanos() >= MeetingAlertAnimation.DURATION_NANOS) {
+        if (alert != null && alert.transition().finished(System.nanoTime() - alert.startedNanos())) {
             clear();
         }
     }
@@ -100,8 +102,9 @@ public final class MeetingAlertHud {
         }
         long elapsed = System.nanoTime() - alert.startedNanos();
         Minecraft minecraft = Minecraft.getInstance();
-        float blackout = alert.transition().opacity(elapsed, sceneLoaded(minecraft));
-        if (blackout <= 0.0F && elapsed >= MeetingAlertAnimation.DURATION_NANOS) {
+        MeetingAlertTransition transition = alert.transition();
+        float blackout = transition.opacity(elapsed, transition.waitingForScene(elapsed) && sceneLoaded(minecraft));
+        if (transition.finished(elapsed)) {
             clear();
             return;
         }

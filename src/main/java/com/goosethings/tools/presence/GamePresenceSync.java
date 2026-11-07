@@ -20,6 +20,7 @@ public final class GamePresenceSync {
     private static final String MAP_SCORE = "map";
     private static final String SESSION_OBJECTIVE = "ggdSession";
     private static final String MEETING_PHASE_SCORE = "#MeetingPhase";
+    private static final String MEETING_SCENE_READY_SCORE = "#MeetingSceneReady";
     private static final Map<UUID, Snapshot> LAST_SENT = new ConcurrentHashMap<>();
 
     private GamePresenceSync() {
@@ -37,7 +38,7 @@ public final class GamePresenceSync {
 
     private static void tick(MinecraftServer server) {
         int mapId = readScore(server, SETTINGS_OBJECTIVE, MAP_SCORE, -1);
-        int meetingPhase = readScore(server, SESSION_OBJECTIVE, MEETING_PHASE_SCORE, 0);
+        int meetingPhase = meetingPresencePhase(server);
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             syncPlayer(player, mapId, meetingPhase);
         }
@@ -47,7 +48,16 @@ public final class GamePresenceSync {
         syncPlayer(
                 player,
                 readScore(server, SETTINGS_OBJECTIVE, MAP_SCORE, -1),
-                readScore(server, SESSION_OBJECTIVE, MEETING_PHASE_SCORE, 0));
+                meetingPresencePhase(server));
+    }
+
+    private static int meetingPresencePhase(MinecraftServer server) {
+        int phase = readScore(server, SESSION_OBJECTIVE, MEETING_PHASE_SCORE, 0);
+        // Older packs keep their original presence timing when the new score is absent.
+        if (phase == 1 && readScore(server, SESSION_OBJECTIVE, MEETING_SCENE_READY_SCORE, 1) == 0) {
+            return 0;
+        }
+        return phase;
     }
 
     private static void syncPlayer(ServerPlayer player, int mapId, int meetingPhase) {

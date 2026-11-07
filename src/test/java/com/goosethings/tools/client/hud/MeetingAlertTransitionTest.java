@@ -29,13 +29,15 @@ class MeetingAlertTransitionTest {
         assertEquals(0.5F,state.opacity(3_650_000_000L,true));
         assertEquals(0.0F,state.opacity(4_150_000_000L,true));
     }
-    @Test void restartsUnderBlackIfTheSceneUnloads() {
-        var state=new MeetingAlertTransition();state.meetingReady();
-        state.opacity(3_000_000_000L,true);state.opacity(3_150_000_000L,true);
-        assertEquals(0.5F,state.opacity(3_650_000_000L,true));
-        assertEquals(1.0F,state.opacity(3_660_000_000L,false));
-        assertEquals(1.0F,state.opacity(4_000_000_000L,true));
-        assertEquals(1.0F,state.opacity(4_150_000_000L,true));
-        assertEquals(0.0F,state.opacity(5_150_000_000L,true));
+    @Test void onlyRestartsTheSettleTimerBeforeTheRevealBegins() {
+        var state = new MeetingAlertTransition();
+        state.meetingReady();
+        assertEquals(1.0F, state.opacity(3_000_000_000L, true));
+        assertEquals(1.0F, state.opacity(3_100_000_000L, false));
+        assertEquals(1.0F, state.opacity(3_200_000_000L, true));
+        assertEquals(1.0F, state.opacity(3_350_000_000L, true));
+        assertEquals(0.5F, state.opacity(3_850_000_000L, false));
+        assertEquals(0.25F, state.opacity(4_100_000_000L, true));
+        assertEquals(0.0F, state.opacity(4_350_000_000L, false));
     }
 }
