@@ -19,6 +19,8 @@ public final class GgdMapState {
     public static final String LAYOUT_POOLCORE_ADVANCE = "layout_poolcore_advance";
 
     private static boolean taskPathsVisible;
+    // Xaero's world map writer also reads these caches. Use the class monitor
+    // to keep the marker snapshot, entity ownership and match flag consistent.
     private static boolean gameActiveSticky;
     private static final Map<String, Marker> cachedSpecialMarkers = new HashMap<>();
     private static final Map<Integer, String> cachedSpecialMarkerIds = new HashMap<>();
@@ -120,13 +122,14 @@ public final class GgdMapState {
         if (!GgdServerContext.isGooseServer()) {
             return false;
         }
-        if (findMarker(minecraft, GAME_ACTIVE) != null) {
-            gameActiveSticky = true;
-            return true;
+        synchronized (GgdMapState.class) {
+            if (findMarker(minecraft, GAME_ACTIVE) != null) {
+                gameActiveSticky = true;
+            }
+            // Keep the match flag across death/respawn. Killing a player recreates
+            // the local player and used to wipe this cache, which dropped NO_RADAR.
+            return gameActiveSticky;
         }
-        // Keep the match flag across death/respawn. Killing a player recreates
-        // the local player and used to wipe this cache, which dropped NO_RADAR.
-        return gameActiveSticky;
     }
 
     public static boolean isControlMarker(String id) {
@@ -135,8 +138,9 @@ public final class GgdMapState {
                 || LAYOUT_POOLCORE_ADVANCE.equals(id);
     }
 
-    public static Marker findMarker(Minecraft minecraft, String wantedId) {
-        if (minecraft.level == null) {
+    public static synchronized Marker findMarker(Minecraft minecraft, String wantedId) {
+        // The world map worker can use the cached marker without walking live entities.
+        if (!minecraft.isSameThread() || minecraft.level == null) {
             return cachedSpecialMarkers.get(wantedId);
         }
         for (var entity : minecraft.level.entitiesForRendering()) {
@@ -163,11 +167,11 @@ public final class GgdMapState {
      * chunk is unloaded and never asks for it again, so remember the spawn
      * position before that can happen.
      */
-    public static void rememberSpawn(int entityId, double x, double y, double z) {
+    public static synchronized void rememberSpawn(int entityId, double x, double y, double z) {
         pendingMarkerPositions.put(entityId, new Vec3(x, y, z));
     }
 
-    public static boolean rememberEncodedName(int entityId, String encoded) {
+    public static synchronized boolean rememberEncodedName(int entityId, String encoded) {
         Vec3 position = pendingMarkerPositions.get(entityId);
         if (position == null || encoded == null || !encoded.startsWith(MARKER_PREFIX)) {
             return false;
@@ -181,11 +185,11 @@ public final class GgdMapState {
         return true;
     }
 
-    public static Collection<Marker> cachedMarkers() {
+    public static synchronized Collection<Marker> cachedMarkers() {
         return List.copyOf(cachedSpecialMarkers.values());
     }
 
-    public static void removeMarkerEntity(int entityId) {
+    public static synchronized void removeMarkerEntity(int entityId) {
         pendingMarkerPositions.remove(entityId);
         String markerId = cachedSpecialMarkerIds.remove(entityId);
         if (markerId == null) {
@@ -202,7 +206,7 @@ public final class GgdMapState {
         }
     }
 
-    public static void clearCachedMarkers() {
+    public static synchronized void clearCachedMarkers() {
         cachedSpecialMarkers.clear();
         cachedSpecialMarkerIds.clear();
         markerEntityIds.clear();
@@ -230,7 +234,7 @@ public final class GgdMapState {
         return new Marker(id, kind, entity.position());
     }
 
-    private static void cacheSpecialMarker(int entityId, Marker marker) {
+    private static synchronized void cacheSpecialMarker(int entityId, Marker marker) {
         Integer previousOwner = markerEntityIds.put(marker.id(), entityId);
         if (previousOwner != null && previousOwner != entityId) {
             cachedSpecialMarkerIds.remove(previousOwner);

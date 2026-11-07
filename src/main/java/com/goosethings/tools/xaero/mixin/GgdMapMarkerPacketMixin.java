@@ -18,7 +18,14 @@ import java.util.Optional;
 
 @Mixin(ClientPacketListener.class)
 public abstract class GgdMapMarkerPacketMixin {
-    @Inject(method = "handleAddEntity", at = @At("HEAD"))
+    // A HEAD injection would also run on Netty before vanilla queues the packet.
+    private static final String CLIENT_THREAD_CHECK =
+            "Lnet/minecraft/network/protocol/PacketUtils;ensureRunningOnSameThread("
+                    + "Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;"
+                    + "Lnet/minecraft/network/PacketProcessor;)V";
+
+    @Inject(method = "handleAddEntity",
+            at = @At(value = "INVOKE", target = CLIENT_THREAD_CHECK, shift = At.Shift.AFTER))
     private void ggd$rememberMarkerSpawn(ClientboundAddEntityPacket packet, CallbackInfo ci) {
         if (packet.getType() != EntityTypes.BLOCK_DISPLAY) {
             return;
@@ -70,7 +77,8 @@ public abstract class GgdMapMarkerPacketMixin {
         return null;
     }
 
-    @Inject(method = "handleRemoveEntities", at = @At("HEAD"))
+    @Inject(method = "handleRemoveEntities",
+            at = @At(value = "INVOKE", target = CLIENT_THREAD_CHECK, shift = At.Shift.AFTER))
     private void ggd$removeCachedSpecialMarkers(
             ClientboundRemoveEntitiesPacket packet, CallbackInfo ci) {
         for (int entityId : packet.entityIds()) {
@@ -78,7 +86,8 @@ public abstract class GgdMapMarkerPacketMixin {
         }
     }
 
-    @Inject(method = "handleLogin", at = @At("HEAD"))
+    @Inject(method = "handleLogin",
+            at = @At(value = "INVOKE", target = CLIENT_THREAD_CHECK, shift = At.Shift.AFTER))
     private void ggd$clearMarkersOnLogin(ClientboundLoginPacket packet, CallbackInfo ci) {
         GgdMapState.clearCachedMarkers();
     }
