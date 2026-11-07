@@ -3,6 +3,10 @@ package com.goosethings.tools.xaero;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -75,6 +79,38 @@ class GgdMapMarkerCacheTest {
 
         assertFalse(GgdMapState.rememberEncodedName(10, "ggdmap:dine:normal"));
         assertTrue(GgdMapState.cachedMarkers().isEmpty());
+    }
+
+    @Test
+    void markerSnapshotsStayConsistentWhileMarkersAreRemovedAndAdded() throws Exception {
+        int stableMarkers = 128;
+        for (int entityId = 0; entityId < stableMarkers; entityId++) {
+            GgdMapState.rememberSpawn(entityId, 1, 2, 3);
+            GgdMapState.rememberEncodedName(entityId, "ggdmap:task_" + entityId);
+        }
+
+        var start = new CyclicBarrier(2);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var updates = executor.submit(() -> {
+                start.await();
+                for (int i = 0; i < 20_000; i++) {
+                    GgdMapState.rememberSpawn(stableMarkers, 4, 5, 6);
+                    GgdMapState.rememberEncodedName(stableMarkers, "ggdmap:temporary");
+                    GgdMapState.removeMarkerEntity(stableMarkers);
+                }
+                return null;
+            });
+            var snapshots = executor.submit(() -> {
+                start.await();
+                for (int i = 0; i < 20_000; i++) {
+                    int size = GgdMapState.cachedMarkers().size();
+                    assertTrue(size == stableMarkers || size == stableMarkers + 1);
+                }
+                return null;
+            });
+            updates.get(10, TimeUnit.SECONDS);
+            snapshots.get(10, TimeUnit.SECONDS);
+        }
     }
 
     @Test
