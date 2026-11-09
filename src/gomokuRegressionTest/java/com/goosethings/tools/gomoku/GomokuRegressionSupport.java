@@ -37,7 +37,9 @@ public final class GomokuRegressionSupport implements ModInitializer {
             try {Files.createDirectories(output());Files.writeString(output().resolve("server-ready.txt"),"Dedicated server initialized without client classes");}catch(Exception e){throw new RuntimeException(e);}
         });
         ServerPlayConnectionEvents.JOIN.register((handler,sender,server)-> {
+            for(String tag:Set.of("players","gamingGGD","spectator","deadInMap","inTalk","endGame","inPelican","inTutorial","dlcGhostActive","ggdLateSpectator","ggdStarting"))handler.player.removeTag(tag);
             handler.player.addTag("lobby");
+            handler.player.setNoGravity(true);
             handler.player.setGameMode(net.minecraft.world.level.GameType.CREATIVE);
         });
     }
@@ -72,6 +74,11 @@ public final class GomokuRegressionSupport implements ModInitializer {
             case 12 -> {var p=server.getPlayerList().getPlayerByName("GomokuA");p.addTag("gamingGGD");p.addTag("ggdStarting");}
             case 13 -> {var p=server.getPlayerList().getPlayerByName("GomokuA");p.removeTag("ggdStarting");p.removeTag("lobby");p.addTag("inTutorial");}
             case 14 -> command(server,"scoreboard players add #Global ggdGameId 1");
+            case 15 -> {
+                command(server,"execute in minecraft:overworld run setblock 13 64 42 sea_lantern");
+                command(server,"execute in minecraft:overworld run setblock 13 65 42 light_blue_stained_glass");
+                command(server,"execute in minecraft:overworld run tp GomokuA 13.5 65 40 0 20");
+            }
             case 99 -> {Files.writeString(output().resolve("server-pass.txt"),"PASS dedicated server, two real clients, isolated fixtures and authoritative Gomoku packets");server.halt(false);}
             default -> throw new IllegalArgumentException("Unknown fixture");
         }

@@ -1,5 +1,7 @@
 package com.goosethings.tools.gomoku;
 
+import com.goosethings.tools.boardgame.ChessPosition;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -14,15 +16,21 @@ public final class GomokuMatch {
     public final UUID black, white;
     public final GomokuAccess.Group group;
     public final int difficulty;
+    public final int kind;
+    public final ChessPosition chess;
     public final GomokuBoard board = new GomokuBoard();
     private final Map<UUID, Long> sequences = new HashMap<>();
     private int turn = 1, outcome, reason, rematchMask;
     private long revision = 1, deadline, finishedAt, rematchDeadline;
 
     public GomokuMatch(long id, UUID black, UUID white, GomokuAccess.Group group, int difficulty, long now) {
+        this(id, black, white, group, difficulty, now, 0);
+    }
+    public GomokuMatch(long id, UUID black, UUID white, GomokuAccess.Group group, int difficulty, long now, int kind) {
         if (id < 1 || group == null || black == null && white == null || Objects.equals(black, white)
-                || difficulty < 0 || difficulty > 2) throw new IllegalArgumentException("Invalid match");
+                || difficulty < 0 || difficulty > 2 || kind < 0 || kind > 2) throw new IllegalArgumentException("Invalid match");
         this.id = id; this.black = black; this.white = white; this.group = group; this.difficulty = difficulty;
+        this.kind = kind; chess = kind == 0 ? null : new ChessPosition(kind);
         deadline = now + TURN_MILLIS;
     }
     public int color(UUID player) { return player == null ? 0 : player.equals(black) ? 1 : player.equals(white) ? 2 : 0; }
@@ -51,13 +59,23 @@ public final class GomokuMatch {
         return aiTurn() && expectedRevision == revision && place(cell, now);
     }
     private boolean place(int cell, long now) {
-        if (outcome != RUNNING || !board.place(cell, turn)) return false;
+        if (outcome != RUNNING || !(chess == null ? board.place(cell, turn) : chess.play(cell))) return false;
         revision++;
-        if (board.winner() != 0) finish(board.winner(), FIVE, now);
+        if (chess != null && chess.outcome() != 0) finish(chess.outcome(), chess.reason(), now);
+        else if (board.winner() != 0) finish(board.winner(), FIVE, now);
         else if (board.full()) finish(DRAW, FULL, now);
         else { turn = 3 - turn; deadline = now + TURN_MILLIS; }
         return true;
     }
+    public boolean claimDraw(UUID player, long sequence, long expectedRevision, int intendedMove, long now) {
+        if (!sequence(player, sequence)) return false;
+        expire(now);
+        if (outcome != RUNNING || color(player) != turn || revision != expectedRevision || chess == null || !chess.canClaimDraw(intendedMove)) return false;
+        finish(DRAW, ChessPosition.REPETITION, now); return true;
+    }
+    public int[] cells() { return chess == null ? board.cells() : chess.cells(); }
+    public int last() { return chess == null ? board.last() : chess.last(); }
+    public int[] legalMoves() { return chess == null ? new int[0] : chess.legalMoves(); }
     public void expire(long now) {
         if (outcome == RUNNING && now >= deadline) finish(3 - turn, TIMEOUT, now);
         if (rematchMask != 0 && now >= rematchDeadline) { rematchMask = 0; revision++; }

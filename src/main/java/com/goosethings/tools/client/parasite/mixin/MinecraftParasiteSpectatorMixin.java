@@ -25,6 +25,7 @@ abstract class MinecraftParasiteSpectatorMixin {
     @Inject(method = "startUseItem", at = @At("HEAD"), cancellable = true)
     private void goosetools$useParasiteBreakout(CallbackInfo callbackInfo) {
         Minecraft client = (Minecraft) (Object) this;
+        if (com.goosethings.tools.client.gomoku.GomokuClient.useGamepad(client)) { rightClickDelay = 4; callbackInfo.cancel(); return; }
         if (!ParasiteSpectatorClient.canUseSelectedSkill(client)
                 || client.player == null || client.gameMode == null) {
             return;
