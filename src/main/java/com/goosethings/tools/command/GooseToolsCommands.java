@@ -32,6 +32,7 @@ public final class GooseToolsCommands {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(com.goosethings.tools.gomoku.GomokuServer.playerCommand());
+        dispatcher.register(com.goosethings.tools.gomoku.GomokuServer.boardCommand());
         dispatcher.register(com.goosethings.tools.result.SummaryServer.celebrationCommand());
         dispatcher.register(Commands.literal("goosetools-client-settings")
                 .requires(source -> source.getEntity() instanceof ServerPlayer)

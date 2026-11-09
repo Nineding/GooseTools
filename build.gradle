@@ -170,6 +170,7 @@ loom {
             runDir 'build/gomoku-client-' + role
             vmArg '-Dgoosetools.gomokuRegression=true'
             vmArg '-Dgoosetools.gomokuRole=' + role
+            vmArg '-Dgoosetools.boardRegressionOnly=' + providers.gradleProperty('boardRegressionOnly').getOrElse('false')
             vmArg '-Dgoosetools.gomokuOutput=' + layout.buildDirectory.dir('gomoku-regression').get().asFile.absolutePath
             programArg '--username'
             programArg 'Gomoku' + role

@@ -1,6 +1,8 @@
 package com.goosethings.tools.gomoku;
 
 import com.goosethings.tools.GooseTools;
+import com.goosethings.tools.boardgame.*;
+import com.mojang.brigadier.arguments.LongArgumentType;
 import com.goosethings.tools.game.GameServer;
 import com.goosethings.tools.network.MandatoryHandshake;
 import com.goosethings.tools.task.TaskServer;
@@ -38,7 +40,9 @@ public final class GomokuServer {
     }
     public static void register() {
         GomokuPackets.register();
-        ServerPlayNetworking.registerGlobalReceiver(GomokuPackets.Action.TYPE,
+        BoardPackets.register();
+        BoardGameItems.register();
+        ServerPlayNetworking.registerGlobalReceiver(BoardPackets.Action.TYPE,
                 (packet, ctx) -> ctx.server().execute(() -> input(ctx.player(), packet)));
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             room = new GomokuRoom(); names.clear(); sequences.clear(); windows.clear(); inviteTimes.clear(); counts.clear(); verified.clear();
@@ -72,6 +76,19 @@ public final class GomokuServer {
         return Commands.literal("gomoku").requires(s -> s.getEntity() instanceof ServerPlayer)
                 .executes(c -> open(c.getSource().getPlayerOrException(), -1));
     }
+    public static LiteralArgumentBuilder<CommandSourceStack> boardCommand() {
+        return Commands.literal("boardgames").requires(s -> s.getEntity() instanceof ServerPlayer)
+                .executes(c -> open(c.getSource().getPlayerOrException(), -1))
+                .then(Commands.literal("accept").then(Commands.argument("invite", LongArgumentType.longArg(1)).executes(c -> answerChat(c.getSource().getPlayerOrException(), LongArgumentType.getLong(c, "invite"), true))))
+                .then(Commands.literal("decline").then(Commands.argument("invite", LongArgumentType.longArg(1)).executes(c -> answerChat(c.getSource().getPlayerOrException(), LongArgumentType.getLong(c, "invite"), false))));
+    }
+    private static int answerChat(ServerPlayer player, long id, boolean accept) {
+        if (!connected(player)) return 0;
+        MinecraftServer server = player.level().getServer(); refresh(server);
+        var reply = room.answer(player.getUUID(), id, accept, ThreadLocalRandom.current().nextBoolean(), now());
+        if (reply != GomokuRoom.Reply.OK) { send(player, 0, reply.ordinal()); return 0; }
+        broadcast(server); if (accept) open(player, -1); return 1;
+    }
     public static LiteralArgumentBuilder<CommandSourceStack> adminCommand() {
         return Commands.literal("gomoku")
                 .then(Commands.literal("open").then(Commands.argument("players", EntityArgument.players()).executes(c -> {
@@ -84,7 +101,7 @@ public final class GomokuServer {
                 })));
     }
     private static boolean connected(ServerPlayer p) {
-        return MandatoryHandshake.isVerified(p) && ServerPlayNetworking.canSend(p, GomokuPackets.View.TYPE);
+        return MandatoryHandshake.isVerified(p) && ServerPlayNetworking.canSend(p, BoardPackets.View.TYPE);
     }
     private static int score(MinecraftServer server, String objective, ScoreHolder holder) {
         var obj = server.getScoreboard().getObjective(objective);
@@ -99,54 +116,58 @@ public final class GomokuServer {
             GomokuAccess.Group access = connected(p) || verified.contains(p.getUUID()) ? GomokuAccess.resolve(p.entityTags(), global,
                     score(server, "ggdGameId", p), p.isAlive()) : null;
             room.update(p.getUUID(), access, now());
+            BoardGameItems.reconcile(p, access);
         }
     }
-    private static int open(ServerPlayer p, long request) {
+    public static int open(ServerPlayer p, long request) {
         if (!connected(p)) return 0;
         refresh(p.level().getServer());
         if (room.access(p.getUUID()) == null) { send(p, 0, 1); return 0; }
         TaskServer.close(p); GameServer.close(p);
         send(p, request, 0); return 1;
     }
-    private static boolean admit(UUID player, GomokuPackets.Action action, long time) {
+    private static boolean admit(UUID player, BoardPackets.Action action, long time) {
         if (!action.valid() || action.sequence() <= sequences.getOrDefault(player, -1L)) return false;
         sequences.put(player, action.sequence());
         long window = time / 1000;
         if (!Objects.equals(windows.put(player, window), window)) counts.put(player, 0);
         return counts.merge(player, 1, Integer::sum) <= 12;
     }
-    private static void input(ServerPlayer p, GomokuPackets.Action a) {
+    private static void input(ServerPlayer p, BoardPackets.Action a) {
         if (stopping || !connected(p) || !admit(p.getUUID(), a, now())) return;
         MinecraftServer server = p.level().getServer();
         refresh(server); room.tick(now());
-        if (a.action() == GomokuPackets.HIDE) return;
-        if (a.action() == GomokuPackets.OPEN) { open(p, a.request()); return; }
+        if (a.action() == BoardPackets.HIDE) return;
+        if (a.action() == BoardPackets.OPEN) { open(p, a.request()); return; }
         if (room.access(p.getUUID()) == null) { send(p, 0, 1); return; }
         GomokuMatch game = room.match(p.getUUID());
         GomokuRoom.Reply result = GomokuRoom.Reply.OK;
         switch (a.action()) {
-            case GomokuPackets.AI -> result = room.startAi(p.getUUID(), a.value(), a.option(), now());
-            case GomokuPackets.INVITE -> {
+            case BoardPackets.AI -> result = room.startAi(p.getUUID(), a.value(), a.option(), now(), a.kind());
+            case BoardPackets.INVITE -> {
                 if (now() - inviteTimes.getOrDefault(p.getUUID(), -10_000L) < 3_000) result = GomokuRoom.Reply.BUSY;
-                else { inviteTimes.put(p.getUUID(), now()); result = room.invite(p.getUUID(), a.target(), now()); }
+                else { inviteTimes.put(p.getUUID(), now()); result = room.invite(p.getUUID(), a.target(), now(), a.kind()); }
             }
-            case GomokuPackets.ACCEPT, GomokuPackets.DECLINE -> result = room.answer(p.getUUID(), a.match(),
-                    a.action() == GomokuPackets.ACCEPT, ThreadLocalRandom.current().nextBoolean(), now());
-            case GomokuPackets.CANCEL_INVITE -> {
+            case BoardPackets.ACCEPT, BoardPackets.DECLINE -> result = room.answer(p.getUUID(), a.match(),
+                    a.action() == BoardPackets.ACCEPT, ThreadLocalRandom.current().nextBoolean(), now());
+            case BoardPackets.CANCEL_INVITE -> {
                 GomokuRoom.Invite invitation = room.pending(p.getUUID());
                 if (invitation != null && invitation.id() == a.match()) room.cancelInvite(p.getUUID());
             }
-            case GomokuPackets.MOVE -> {
+            case BoardPackets.MOVE -> {
                 if (game == null || game.id != a.match() || !game.move(p.getUUID(), a.sequence(), a.revision(), a.value(), now()))
                     result = GomokuRoom.Reply.INVALID;
             }
-            case GomokuPackets.RESIGN -> {
+            case BoardPackets.CLAIM -> {
+                if (game == null || game.id != a.match() || !game.claimDraw(p.getUUID(), a.sequence(), a.revision(), a.value(), now())) result = GomokuRoom.Reply.INVALID;
+            }
+            case BoardPackets.RESIGN -> {
                 if (game != null && game.id == a.match() && game.sequence(p.getUUID(), a.sequence())) {
                     game.expire(now()); game.forfeit(p.getUUID(), GomokuMatch.RESIGN, now());
                 } else result = GomokuRoom.Reply.INVALID;
             }
-            case GomokuPackets.REMATCH -> room.rematch(p.getUUID(), a.match(), a.sequence(), now());
-            case GomokuPackets.LEAVE -> { if (game != null && game.id == a.match()) room.leaveFinished(p.getUUID()); }
+            case BoardPackets.REMATCH -> room.rematch(p.getUUID(), a.match(), a.sequence(), now());
+            case BoardPackets.LEAVE -> { if (game != null && game.id == a.match()) room.leaveFinished(p.getUUID()); }
             default -> result = GomokuRoom.Reply.INVALID;
         }
         if (result != GomokuRoom.Reply.OK) send(p, 0, result.ordinal());
@@ -177,8 +198,8 @@ public final class GomokuServer {
             }
         }
         if (executor != null) for (GomokuMatch game : room.games()) if (game.aiTurn() && !thinking.containsKey(game.id)) {
-            int[] board = game.board.cells(); int color = game.turn(), difficulty = game.difficulty;
-            try { thinking.put(game.id, new Thinking(game.revision(), executor.submit(() -> GomokuAi.choose(board, color, difficulty, difficulty == 2 ? 180 : 60)))); }
+            int[] board = game.board.cells(); ChessPosition chess = game.chess == null ? null : game.chess.copy(); int color = game.turn(), difficulty = game.difficulty;
+            try { thinking.put(game.id, new Thinking(game.revision(), executor.submit(() -> chess == null ? GomokuAi.choose(board, color, difficulty, difficulty == 2 ? 180 : 60) : ChessAi.choose(chess, difficulty, difficulty == 2 ? 400 : 150)))); }
             catch (RejectedExecutionException ignored) { /* Retry on a later tick; never search on the server thread. */ }
         }
         if (changed || now() - lastBroadcast >= 1000) { broadcast(server); lastBroadcast = now(); }
@@ -191,18 +212,18 @@ public final class GomokuServer {
     private static void send(ServerPlayer p, long request, int notice) {
         if (!connected(p)) return;
         UUID player = p.getUUID(); GomokuAccess.Group access = room.access(player); GomokuMatch game = room.match(player);
-        GomokuPackets.Position position = game == null ? GomokuPackets.Position.empty() : new GomokuPackets.Position(
+        BoardPackets.Position position = game == null ? BoardPackets.Position.empty() : new BoardPackets.Position(
                 game.id, game.revision(), name(game.black), name(game.white), game.color(player), game.turn(), game.outcome(), game.reason(),
-                game.difficulty, (int) game.remaining(now()), game.board.last(), game.rematchMask(), game.computer(), game.board.cells(), game.board.line());
-        List<GomokuPackets.Person> people = new ArrayList<>();
+                game.difficulty, (int) game.remaining(now()), game.last(), game.rematchMask(), game.computer(), game.cells(), game.board.line(), game.kind, game.legalMoves(), game.chess != null && game.chess.check(), game.chess != null && game.chess.canClaimDraw(-1));
+        List<BoardPackets.Person> people = new ArrayList<>();
         if (access != null && game == null) for (ServerPlayer other : p.level().getServer().getPlayerList().getPlayers()) {
-            if (!other.getUUID().equals(player) && room.free(other.getUUID()) && access.equals(room.access(other.getUUID())) && people.size() < 128)
-                people.add(new GomokuPackets.Person(other.getUUID(), other.getScoreboardName()));
+            if (!other.getUUID().equals(player) && connected(other) && access.equals(room.access(other.getUUID())) && people.size() < 128)
+                people.add(new BoardPackets.Person(other.getUUID(), other.getScoreboardName(), room.free(other.getUUID())));
         }
-        people.sort(Comparator.comparing(GomokuPackets.Person::name, String.CASE_INSENSITIVE_ORDER));
+        people.sort(Comparator.comparing(BoardPackets.Person::name, String.CASE_INSENSITIVE_ORDER));
         GomokuRoom.Invite invite = room.pending(player);
-        ServerPlayNetworking.send(p, new GomokuPackets.View(++serial, request, access == null ? 0 : access.kind(), notice, position, people,
+        ServerPlayNetworking.send(p, new BoardPackets.View(++serial, request, access == null ? 0 : access.kind(), notice, position, people,
                 invite == null ? 0 : invite.id(), invite == null ? 0 : invite.to().equals(player) ? 2 : 1,
-                invite == null ? "" : name(invite.to().equals(player) ? invite.from() : invite.to()), invite == null ? 0 : (int) Math.max(0, invite.expires() - now())));
+                invite == null ? "" : name(invite.to().equals(player) ? invite.from() : invite.to()), invite == null ? 0 : (int) Math.max(0, invite.expires() - now()), invite == null ? 0 : invite.kind()));
     }
 }

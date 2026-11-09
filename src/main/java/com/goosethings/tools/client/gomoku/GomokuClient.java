@@ -1,6 +1,9 @@
 package com.goosethings.tools.client.gomoku;
 
-import com.goosethings.tools.gomoku.GomokuPackets;
+import com.goosethings.tools.boardgame.BoardPackets;
+import com.goosethings.tools.boardgame.BoardGameItems;
+import net.minecraft.network.chat.ClickEvent;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
@@ -22,9 +25,10 @@ import java.util.WeakHashMap;
 
 /** A cached view survives screen removal, but never survives a connection. */
 public final class GomokuClient {
-    private static GomokuPackets.View view;
+    private static BoardPackets.View view;
     private static long receivedAt, sequence, requests, pendingOpen, noticeUntil;
     private static int notice;
+    public static int selectedKind;
     private static KeyMapping key;
     private static final Map<Screen, Button> launchers = new WeakHashMap<>();
     private GomokuClient() {}
@@ -32,14 +36,14 @@ public final class GomokuClient {
         return Component.translatableWithFallback("gomoku.goosetools." + key, fallback, args);
     }
     public static long now() { return System.nanoTime() / 1_000_000; }
-    public static GomokuPackets.View view() { return view; }
+    public static BoardPackets.View view() { return view; }
     public static int remaining() { return view == null ? 0 : (int) Math.max(0, view.position().remaining() - (now() - receivedAt)); }
     public static int inviteRemaining() { return view == null ? 0 : (int) Math.max(0, view.inviteRemaining() - (now() - receivedAt)); }
     public static int notice() { return now() < noticeUntil ? notice : 0; }
     public static void register() {
         key = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.goosetools.gomoku", InputConstants.Type.KEYBOARD,
                 InputConstants.KEY_F9, KeyMapping.Category.register(Identifier.fromNamespaceAndPath("goosetools", "games"))));
-        ClientPlayNetworking.registerGlobalReceiver(GomokuPackets.View.TYPE, (packet, ctx) -> ctx.client().execute(() -> apply(packet)));
+        ClientPlayNetworking.registerGlobalReceiver(BoardPackets.View.TYPE, (packet, ctx) -> ctx.client().execute(() -> apply(packet)));
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> client.execute(() -> {
             view = null; receivedAt = sequence = requests = pendingOpen = noticeUntil = 0; launchers.clear();
             if (client.gui.screen() instanceof GomokuScreen) client.setScreenAndShow(null);
@@ -50,6 +54,14 @@ public final class GomokuClient {
                 ScreenKeyboardEvents.allowKeyPress(screen).register((s, event) -> {
                     if (matchesKey(event)) { open(); return false; } return true;
                 });
+        });
+        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("goosetools", "board_countdown"), (g, delta) -> {
+            Minecraft mc = Minecraft.getInstance();
+            if (view == null || view.group() == 0 || view.position().id() == 0 || view.position().outcome() != 0 || mc.gui.screen() instanceof GomokuScreen || !presentationAllowed()) return;
+            int x = mc.getWindow().getGuiScaledWidth() - 190, y = mc.getWindow().getGuiScaledHeight() - 48;
+            g.fill(x - 6, y - 5, x + 184, y + 30, 0xCC181D22);
+            g.text(mc.font, gameName(view.position().kind()), x, y, 0xFFEABB63, false);
+            g.text(mc.font, text(view.position().turn() == view.position().color() ? "hud_yours" : "hud_theirs", "%ss · /boardgames", (remaining() + 999) / 1000), x, y + 15, remaining() <= 10000 ? 0xFFFF8D78 : 0xFFF5E8D0, false);
         });
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (key.consumeClick()) {
@@ -79,7 +91,7 @@ public final class GomokuClient {
         if (!(screen instanceof InventoryScreen) && !(screen instanceof PauseScreen)) return;
         Button button = launchers.get(screen);
         if (button == null) {
-            button = Button.builder(text("title", "Gomoku"), b -> open())
+            button = Button.builder(text("home", "Board games"), b -> open())
                     .bounds(Math.max(8, screen.width - 112), 8, 104, 20).build();
             Screens.getWidgets(screen).add(button); launchers.put(screen, button);
         }
@@ -87,23 +99,41 @@ public final class GomokuClient {
         button.active = button.visible;
     }
     public static void open() {
-        if (!presentationAllowed() || !ClientPlayNetworking.canSend(GomokuPackets.Action.TYPE)) return;
+        if (!presentationAllowed() || !ClientPlayNetworking.canSend(BoardPackets.Action.TYPE)) return;
         pendingOpen = ++requests;
-        send(new GomokuPackets.Action(GomokuPackets.OPEN, pendingOpen, 0, 0, sequence++, 0, 0, GomokuPackets.NONE));
+        send(new BoardPackets.Action(BoardPackets.OPEN, pendingOpen, 0, 0, sequence++, 0, 0, BoardPackets.NONE, selectedKind));
     }
     public static void action(int action, int value, int option, java.util.UUID target) {
         if (view == null) return;
-        long id = action == GomokuPackets.ACCEPT || action == GomokuPackets.DECLINE || action == GomokuPackets.CANCEL_INVITE ? view.invite() : view.position().id();
-        send(new GomokuPackets.Action(action, 0, id, view.position().revision(), sequence++, value, option, target));
+        long id = action == BoardPackets.ACCEPT || action == BoardPackets.DECLINE || action == BoardPackets.CANCEL_INVITE ? view.invite() : view.position().id();
+        send(new BoardPackets.Action(action, 0, id, view.position().revision(), sequence++, value, option, target, view.position().id() == 0 ? selectedKind : view.position().kind()));
     }
-    public static void action(int action) { action(action, 0, 0, GomokuPackets.NONE); }
+    public static void action(int action) { action(action, 0, 0, BoardPackets.NONE); }
     public static boolean matchesKey(net.minecraft.client.input.KeyEvent event) { return key != null && key.matches(event); }
-    public static void hide() { pendingOpen = 0; action(GomokuPackets.HIDE); }
-    private static void send(GomokuPackets.Action action) { if (ClientPlayNetworking.canSend(GomokuPackets.Action.TYPE)) ClientPlayNetworking.send(action); }
-    private static void apply(GomokuPackets.View next) {
+    public static void hide() {
+        pendingOpen = 0; action(BoardPackets.HIDE);
+        if (view != null && view.position().id() != 0 && view.position().outcome() == 0 && now() - lastReturnMessage > 3000) returnMessage(false);
+    }
+    private static long lastReturnMessage;
+    private static void returnMessage(boolean ended) {
+        lastReturnMessage = now();
+        Minecraft.getInstance().gui.hud.getChat().addClientSystemMessage(text(ended ? "board_finished" : "return_link", ended ? "Game ended. [View result]" : "Move timer continues. [Return to game]").copy()
+                .withStyle(style -> style.withColor(0xEABB63).withUnderlined(true).withClickEvent(new ClickEvent.RunCommand("/boardgames"))));
+    }
+    public static Component gameName(int kind) { return kind == 1 ? text("xiangqi", "Xiangqi") : kind == 2 ? text("chess", "Chess") : text("title", "Gomoku"); }
+    public static boolean spectatorHotbar(Minecraft mc) {
+        if (mc.player == null || !mc.player.isSpectator() || view == null || view.group() != 2) return false;
+        return BoardGameItems.isGamepad(mc.player.getInventory().getItem(1)) || BoardGameItems.isGamepad(mc.player.getInventory().getItem(2));
+    }
+    public static boolean useGamepad(Minecraft mc) {
+        if (mc.player == null || view == null || view.group() == 0 || !BoardGameItems.isGamepad(mc.player.getMainHandItem())) return false;
+        open(); return true;
+    }
+    private static void send(BoardPackets.Action action) { if (ClientPlayNetworking.canSend(BoardPackets.Action.TYPE)) ClientPlayNetworking.send(action); }
+    private static void apply(BoardPackets.View next) {
         if (view != null && next.serial() <= view.serial()) return;
         Minecraft mc = Minecraft.getInstance();
-        GomokuPackets.View old = view; view = next; receivedAt = now();
+        BoardPackets.View old = view; view = next; receivedAt = now();
         if (next.notice() != 0) { notice = next.notice(); noticeUntil = now() + 4000; }
         if (next.group() == 0 || next.notice() == 6) {
             pendingOpen = 0;
@@ -112,12 +142,15 @@ public final class GomokuClient {
             if (mc.gui.screen() instanceof GomokuScreen) mc.setScreenAndShow(null);
             return;
         }
-        if (next.inviteDirection() == 2 && (old == null || next.invite() != old.invite()))
-            mc.gui.hud.getChat().addClientSystemMessage(text("invited", "%s invited you to Gomoku. Open /gomoku to respond (30 seconds).", next.inviteName()));
-        if (old != null && old.position().id() == next.position().id() && old.position().outcome() == 0 && next.position().outcome() != 0)
-            mc.gui.hud.getChat().addClientSystemMessage(text("finished_notice", "Your Gomoku game has ended. Open /gomoku to see the result."));
-        if (old != null && next.position().id() != 0 && next.position().id() != old.position().id() && !(mc.gui.screen() instanceof GomokuScreen))
-            mc.gui.hud.getChat().addClientSystemMessage(text("started_notice", "Your Gomoku game has started. Each move has 60 seconds; open /gomoku to play."));
+        if (next.inviteDirection() == 2 && (old == null || next.invite() != old.invite())) {
+            var message = text("board_invited", "%s invites you to %s (30s). ", next.inviteName(), gameName(next.inviteKind())).copy();
+            message.append(text("accept_link", "[Accept and enter]").copy().withStyle(style -> style.withColor(0x7ACB8B).withUnderlined(true).withClickEvent(new ClickEvent.RunCommand("/boardgames accept " + next.invite()))));
+            message.append(Component.literal("  ")).append(text("decline_link", "[Decline]").copy().withStyle(style -> style.withColor(0xDFA285).withClickEvent(new ClickEvent.RunCommand("/boardgames decline " + next.invite()))));
+            mc.gui.hud.getChat().addClientSystemMessage(message);
+        }
+        boolean started = next.position().id() != 0 && (old == null || old.position().id() != next.position().id());
+        boolean ended = old != null && old.position().id() == next.position().id() && old.position().outcome() == 0 && next.position().outcome() != 0;
+        if (started || ended) returnMessage(ended);
         if ((next.request() == -1 || next.request() > 0 && next.request() == pendingOpen) && presentationAllowed()) {
             pendingOpen = 0; mc.setScreenAndShow(new GomokuScreen());
         }

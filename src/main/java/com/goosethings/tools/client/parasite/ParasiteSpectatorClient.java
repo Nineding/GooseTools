@@ -37,7 +37,7 @@ public final class ParasiteSpectatorClient {
     }
 
     public static boolean usesInventoryHotbar(Minecraft client) {
-        return isActive(client) || GhostSpectatorClient.active(client);
+        return isActive(client) || GhostSpectatorClient.active(client) || com.goosethings.tools.client.gomoku.GomokuClient.spectatorHotbar(client);
     }
 
     public static GameType hotbarMode(Minecraft client, GameType vanilla) {
