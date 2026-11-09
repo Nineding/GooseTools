@@ -78,6 +78,10 @@ tasks.named('jar') {
 
 // An isolated client mod exercises real GPU draws; it is never packaged in the release JAR.
 sourceSets {
+    gomokuRegressionTest {
+        compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+    }
     fairPlayRegressionTest {
         compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
         runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
@@ -116,6 +120,8 @@ sourceSets {
     }
 }
 configurations {
+    gomokuRegressionTestImplementation.extendsFrom implementation
+    gomokuRegressionTestRuntimeOnly.extendsFrom runtimeOnly
     fairPlayRegressionTestImplementation.extendsFrom implementation
     fairPlayRegressionTestRuntimeOnly.extendsFrom runtimeOnly
     roleIntroRegressionTestImplementation.extendsFrom implementation
@@ -137,6 +143,7 @@ configurations {
 }
 loom {
     mods {
+        goosetools_gomoku_test { sourceSet sourceSets.gomokuRegressionTest }
         goosetools_fairplay_test { sourceSet sourceSets.fairPlayRegressionTest }
         goosetools_intro_test { sourceSet sourceSets.roleIntroRegressionTest }
         goosetools_station_test { sourceSet sourceSets.stationRegressionTest }
@@ -149,6 +156,28 @@ loom {
         goosetools_flight_test { sourceSet sourceSets.flightRegressionTest }
     }
     runs {
+        gomokuServerTest {
+            server()
+            source sourceSets.gomokuRegressionTest
+            runDir 'build/gomoku-server-test'
+            vmArg '-Dgoosetools.gomokuRegression=true'
+            vmArg '-Dgoosetools.gomokuOutput=' + layout.buildDirectory.dir('gomoku-regression').get().asFile.absolutePath
+        }
+        gomokuClientTest {
+            client()
+            source sourceSets.gomokuRegressionTest
+            def role = providers.gradleProperty('gomokuRole').getOrElse('A')
+            runDir 'build/gomoku-client-' + role
+            vmArg '-Dgoosetools.gomokuRegression=true'
+            vmArg '-Dgoosetools.gomokuRole=' + role
+            vmArg '-Dgoosetools.gomokuOutput=' + layout.buildDirectory.dir('gomoku-regression').get().asFile.absolutePath
+            programArg '--username'
+            programArg 'Gomoku' + role
+            programArg '--width'
+            programArg '1100'
+            programArg '--height'
+            programArg '800'
+        }
         fairPlayRegressionTest {
             client()
             source sourceSets.fairPlayRegressionTest
@@ -931,6 +960,27 @@ tasks.named('runOutfitRegressionTest') {
  timeout=java.time.Duration.ofMinutes(4)
  doFirst { file('build/outfit-regression-test').mkdirs(); file('build/outfit-regression-test/outfit-result.txt').delete(); file('build/outfit-regression-test/options.txt').text='lang:zh_cn\nrenderDistance:3\npauseOnLostFocus:false\ntutorialStep:none\n' }
  doLast {def result=file('build/outfit-regression-test/outfit-result.txt');if(!result.exists()||!result.text.startsWith('PASS '))throw new GradleException(result.exists()?result.text:'Missing outfit result');println result.text}
+}
+
+// The dual-client processes must report semantic success, not only exit normally.
+tasks.named('runGomokuClientTest') {
+    timeout = java.time.Duration.ofMinutes(5)
+    doLast {
+        def role = providers.gradleProperty('gomokuRole').getOrElse('A')
+        def result = file('build/gomoku-regression/' + role + '-result.txt')
+        if (!result.isFile() || !result.text.startsWith('PASS '))
+            throw new GradleException(result.isFile() ? result.text : 'Missing Gomoku client result')
+        logger.lifecycle(result.text)
+    }
+}
+tasks.named('runGomokuServerTest') {
+    timeout = java.time.Duration.ofMinutes(5)
+    doLast {
+        def result = file('build/gomoku-regression/server-pass.txt')
+        if (!result.isFile() || !result.text.startsWith('PASS '))
+            throw new GradleException('Gomoku dedicated-server regression did not finish')
+        logger.lifecycle(result.text)
+    }
 }
 
 // Optional production gameplay service: tests the real gt skin command without depending on it in the client mod.

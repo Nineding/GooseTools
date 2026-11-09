@@ -1,0 +1,139 @@
+{
+  "prompt": [
+    0,
+    "01a3c49c-5cea-4d33-baf1-f483325eab28",
+    {
+      "1": {
+        "class_type": "LoadImage",
+        "inputs": {
+          "image": "gomoku-board.png"
+        }
+      },
+      "2": {
+        "class_type": "PerfectPixel",
+        "inputs": {
+          "image": [
+            "1",
+            0
+          ],
+          "sampling": "Majority Cluster",
+          "export_scale": 1,
+          "backend": "OpenCV Backend"
+        }
+      },
+      "3": {
+        "class_type": "SaveImage",
+        "inputs": {
+          "images": [
+            "2",
+            0
+          ],
+          "filename_prefix": "gomoku/board-grid"
+        }
+      },
+      "4": {
+        "class_type": "ImageScale",
+        "inputs": {
+          "image": [
+            "2",
+            0
+          ],
+          "upscale_method": "nearest-exact",
+          "width": 128,
+          "height": 128,
+          "crop": "disabled"
+        }
+      },
+      "5": {
+        "class_type": "ImageQuantize",
+        "inputs": {
+          "image": [
+            "4",
+            0
+          ],
+          "colors": 16,
+          "dither": "none"
+        }
+      },
+      "6": {
+        "class_type": "SaveImage",
+        "inputs": {
+          "images": [
+            "5",
+            0
+          ],
+          "filename_prefix": "gomoku/board"
+        }
+      }
+    },
+    {
+      "create_time": 1794201883609
+    },
+    [
+      "6",
+      "3"
+    ]
+  ],
+  "outputs": {
+    "3": {
+      "images": [
+        {
+          "filename": "board-grid_00001_.png",
+          "subfolder": "gomoku",
+          "type": "output"
+        }
+      ]
+    },
+    "6": {
+      "images": [
+        {
+          "filename": "board_00001_.png",
+          "subfolder": "gomoku",
+          "type": "output"
+        }
+      ]
+    }
+  },
+  "status": {
+    "status_str": "success",
+    "completed": true,
+    "messages": [
+      [
+        "execution_start",
+        {
+          "prompt_id": "01a3c49c-5cea-4d33-baf1-f483325eab28",
+          "timestamp": 1794201883611
+        }
+      ],
+      [
+        "execution_cached",
+        {
+          "nodes": [],
+          "prompt_id": "01a3c49c-5cea-4d33-baf1-f483325eab28",
+          "timestamp": 1794201883643
+        }
+      ],
+      [
+        "execution_success",
+        {
+          "prompt_id": "01a3c49c-5cea-4d33-baf1-f483325eab28",
+          "timestamp": 1794201885191
+        }
+      ]
+    ]
+  },
+  "meta": {
+    "3": {
+      "node_id": "3",
+      "display_node": "3",
+      "parent_node": null,
+      "real_node_id": "3"
+    },
+    "6": {
+      "node_id": "6",
+      "display_node": "6",
+      "parent_node": null,
+      "real_node_id": "6"
+    }
+  }
+}

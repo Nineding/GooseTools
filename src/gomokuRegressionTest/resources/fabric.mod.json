@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "goosetools_gomoku_test",
+  "version": "1.0.0",
+  "name": "GooseTools Gomoku regression",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.goosethings.tools.gomoku.GomokuRegressionSupport"],
+    "client": ["com.goosethings.tools.gomoku.GomokuGuiRegression"]
+  },
+  "depends": {"goosetools": "*"}
+}

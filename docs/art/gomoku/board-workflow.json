@@ -1,0 +1,64 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "gomoku-board.png"
+    }
+  },
+  "2": {
+    "class_type": "PerfectPixel",
+    "inputs": {
+      "image": [
+        "1",
+        0
+      ],
+      "sampling": "Majority Cluster",
+      "export_scale": 1,
+      "backend": "OpenCV Backend"
+    }
+  },
+  "3": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "2",
+        0
+      ],
+      "filename_prefix": "gomoku/board-grid"
+    }
+  },
+  "4": {
+    "class_type": "ImageScale",
+    "inputs": {
+      "image": [
+        "2",
+        0
+      ],
+      "upscale_method": "nearest-exact",
+      "width": 128,
+      "height": 128,
+      "crop": "disabled"
+    }
+  },
+  "5": {
+    "class_type": "ImageQuantize",
+    "inputs": {
+      "image": [
+        "4",
+        0
+      ],
+      "colors": 16,
+      "dither": "none"
+    }
+  },
+  "6": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "5",
+        0
+      ],
+      "filename_prefix": "gomoku/board"
+    }
+  }
+}

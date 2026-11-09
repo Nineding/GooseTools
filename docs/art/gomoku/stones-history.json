@@ -1,0 +1,194 @@
+{
+  "prompt": [
+    1,
+    "e38fe836-8dd9-4f36-ae98-8916b27c8f97",
+    {
+      "1": {
+        "class_type": "LoadImage",
+        "inputs": {
+          "image": "gomoku-stones.png"
+        }
+      },
+      "2": {
+        "class_type": "PerfectPixel",
+        "inputs": {
+          "image": [
+            "1",
+            0
+          ],
+          "sampling": "Majority Cluster",
+          "export_scale": 1,
+          "backend": "OpenCV Backend"
+        }
+      },
+      "3": {
+        "class_type": "SaveImage",
+        "inputs": {
+          "images": [
+            "2",
+            0
+          ],
+          "filename_prefix": "gomoku/stones-grid"
+        }
+      },
+      "4": {
+        "class_type": "ImageScale",
+        "inputs": {
+          "image": [
+            "2",
+            0
+          ],
+          "upscale_method": "nearest-exact",
+          "width": 64,
+          "height": 32,
+          "crop": "disabled"
+        }
+      },
+      "5": {
+        "class_type": "ImageQuantize",
+        "inputs": {
+          "image": [
+            "4",
+            0
+          ],
+          "colors": 12,
+          "dither": "none"
+        }
+      },
+      "6": {
+        "class_type": "MaskToImage",
+        "inputs": {
+          "mask": [
+            "1",
+            1
+          ]
+        }
+      },
+      "7": {
+        "class_type": "ImageScale",
+        "inputs": {
+          "image": [
+            "6",
+            0
+          ],
+          "upscale_method": "nearest-exact",
+          "width": 64,
+          "height": 32,
+          "crop": "disabled"
+        }
+      },
+      "8": {
+        "class_type": "ImageToMask",
+        "inputs": {
+          "image": [
+            "7",
+            0
+          ],
+          "channel": "red"
+        }
+      },
+      "9": {
+        "class_type": "ThresholdMask",
+        "inputs": {
+          "mask": [
+            "8",
+            0
+          ],
+          "value": 0.5
+        }
+      },
+      "10": {
+        "class_type": "JoinImageWithAlpha",
+        "inputs": {
+          "image": [
+            "5",
+            0
+          ],
+          "alpha": [
+            "9",
+            0
+          ]
+        }
+      },
+      "11": {
+        "class_type": "SaveImage",
+        "inputs": {
+          "images": [
+            "10",
+            0
+          ],
+          "filename_prefix": "gomoku/stones"
+        }
+      }
+    },
+    {
+      "create_time": 1794201883630
+    },
+    [
+      "11",
+      "3"
+    ]
+  ],
+  "outputs": {
+    "3": {
+      "images": [
+        {
+          "filename": "stones-grid_00001_.png",
+          "subfolder": "gomoku",
+          "type": "output"
+        }
+      ]
+    },
+    "11": {
+      "images": [
+        {
+          "filename": "stones_00001_.png",
+          "subfolder": "gomoku",
+          "type": "output"
+        }
+      ]
+    }
+  },
+  "status": {
+    "status_str": "success",
+    "completed": true,
+    "messages": [
+      [
+        "execution_start",
+        {
+          "prompt_id": "e38fe836-8dd9-4f36-ae98-8916b27c8f97",
+          "timestamp": 1794201885611
+        }
+      ],
+      [
+        "execution_cached",
+        {
+          "nodes": [],
+          "prompt_id": "e38fe836-8dd9-4f36-ae98-8916b27c8f97",
+          "timestamp": 1794201885649
+        }
+      ],
+      [
+        "execution_success",
+        {
+          "prompt_id": "e38fe836-8dd9-4f36-ae98-8916b27c8f97",
+          "timestamp": 1794201886539
+        }
+      ]
+    ]
+  },
+  "meta": {
+    "3": {
+      "node_id": "3",
+      "display_node": "3",
+      "parent_node": null,
+      "real_node_id": "3"
+    },
+    "11": {
+      "node_id": "11",
+      "display_node": "11",
+      "parent_node": null,
+      "real_node_id": "11"
+    }
+  }
+}
