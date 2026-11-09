@@ -70,9 +70,9 @@ public final class NameTagSync {
             }
         });
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
-                LAST_SENT.remove(handler.player.getUUID()));
+                LAST_SENT.clear());
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-            LAST_SENT.remove(handler.player.getUUID());
+            LAST_SENT.clear();
             DISGUISE_IDENTITIES.remove(handler.player.getUUID());
             NameTagVisibilityOverrides.removePlayer(handler.player.getUUID());
             NameTagIconAssignments.removePlayer(handler.player.getUUID());
@@ -139,6 +139,9 @@ public final class NameTagSync {
         if ((server.getTickCount() & 1) != 0) {
             return;
         }
+        // A reconnect replaces the target entity while its UUID and visible label can stay identical.
+        // Refresh all viewers on JOIN/DISCONNECT, with a low-rate authoritative refresh as a fallback.
+        boolean refresh = server.getTickCount() % 100 == 0;
         boolean fullBlood = readScore(server, SETTINGS_OBJECTIVE, "FullBloodDLC", 0) == 1;
         int meetingPhase = readScore(server, "ggdSession", "#MeetingPhase", 0);
         int markerGlowsReady = readScore(server, "ggdSession", "#MarkerGlowsReady", 0);
@@ -281,7 +284,7 @@ public final class NameTagSync {
             appendCorpseMarkers(server, viewer, fullBlood, corpseLabels, entries, viewerAliases);
             GooseToolsPayloads.NameTagSnapshotS2C snapshot =
                     new GooseToolsPayloads.NameTagSnapshotS2C(entries, viewerAliases);
-            if (snapshot.equals(LAST_SENT.get(viewer.getUUID()))) {
+            if (!refresh && snapshot.equals(LAST_SENT.get(viewer.getUUID()))) {
                 continue;
             }
             ServerPlayNetworking.send(viewer, snapshot);
