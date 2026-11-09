@@ -60,6 +60,7 @@ public final class MeetingAlertHud {
     /** True while the meeting transition owns non-spectator movement input. */
     public static boolean blocksMovement() {
         Alert alert = active;
+        if (alert != null && alert.transition().finished(System.nanoTime() - alert.startedNanos())) { clear(); return false; }
         return alert != null;
     }
 

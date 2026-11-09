@@ -2,6 +2,7 @@ package com.goosethings.tools.client.hud;
 
 /** Keeps map information hidden independently of the banner's entrance and exit. */
 final class MeetingAlertTransition {
+    static final long MAX_DURATION_NANOS = 6_000_000_000L;
     static final long REVEAL_NANOS = 1_000_000_000L;
     static final long SCENE_SETTLE_NANOS = 150_000_000L;
     private boolean meetingReady;
@@ -15,10 +16,11 @@ final class MeetingAlertTransition {
     }
 
     boolean finished(long elapsed) {
-        return revealStarted >= 0L && elapsed - revealStarted >= REVEAL_NANOS;
+        return elapsed >= MAX_DURATION_NANOS || revealStarted >= 0L && elapsed - revealStarted >= REVEAL_NANOS;
     }
 
     float opacity(long elapsed, boolean sceneLoaded) {
+        if (elapsed >= MAX_DURATION_NANOS) return 0.0F;
         // The user-selected entrance fades both cover and banner over 200 ms.
         if (elapsed < MeetingAlertAnimation.FADE_IN_NANOS) {
             return Math.clamp(elapsed / (float) MeetingAlertAnimation.FADE_IN_NANOS, 0.0F, 1.0F);
