@@ -31,6 +31,7 @@ public final class GooseToolsCommands {
     }
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
+        dispatcher.register(com.goosethings.tools.gomoku.GomokuServer.playerCommand());
         dispatcher.register(com.goosethings.tools.result.SummaryServer.celebrationCommand());
         dispatcher.register(Commands.literal("goosetools-client-settings")
                 .requires(source -> source.getEntity() instanceof ServerPlayer)
@@ -41,6 +42,7 @@ public final class GooseToolsCommands {
                 .then(com.goosethings.tools.camera.CameraCommands.cameras())
                 .then(com.goosethings.tools.task.TaskServer.command())
                 .then(com.goosethings.tools.game.GameServer.command())
+                .then(com.goosethings.tools.gomoku.GomokuServer.adminCommand())
                 .then(com.goosethings.tools.task.GuiTaskBridge.command())
                 .then(com.goosethings.tools.camera.CameraCommands.screens())
                 .then(com.goosethings.tools.vision.WitchDoctorVision.command())

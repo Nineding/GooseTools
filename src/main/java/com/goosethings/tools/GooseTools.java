@@ -48,6 +48,7 @@ public final class GooseTools implements ModInitializer {
         com.goosethings.tools.dream.DreamAvatarServer.register();
         com.goosethings.tools.task.TaskServer.register();
         com.goosethings.tools.game.GameServer.register();
+        com.goosethings.tools.gomoku.GomokuServer.register();
         com.goosethings.tools.task.GuiTaskBridge.register();
         AdventureNoClipService.register();
         ForcedFlightSync.register();
