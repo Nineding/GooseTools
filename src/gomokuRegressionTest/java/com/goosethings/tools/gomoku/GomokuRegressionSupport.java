@@ -29,6 +29,16 @@ public final class GomokuRegressionSupport implements ModInitializer {
             catch(Exception e) {throw new RuntimeException(e);}
         }));
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            if (Boolean.getBoolean("goosetools.boardHotbarRegression")) {
+                try { BoardHotbarRegression.run(server); }
+                catch (Throwable failure) {
+                    com.goosethings.tools.GooseTools.LOGGER.error("Board hotbar regression failed", failure);
+                    try { Files.createDirectories(output()); Files.writeString(output().resolve("result.txt"), "FAIL " + failure); }
+                    catch (Exception ignored) {}
+                }
+                finally { server.halt(false); }
+                return;
+            }
             command(server,"whitelist off");
             command(server,"scoreboard objectives add ggdGameId dummy");
             command(server,"scoreboard objectives add ggdSession dummy");

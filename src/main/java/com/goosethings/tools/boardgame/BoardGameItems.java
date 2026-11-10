@@ -38,31 +38,30 @@ public final class BoardGameItems {
     public static void reconcile(ServerPlayer player, GomokuAccess.Group access) {
         var inv = player.getInventory();
         int slot = -1;
-        if (access != null && access.kind() == 2) {
+        if (access != null && access.kind() == 2 && !taskOwnsHotbar(player)) {
             var objective = player.level().getServer().getScoreboard().getObjective("ggdSession");
             var phase = objective == null ? null : player.level().getServer().getScoreboard().getPlayerScoreInfo(ScoreHolder.forNameOnly("#MeetingPhase"), objective);
             boolean meeting = phase != null && phase.value() > 0 || player.level().getServer().getPlayerList().getPlayers().stream().anyMatch(p -> p.entityTags().contains("inTalk"));
             slot = meeting ? 2 : 1;
+            // Data-pack controls are authoritative for their slots. Moving one makes its
+            // owner recreate it every refresh, accumulating duplicates across the hotbar.
+            if (!inv.getItem(slot).isEmpty() && !isGamepad(inv.getItem(slot))) slot = -1;
         }
         boolean changed = false;
         for (int i = 0; i < inv.getContainerSize(); i++) if (i != slot && isGamepad(inv.getItem(i))) { inv.setItem(i, ItemStack.EMPTY); changed = true; }
-        if (slot >= 0 && !isGamepad(inv.getItem(slot))) {
-            ItemStack previous = inv.getItem(slot);
-            int destination = -1;
-            if (!previous.isEmpty()) {
-                for (int i = 3; i < 36; i++) if (inv.getItem(i).isEmpty()) { destination = i; break; }
-                // A full inventory is never destroyed to make room for a launcher.
-                if (destination < 0) return;
-                CustomData managed = previous.get(DataComponents.CUSTOM_DATA);
-                if (managed != null && managed.copyTag().getBooleanOr("ggdManagedHotbar", false)) {
-                    CompoundTag relocated = managed.copyTag(); relocated.putInt("ggdHotbarSlot", destination);
-                    previous.set(DataComponents.CUSTOM_DATA, CustomData.of(relocated));
-                }
-                inv.setItem(destination, previous);
-            }
+        if (slot >= 0 && inv.getItem(slot).isEmpty()) {
             inv.setItem(slot, gamepad(slot)); changed = true;
         }
         if (changed) { inv.setChanged(); player.inventoryMenu.broadcastChanges(); }
+    }
+    private static boolean taskOwnsHotbar(ServerPlayer player) {
+        if (player.entityTags().contains("inTask") || player.entityTags().contains("inTaskGUI")) return true;
+        // Check tools as well as tags: point entry and exit are separate data-pack updates.
+        for (int slot = 0; slot < 9; slot++) {
+            CustomData data = player.getInventory().getItem(slot).get(DataComponents.CUSTOM_DATA);
+            if (data != null && data.copyTag().getBooleanOr("task", false)) return true;
+        }
+        return false;
     }
     private static ItemStack gamepad(int slot) {
         ItemStack item = new ItemStack(Items.CARROT_ON_A_STICK);
