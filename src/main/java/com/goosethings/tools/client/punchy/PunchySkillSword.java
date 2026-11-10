@@ -1,6 +1,7 @@
 package com.goosethings.tools.client.punchy;
 
 import com.goosethings.tools.client.punchy.mixin.ItemRenderStateAccess;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.resources.model.cuboid.ItemTransform;
@@ -49,6 +50,15 @@ public final class PunchySkillSword {
 
     private static boolean isSakuraModel(String model) {
         return "sakura_sword".equals(model) || "sakura_sword_charging".equals(model);
+    }
+
+    public static boolean isLocalSakuraForMoves(ItemStack stack) {
+        Minecraft client = Minecraft.getInstance();
+        LocalPlayer player = client.player;
+        // Moves passes the holder's actual main-hand stack to the sword check and clip bindings.
+        return player != null && player == client.getCameraEntity() && !player.isSpectator()
+                && !client.options.getCameraType().isFirstPerson()
+                && stack == player.getMainHandItem() && isSakura(stack);
     }
 
     public static boolean isSakuraRefresh(ItemStack previous, ItemStack current, LocalPlayer player) {

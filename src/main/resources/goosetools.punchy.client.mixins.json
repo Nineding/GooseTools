@@ -10,6 +10,8 @@
     "SakuraOwnerHandMixin",
     "PunchyHeldItemMixin",
     "PunchySakuraRefreshMixin",
+    "PunchyMovesSakuraAttackMixin",
+    "PunchyMovesSakuraBindingMixin",
     "PunchySkillSwordKindMixin",
     "PunchyWornHeadFaceMixin",
     "PunchyWornHeadGlintsMixin"
