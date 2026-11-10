@@ -10,6 +10,8 @@ Approved-motion samples now move each player six blocks over eight ticks using t
 
 The isolated server is peaceful to prevent slime knockback from contaminating the trajectory. B's continuous captures allow only one pending GPU readback; skipped tick numbers are retained so previews can preserve timing instead of flooding a single rendered frame with duplicate requests. A retains the ordinary key-frame captures.
 
+`SakuraIaidoArmTest` samples the complete pose paths with wide/slim arms and mirrored grips. It checks palm alignment, fixed upper/forearm lengths, body-attached shoulders and a single elbow hinge with no axial twist. First-person grip checks also require the back of the hand to face the owner and preserve fist dimensions. GPU captures remain necessary to judge the silhouette and the hand/weapon relationship.
+
 From the GooseTools project, with JDK 25 and the sibling Whoiskiller resource pack:
 
 ```powershell

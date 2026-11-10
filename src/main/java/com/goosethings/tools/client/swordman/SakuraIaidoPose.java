@@ -18,17 +18,17 @@ public final class SakuraIaidoPose {
     private static Transform at(float x,float y,float z,float dx,float dy,float dz) {
         return new Transform(new Vector3f(x,y,z),new Quaternionf().rotationTo(new Vector3f(0,1,0),new Vector3f(dx,dy,dz).normalize()));
     }
-    private static final Transform REST_BLADE=at(-6,10,-3,-.10F,-.97F,-.22F);
-    private static final Transform REST_SHEATH=at(6,10,1,.30F,.13F,.95F);
+    private static final Transform REST_BLADE=at(-6,8,-3,-.10F,-.97F,-.22F);
+    private static final Transform REST_SHEATH=at(6,6.5F,-.5F,.30F,.13F,.95F);
     // Put the mouth outside the left hip (screen-right from the front), clear of the torso.
-    private static final Transform HOLD=at(3,8,-5.7F,.94F,.03F,.34F);
-    private static final Transform INSERT_SHEATH=at(6,7,-5.5F,.94F,.3F,.12F);
-    private static final Transform CLEAR=at(-8,8,-9,.94F,.03F,.34F);
+    private static final Transform HOLD=at(-1,5.3F,-4,.94F,.03F,.34F);
+    private static final Transform INSERT_SHEATH=at(3.5F,5.5F,-4.5F,.94F,.3F,.12F);
+    private static final Transform CLEAR=at(-8,6,-5.8F,.94F,.03F,.34F);
     // Owner coordinates: expose the tip low on the left, then drive it forward/right/up.
-    private static final Transform DRAW=at(-6,8,-7.5F,.80F,.56F,.20F);
-    private static final Transform CUT=at(-5,2,-12.3F,-.38F,-.48F,-.79F);
-    private static final Transform FOLLOW=at(-6,0,-12.3F,-.48F,-.62F,-.62F);
-    private static final Transform RETREAT=at(7,8,0,.94F,.03F,.34F);
+    private static final Transform DRAW=at(-6,8,-5.3F,.80F,.56F,.20F);
+    private static final Transform CUT=at(-4,1,-9.5F,-.38F,-.48F,-.79F);
+    private static final Transform FOLLOW=at(-5,0,-9.5F,-.48F,-.62F,-.62F);
+    private static final Transform RETREAT=at(6,6.5F,1.5F,.94F,.03F,.34F);
     private SakuraIaidoPose() { }
     public static Frame idle() { return new Frame(REST_BLADE,REST_SHEATH,0,0,0,-1); }
     public static Frame sample(SakuraIaidoTimeline.Phase phase,float seconds) {
@@ -65,14 +65,17 @@ public final class SakuraIaidoPose {
     }
     public static Quaternionf firstPersonRotation() {
         // A small presentation yaw retains the owner's left/right and the forward cut depth.
-        return new Quaternionf().rotationY((float)Math.toRadians(15));
+        return new Quaternionf().rotationY((float)Math.toRadians(5));
     }
     public static Frame firstPerson(Frame frame) {
         var rotation=firstPersonRotation();
-        return new Frame(view(frame.blade(),rotation),view(frame.sheath(),rotation),frame.weight(),frame.lean(),frame.turn(),frame.slash());
+        float stroke=frame.slash()<0?0:ease((frame.slash()-CUT_START)/(CUT_END-CUT_START))*(1-ease((frame.slash()-.5F)/.65F));
+        // Frame the forward hand close to the camera; keep the actual arm at its authored length.
+        var offset=new Vector3f(0,4*stroke,1.25F*stroke);
+        return new Frame(view(frame.blade(),rotation,offset),view(frame.sheath(),rotation,offset),frame.weight(),frame.lean(),frame.turn(),frame.slash());
     }
-    private static Transform view(Transform transform,Quaternionf rotation) {
-        return new Transform(rotation.transform(new Vector3f(transform.position())),new Quaternionf(rotation).mul(transform.rotation()));
+    private static Transform view(Transform transform,Quaternionf rotation,Vector3f offset) {
+        return new Transform(rotation.transform(new Vector3f(transform.position())).add(offset),new Quaternionf(rotation).mul(transform.rotation()));
     }
     public static Transform mix(Transform a,Transform b,float t) {
         return new Transform(new Vector3f(a.position).lerp(b.position,t),new Quaternionf(a.rotation).slerp(b.rotation,t));
