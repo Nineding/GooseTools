@@ -74,6 +74,9 @@ public final class NameTagRenderer {
                                       double relativeZ,
                                       float boundingBoxHeight,
                                       Quaternionfc cameraRotation) {
+        if (Minecraft.getInstance().gui.hud.isHidden()) {
+            return;
+        }
         UUID sourceId = NameTagClientState.sourcePlayerId(entity);
         GooseToolsPayloads.NameTagEntry entry = NameTagClientState.entry(sourceId);
         if (entry == null || entry.name().isEmpty() || entity instanceof Mannequin mannequin
@@ -87,7 +90,7 @@ public final class NameTagRenderer {
 
     private static void renderWorld(LevelRenderContext context) {
         Minecraft client = Minecraft.getInstance();
-        if (client.level == null || client.player == null) {
+        if (client.level == null || client.player == null || client.gui.hud.isHidden()) {
             return;
         }
         Camera camera = client.gameRenderer.mainCamera();
