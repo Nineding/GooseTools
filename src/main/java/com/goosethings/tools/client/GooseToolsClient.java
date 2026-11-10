@@ -61,6 +61,7 @@ public final class GooseToolsClient implements ClientModInitializer {
         ClientTaskMarkers.register();
         PlayerArmAnimationContinuity.register();
         com.goosethings.tools.client.swordman.SwordmanClient.register();
+        com.goosethings.tools.client.swordman.SakuraIaidoClient.register();
         VisionFogState.register();
         BlackoutAssistClient.register();
         BlackoutWallGuide.register();

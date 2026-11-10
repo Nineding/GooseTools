@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "sakuraprobe",
+  "version": "1.0",
+  "entrypoints": {
+    "server": ["sakuraprobe.SakuraDedicated"],
+    "client": ["sakuraprobe.SakuraClient"]
+  },
+  "depends": {"goosetools": "*"}
+}
