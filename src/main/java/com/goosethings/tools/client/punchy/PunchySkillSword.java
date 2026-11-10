@@ -10,6 +10,7 @@ import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 import org.joml.Vector3f;
+import org.joml.Quaternionf;
 
 /** Identifies the skill sword models and aligns them with the hand grip. */
 public final class PunchySkillSword {
@@ -17,6 +18,19 @@ public final class PunchySkillSword {
             new Vector3f(0, -90, 55), new Vector3f(0, 4 / 16.0F, 0.5F / 16), new Vector3f(0.85F));
     private static final ItemTransform LEFT_GRIP = new ItemTransform(
             new Vector3f(0, 90, -55), new Vector3f(0, 4 / 16.0F, 0.5F / 16), new Vector3f(0.85F));
+    private static final ItemTransform SAKURA_RIGHT_GRIP = sakuraGrip(false);
+    private static final ItemTransform SAKURA_LEFT_GRIP = sakuraGrip(true);
+
+    private static ItemTransform sakuraGrip(boolean left) {
+        var angles = new Vector3f(0, left ? 90 : -90, left ? -55 : 55);
+        var rotation = new Quaternionf().rotationXYZ(0, (float)Math.toRadians(angles.y), (float)Math.toRadians(angles.z));
+        // Raw grip Y=-1.5 becomes Y=4.5 in the item model, whose render origin is (8,8,8).
+        var grip = rotation.transform(new Vector3f(0, -3.5F, 0).mul(.85F));
+        // ItemInHandLayer / Punchy apply RX(-90), RY(180), then (+/-1,2,-10).
+        // Place the handle at the palm centre (+/-1,8,0).
+        var translation = new Vector3f(0, -2, 2).sub(grip).div(16);
+        return new ItemTransform(angles, translation, new Vector3f(.85F));
+    }
 
     private PunchySkillSword() {
     }
@@ -79,8 +93,17 @@ public final class PunchySkillSword {
     }
 
     public static void applyGrip(ItemStackRenderState state, ItemDisplayContext context) {
+        applyGrip(state, context, false);
+    }
+
+    public static void applySakuraGrip(ItemStackRenderState state, ItemDisplayContext context) {
+        applyGrip(state, context, true);
+    }
+
+    private static void applyGrip(ItemStackRenderState state, ItemDisplayContext context, boolean sakura) {
         ItemRenderStateAccess access = (ItemRenderStateAccess) state;
-        ItemTransform grip = context.leftHand() ? LEFT_GRIP : RIGHT_GRIP;
+        ItemTransform grip = sakura ? (context.leftHand() ? SAKURA_LEFT_GRIP : SAKURA_RIGHT_GRIP)
+                : (context.leftHand() ? LEFT_GRIP : RIGHT_GRIP);
         for (int i = 0; i < access.goosetools$getActiveLayerCount(); i++) {
             access.goosetools$getLayers()[i].setItemTransform(grip);
         }

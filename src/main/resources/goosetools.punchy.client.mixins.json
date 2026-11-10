@@ -4,6 +4,12 @@
   "package": "com.goosethings.tools.client.punchy.mixin",
   "compatibilityLevel": "JAVA_25",
   "client": [
+    "SakuraVisualStateMixin",
+    "SakuraSubmitMixin",
+    "SakuraPoseMixin",
+    "SakuraFirstPersonMixin",
+    "PunchyIaidoHandsMixin",
+    "SakuraSheathLayerMixin",
     "ItemRenderLayerAccess",
     "ItemRenderStateAccess",
     "SakuraHandRefreshMixin",

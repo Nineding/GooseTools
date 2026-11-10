@@ -22,10 +22,10 @@ abstract class SakuraOwnerHandMixin {
             return;
         }
         if (PunchySkillSword.isSakura(state.rightHandItemStack)) {
-            PunchySkillSword.applyGrip(state.rightHandItemState, ItemDisplayContext.THIRD_PERSON_RIGHT_HAND);
+            PunchySkillSword.applySakuraGrip(state.rightHandItemState, ItemDisplayContext.THIRD_PERSON_RIGHT_HAND);
         }
         if (PunchySkillSword.isSakura(state.leftHandItemStack)) {
-            PunchySkillSword.applyGrip(state.leftHandItemState, ItemDisplayContext.THIRD_PERSON_LEFT_HAND);
+            PunchySkillSword.applySakuraGrip(state.leftHandItemState, ItemDisplayContext.THIRD_PERSON_LEFT_HAND);
         }
     }
 }

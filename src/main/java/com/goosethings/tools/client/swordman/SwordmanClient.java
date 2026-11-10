@@ -50,7 +50,10 @@ public final class SwordmanClient {
         ClientPlayNetworking.registerGlobalReceiver(SwordmanPackets.Motion.TYPE,(packet,context)->context.client().execute(()->{
             Minecraft mc=context.client();
             if (!packet.active() || mc.player==null || mc.level==null) { clearMotion(); return; }
-            if (motionTarget==null || motionLevel!=mc.level) motionPrevious=mc.player.position();
+            if (motionTarget==null || motionLevel!=mc.level) {
+                motionPrevious=mc.player.position();
+                SakuraIaidoClient.approvedDash();
+            }
             motionLevel=mc.level; motionTarget=new Vec3(packet.x(),packet.y(),packet.z()); motionTick=tick;
         }));
         ClientPlayConnectionEvents.DISCONNECT.register((handler,mc)->clear());

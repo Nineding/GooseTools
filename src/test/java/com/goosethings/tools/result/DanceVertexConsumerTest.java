@@ -11,6 +11,43 @@ import java.util.ArrayList;
 import static org.junit.jupiter.api.Assertions.*;
 
 class DanceVertexConsumerTest {
+    @Test void enlargedSleeveShellSplitsOnSkinTexelsRatherThanWorldPixelBoundaries() {
+        var out=new Capture();
+        var stream=new DanceVertexConsumer(out,new PoseStack().last(),new Quaternionf(),4,true);
+        float[][] vertices={{-1.15F,-2.07F,0,0},{3.45F,-2.07F,4,0},{3.45F,10.35F,4,12},{-1.15F,10.35F,0,12}};
+        for(var v:vertices)stream.addVertex(v[0]/16,v[1]/16,-2.3F/16,-1,v[2]/64,v[3]/64,0,0,0,0,-1);
+        stream.finish();assertEquals(4*12*4,out.points.size());
+        for(int i=0;i<out.points.size();i+=4) {
+            float minU=Float.POSITIVE_INFINITY,maxU=Float.NEGATIVE_INFINITY,minV=minU,maxV=maxU;
+            for(int j=0;j<4;j++) {
+                var uv=out.uvs.get(i+j);minU=Math.min(minU,uv.x);maxU=Math.max(maxU,uv.x);
+                minV=Math.min(minV,uv.y);maxV=Math.max(maxV,uv.y);
+            }
+            assertEquals(1/64F,maxU-minU,1e-6);assertEquals(1/64F,maxV-minV,1e-6);
+        }
+    }
+    @Test void iaidoVoxelFacesKeepOutwardWindingForShaderNormalReconstruction() {
+        var out=new Capture();
+        var stream=new DanceVertexConsumer(out,new PoseStack().last(),new Quaternionf().rotationX(.7F),4,true);
+        for(float[] xy:new float[][]{{-2,7},{2,7},{2,9},{-2,9}})
+            stream.addVertex(xy[0]/16,xy[1]/16,-2/16F,-1,0,0,0,0,0,0,-1);
+        stream.finish();assertTrue(out.points.size()>4);assertEquals(0,out.points.size()%4);
+        for(int i=0;i<out.points.size();i+=4) {
+            var normal=new Vector3f(out.points.get(i+2)).sub(out.points.get(i))
+                    .cross(new Vector3f(out.points.get(i+3)).sub(out.points.get(i+1))).normalize();
+            assertTrue(normal.dot(out.normals.get(i))>.99F);
+        }
+    }
+    @Test void mirroredVoxelCornerRetainsOutwardWinding() {
+        var out=new Capture();
+        var stream=new DanceVertexConsumer(out,new PoseStack().last(),new Quaternionf().rotationX(.7F),4,true);
+        for(float[] xy:new float[][]{{-2,7},{-2,7},{2,9},{-2,9}})
+            stream.addVertex(xy[0]/16,xy[1]/16,-2/16F,-1,0,0,0,0,0,0,-1);
+        stream.finish();assertTrue(out.points.size()>=4);assertEquals(0,out.points.size()%4);
+        var normal=new Vector3f(out.points.get(2)).sub(out.points.get(0))
+                .cross(new Vector3f(out.points.get(3)).sub(out.points.get(1))).normalize();
+        assertTrue(normal.dot(out.normals.getFirst())>.99F);
+    }
     @Test void thickVoxelAndBaseSkinFollowSameJointInTransformedLimbSpace() {
         var poses=new PoseStack();poses.translate(7,4,-2);poses.rotate(new Quaternionf().rotationZ(.7F));poses.scale(2,3,2);
         var output=new Capture();var bend=new Quaternionf().rotationX((float)Math.PI/2);
@@ -50,11 +87,12 @@ class DanceVertexConsumerTest {
     }
     private static class Capture implements VertexConsumer {
         final ArrayList<Vector3f> points=new ArrayList<>(),normals=new ArrayList<>();
+        final ArrayList<org.joml.Vector2f> uvs=new ArrayList<>();
         int color,overlay,light;float u,v,u3,v3,width;
         public VertexConsumer addVertex(float x,float y,float z){points.add(new Vector3f(x,y,z));return this;}
         public VertexConsumer setColor(int c){color=c;return this;}
         public VertexConsumer setColor(int r,int g,int b,int a){return setColor(a<<24|r<<16|g<<8|b);}
-        public VertexConsumer setUv(float x,float y){u=x;v=y;return this;}
+        public VertexConsumer setUv(float x,float y){u=x;v=y;uvs.add(new org.joml.Vector2f(x,y));return this;}
         public VertexConsumer setUv1(int x,int y){overlay=x|y<<16;return this;}
         public VertexConsumer setUv2(int x,int y){light=x|y<<16;return this;}
         public VertexConsumer setUv3(float x,float y){u3=x;v3=y;return this;}

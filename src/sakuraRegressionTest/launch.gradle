@@ -1,0 +1,33 @@
+import groovy.json.JsonOutput
+
+gradle.projectsEvaluated {
+    def p = rootProject
+    def dir = p.file('build/sakura-native-validation')
+    def compileFixture = p.tasks.register('compileSakuraFixture', JavaCompile) {
+        dependsOn p.tasks.named('classes')
+        source p.fileTree(p.file('src/sakuraRegressionTest/java')) { include '**/*.java' }
+        classpath = p.sourceSets.main.output + p.sourceSets.main.compileClasspath
+        destinationDirectory = new File(dir, 'fixture-classes')
+        options.release.set(25)
+    }
+    def packFixture = p.tasks.register('packageSakuraFixture', Jar) {
+        dependsOn compileFixture
+        from(new File(dir, 'fixture-classes'))
+        from(p.file('src/sakuraRegressionTest/resources/fabric.mod.json'))
+        destinationDirectory = dir
+        archiveFileName = 'fixture.jar'
+    }
+    p.tasks.register('exportSakuraLaunch') {
+        dependsOn packFixture
+        dependsOn p.tasks.named('configureLaunch')
+        doLast {
+            def data = [:]
+            for (String kind in ['Client', 'Server']) {
+                def run = p.tasks.named('run' + kind).get()
+                data[kind] = [main: run.mainClass.get(), classpath: run.classpath.asPath,
+                              vm: run.allJvmArgs, program: run.args]
+            }
+            new File(dir, 'launch.json').text = JsonOutput.toJson(data)
+        }
+    }
+}
