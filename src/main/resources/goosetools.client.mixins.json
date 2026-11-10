@@ -14,7 +14,9 @@
     "LocalPlayerMeetingAlertMixin",
     "NametagEntityRendererMixin",
     "GuiRenderPipelinesAccessor",
-    "ResultPictureOutlineMixin"
+    "ResultPictureOutlineMixin",
+    "IrisOutlineLevelRendererMixin",
+    "IrisOutlinePostPassMixin"
   ],
   "injectors": {
     "defaultRequire": 1
