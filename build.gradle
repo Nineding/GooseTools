@@ -179,6 +179,14 @@ loom {
             programArg '--height'
             programArg '800'
         }
+        boardHotbarServerTest {
+            server()
+            source sourceSets.gomokuRegressionTest
+            runDir 'build/board-hotbar-server-test'
+            vmArg '-Dgoosetools.gomokuRegression=true'
+            vmArg '-Dgoosetools.boardHotbarRegression=true'
+            vmArg '-Dgoosetools.gomokuOutput=' + layout.buildDirectory.dir('board-hotbar-regression').get().asFile.absolutePath
+        }
         fairPlayRegressionTest {
             client()
             source sourceSets.fairPlayRegressionTest
@@ -980,6 +988,20 @@ tasks.named('runGomokuServerTest') {
         def result = file('build/gomoku-regression/server-pass.txt')
         if (!result.isFile() || !result.text.startsWith('PASS '))
             throw new GradleException('Gomoku dedicated-server regression did not finish')
+        logger.lifecycle(result.text)
+    }
+}
+
+tasks.named('runBoardHotbarServerTest') {
+    timeout = java.time.Duration.ofMinutes(3)
+    doFirst {
+        file('build/board-hotbar-regression').mkdirs()
+        file('build/board-hotbar-regression/result.txt').text = 'RUNNING'
+    }
+    doLast {
+        def result = file('build/board-hotbar-regression/result.txt')
+        if (!result.isFile() || !result.text.startsWith('PASS '))
+            throw new GradleException(result.isFile() ? result.text : 'Missing board hotbar result')
         logger.lifecycle(result.text)
     }
 }
