@@ -1,0 +1,19 @@
+allprojects { afterEvaluate {
+ def fixture=file('src/irisOutlineTest')
+ def run=file(providers.gradleProperty('irisTestRun').get())
+ def shader=file(providers.gradleProperty('irisTestShader').get())
+ sourceSets { irisOutlineSmoke {
+  java.setSrcDirs([new File(fixture,'java')]); resources.setSrcDirs([new File(fixture,'resources')])
+  compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
+  runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+ } }
+ configurations { irisOutlineSmokeImplementation.extendsFrom implementation; irisOutlineSmokeRuntimeOnly.extendsFrom runtimeOnly }
+ dependencies { irisOutlineSmokeRuntimeOnly fileTree(dir:providers.gradleProperty('irisTestMods').get(),include:['iris-*.jar','sodium-*.jar','ImmediatelyFast-*.jar']) }
+ loom { mods { iris_outline_smoke { sourceSet sourceSets.irisOutlineSmoke } }; runs { irisOutlineSmoke { client(); source sourceSets.irisOutlineSmoke; runDir run.absolutePath; vmArg '-Dgoosetools.irisTestPack='+shader.name; programArg '--width';programArg '960';programArg '--height';programArg '640' } } }
+ tasks.named('runIrisOutlineSmoke') { timeout=java.time.Duration.ofMinutes(6); doFirst {
+  run.mkdirs();new File(run,'config').mkdirs();new File(run,'shaderpacks').mkdirs()
+  new File(run,'options.txt').text='pauseOnLostFocus:false\nrenderDistance:2\nsimulationDistance:5\nlang:en_us\ntutorialStep:none\n'
+  new File(run,'config/iris.properties').text='enableShaders=false\n'
+  project.copy { from shader; into shader.isDirectory()?new File(run,'shaderpacks/'+shader.name):new File(run,'shaderpacks') }
+ } }
+} }
