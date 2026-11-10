@@ -1,6 +1,10 @@
 # Sakura / iaido runtime regression
 
-Uses the packaged runtime JAR, an isolated dedicated server, and two clients (A: vanilla renderer; B: Punchy 3.2 + Moves 1.0.8 + Fluid & Foolish 1.0.1). The fixture is never included in the release JAR. The server sends actual skill stacks and the existing approved-motion packet; it does not simulate GooseThings damage or charge eligibility.
+Uses the packaged runtime JAR, an isolated dedicated server, and two clients (A: vanilla renderer; B: Punchy 3.2 + Moves 1.0.8 + Fluid & Foolish 1.0.1 + SkinLayers3D 1.11.4). The fixture is never included in the release JAR. The server sends actual skill stacks and the existing approved-motion packet; it does not simulate GooseThings damage or charge eligibility.
+
+Third-person captures use a narrower FOV to inspect hand/sleeve clearance, include intermediate insertion poses and repeated hold frames, and move the player during cooldown to inspect sheath attachment. GUI alignment and ordinary first-person grip remain visible in the first-person HUD/idle captures. `SAKURA_SKINLAYERS=false` permits a shader-only diagnostic comparison without changing the user's installed mods or config.
+
+The default SkinLayers3D fast renderer remains enabled for release checks. `SAKURA_SKIN_FAST=false` disables greedy sleeve shells only in the isolated instance for diagnosis; it is not a production workaround. `DanceVertexConsumerTest` covers outward face winding and UV-aligned subdivision of enlarged sleeve shells.
 
 From the GooseTools project, with JDK 25 and the sibling Whoiskiller resource pack:
 

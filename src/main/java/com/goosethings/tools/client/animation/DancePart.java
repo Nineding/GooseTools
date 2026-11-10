@@ -5,4 +5,5 @@ import org.joml.Quaternionf;
 /** Preview-only articulation. Cleared on every normal humanoid setup. */
 public interface DancePart {
     void goosetools$bend(Quaternionf rotation, float joint);
+    void goosetools$bendWithStableFaces(Quaternionf rotation, float joint);
 }

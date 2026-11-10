@@ -4,6 +4,18 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SakuraIaidoTimelineTest {
+    @Test void cutRisesAcrossTheBodyAndChargingHandsStayApart() {
+        var start=SakuraIaidoPose.slash(.14F).blade().point(0,24,0);
+        var end=SakuraIaidoPose.slash(.30F).blade().point(0,24,0);
+        assertTrue(end.x<start.x-15,"cut must cross from the saya side to the opposite side");
+        assertTrue(end.y<start.y-15,"cut must rise, not sweep horizontally");
+        for(int i=20;i<=100;i++) {
+            var f=SakuraIaidoPose.sample(SakuraIaidoTimeline.Phase.SHEATHE,i/100F);
+            var right=f.blade().point(0,SakuraIaidoPose.BLADE_GRIP,0);
+            var left=f.sheath().point(0,SakuraIaidoPose.SHEATH_GRIP,0);
+            assertTrue(right.distance(left)>6.7F,"leave clearance for both hands and thick sleeves");
+        }
+    }
     @Test void cooldownAndInventoryRefreshNeverAttack() {
         var clock=new SakuraIaidoTimeline();
         for(int i=0;i<60;i++) clock.tick(i/20F,true,false,true);

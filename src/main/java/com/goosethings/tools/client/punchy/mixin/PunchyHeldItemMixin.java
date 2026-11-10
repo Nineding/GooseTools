@@ -52,7 +52,8 @@ abstract class PunchyHeldItemMixin {
                 original.call(resolver, state, stack, context, holder);
                 return;
             }
-            PunchySkillSword.applyGrip(state, context);
+            if (PunchySkillSword.isSakura(stack)) PunchySkillSword.applySakuraGrip(state, context);
+            else PunchySkillSword.applyGrip(state, context);
             return;
         }
         if (context == firstPerson || goosetools$hasVisibleLayer(state)) {

@@ -77,17 +77,28 @@ public final class SakuraIaidoRenderer {
         collector.submitCustomGeometry(poses,RenderTypes.entityCutout(skin),(pose,out)->{
             PoseStack local=new PoseStack();local.last().pose().set(pose.pose());local.last().normal().set(pose.normal());
             local.scale(16,16,16);
-            arm(model.rightArm,frame.blade().position(),false,frame,1,true);
-            arm(model.leftArm,frame.sheath().point(0,4.5F,0),true,frame,1,true);
+            arm(model.rightArm,frame.blade().point(0,SakuraIaidoPose.BLADE_GRIP,0),false,thin,1,true);
+            arm(model.leftArm,frame.sheath().point(0,SakuraIaidoPose.SHEATH_GRIP,0),true,thin,1,true);
             model.rightSleeve.visible=state.showRightSleeve;model.leftSleeve.visible=state.showLeftSleeve;
             model.rightArm.render(local,out,state.lightCoords,OverlayTexture.NO_OVERLAY);
             model.leftArm.render(local,out,state.lightCoords,OverlayTexture.NO_OVERLAY);
         });
         poses.popPose();return true;
     }
-    public static void thirdPerson(PoseStack poses,SubmitNodeCollector collector,AvatarRenderState state) {
+    public static void thirdPerson(PoseStack poses,SubmitNodeCollector collector,AvatarRenderState state,PlayerModel model) {
         var frame=((SakuraVisualState)state).goosetools$iaido();
         if(frame==null || !ready() || !SakuraIaidoClient.owns(state)) return;
+        if(frame.weight()<=0) {
+            // Use the same final hand transform as native items (walk, idle bob and Punchy Moves).
+            var hand=Minecraft.getInstance().player.getMainArm().getOpposite();
+            poses.pushPose();model.translateToHand(state,hand,poses);
+            poses.scale(1/16F,1/16F,1/16F);
+            poses.translate(hand==HumanoidArm.LEFT?1:-1,8,0);
+            var rotation=new Quaternionf().rotationTo(new Vector3f(0,1,0),new Vector3f(0,.12F,.99F).normalize());
+            var offset=rotation.transform(new Vector3f(0,-SakuraIaidoPose.SHEATH_GRIP*SakuraIaidoPose.SCALE,0));
+            mesh(poses,collector,sheath,new SakuraIaidoPose.Transform(offset,rotation),state.lightCoords);
+            poses.popPose();return;
+        }
         poses.pushPose();poses.scale(1/16F,1/16F,1/16F);
         if(Minecraft.getInstance().player.getMainArm()==HumanoidArm.LEFT) poses.scale(-1,1,1);
         submitWeapon(poses,collector,frame,state.lightCoords,frame.weight()>0,false);
@@ -139,30 +150,35 @@ public final class SakuraIaidoRenderer {
         float w=frame.weight();boolean mirror=Minecraft.getInstance().player.getMainArm()==HumanoidArm.LEFT;
         model.body.xRot=lerp(model.body.xRot,frame.lean(),w);
         model.body.yRot=lerp(model.body.yRot,mirror?-frame.turn():frame.turn(),w);
-        Vector3f right=new Vector3f(frame.blade().position()),left=frame.sheath().point(0,4.5F,0);
+        Vector3f right=frame.blade().point(0,SakuraIaidoPose.BLADE_GRIP,0),left=frame.sheath().point(0,SakuraIaidoPose.SHEATH_GRIP,0);
         if(mirror) {right.x=-right.x;left.x=-left.x;var tmp=right;right=left;left=tmp;}
-        arm(model.rightArm,right,false,frame,w,false);arm(model.leftArm,left,true,frame,w,false);
+        boolean thin=state.skin.model()==net.minecraft.world.entity.player.PlayerModelType.SLIM;
+        arm(model.rightArm,right,false,thin,w,false);arm(model.leftArm,left,true,thin,w,false);
         model.rightLeg.xRot=lerp(model.rightLeg.xRot,-.13F,w);model.leftLeg.xRot=lerp(model.leftLeg.xRot,.17F,w);
     }
     private static SakuraIaidoPose.Transform view(SakuraIaidoPose.Transform pose,Quaternionf rotation) {
         return new SakuraIaidoPose.Transform(rotation.transform(new Vector3f(pose.position())),new Quaternionf(rotation).mul(pose.rotation()));
     }
-    private static void arm(ModelPart part,Vector3f hand,boolean left,SakuraIaidoPose.Frame frame,float weight,boolean firstPerson) {
+    private static void arm(ModelPart part,Vector3f hand,boolean left,boolean thin,float weight,boolean firstPerson) {
         // Two-bone reach, using the project's existing skin/sleeve articulation.
         Vector3f shoulder=firstPerson?new Vector3f(left?9:-9,18,3):new Vector3f(left?5.5F:-5.5F,2.8F,left?1:-2);
         Vector3f direction=new Vector3f(hand).sub(shoulder);float distance=direction.length();
-        if(distance>9.9F) {shoulder.fma(distance-9.9F,direction.normalize());direction.set(hand).sub(shoulder);distance=9.9F;}
+        // The grip is at the palm centre (Y=8), not at the end of the sleeve (Y=10).
+        if(distance>7.9F) {shoulder.fma(distance-7.9F,direction.normalize());direction.set(hand).sub(shoulder);distance=7.9F;}
         direction.normalize();
         Vector3f bend=new Vector3f(left?1:-1,.45F,.25F);
         bend.fma(-bend.dot(direction),direction).normalize();
-        Vector3f elbow=new Vector3f(shoulder).fma(distance*.5F,direction).fma((float)Math.sqrt(Math.max(0,25-distance*distance*.25F)),bend);
+        Vector3f elbow=new Vector3f(shoulder).fma(distance*.5F,direction).fma((float)Math.sqrt(Math.max(0,16-distance*distance*.25F)),bend);
         Quaternionf upper=new Quaternionf().rotationTo(new Vector3f(0,1,0),new Vector3f(elbow).sub(shoulder).normalize());
         Quaternionf lower=new Quaternionf().rotationTo(new Vector3f(0,1,0),new Vector3f(hand).sub(elbow).normalize());
-        Vector3f origin=upper.transform(new Vector3f(left?-1:1,0,0)).add(shoulder);
+        float centre=(left?1:-1)*(thin?.5F:1);
+        // Account for the lower arm's lateral centre after bending around the model's pivot.
+        Vector3f origin=new Vector3f(hand).sub(upper.transform(new Vector3f(0,4,0)))
+                .sub(lower.transform(new Vector3f(centre,4,0)));
         Vector3f angles=upper.getEulerAnglesZYX(new Vector3f());
         part.setPos(lerp(part.x,origin.x,weight),lerp(part.y,origin.y,weight),lerp(part.z,origin.z,weight));
         part.setRotation(lerp(part.xRot,angles.x,weight),lerp(part.yRot,angles.y,weight),lerp(part.zRot,angles.z,weight));
-        ((DancePart)(Object)part).goosetools$bend(new Quaternionf().slerp(new Quaternionf(upper).invert().mul(lower),weight),5);
+        ((DancePart)(Object)part).goosetools$bendWithStableFaces(new Quaternionf().slerp(new Quaternionf(upper).invert().mul(lower),weight),4);
     }
     private static float lerp(float a,float b,float t) { return a+(b-a)*t; }
 }

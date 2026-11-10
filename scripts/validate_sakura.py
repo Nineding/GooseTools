@@ -86,6 +86,9 @@ def prepare_client(name):
         shader = "ComplementaryReimagined_r5.9.3.zip"
         shutil.copyfile(game / "shaderpacks" / shader, instance / "shaderpacks" / shader)
         (instance / "config/iris.properties").write_text("enableShaders=true\nshaderPack="+shader+"\n", encoding="utf-8")
+    if name == "B" and os.environ.get("SAKURA_SKIN_FAST") == "false":
+        (instance / "config").mkdir(exist_ok=True)
+        (instance / "config/skinlayers.json").write_text('{"fastRender":false}', encoding="utf-8")
     (instance / "options.txt").write_text(
         "resourcePacks:" + json.dumps(packs) + "\n"
         "lang:en_us\npauseOnLostFocus:false\nrenderDistance:3\nsimulationDistance:5\n"
@@ -133,6 +136,8 @@ try:
     for name in ("A", "B"):
         prepare_client(name)
         extras = [game / "mods" / mod for mod in ("punchy-3.2-fabric-26.3.jar", "punchy-moves-1.0.8-fabric-26.3.jar")] if name == "B" else []
+        if name == "B" and os.environ.get("SAKURA_SKINLAYERS", "true") == "true":
+            extras.append(game / "mods/skinlayers3d-fabric-1.11.4-mc26.3.jar")
         if name == "B" and os.environ.get("SAKURA_IRIS") == "true":
             extras += [game / "mods" / name for name in ("iris-fabric-1.11.7+mc26.3.jar", "sodium-fabric-0.9.2+mc26.3.jar")]
         launch(name, "Client", ["--username", "Sakura" + name, "--width", "900", "--height", "560"], extras)

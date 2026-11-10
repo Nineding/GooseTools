@@ -17,6 +17,7 @@ public final class DanceVertexConsumer implements VertexConsumer {
     private final Matrix3f normalToLocal,normalToWorld;
     private final Quaternionf rotation;
     private final float joint;
+    private final boolean stableFaces;
     private final List<Vertex> quad=new ArrayList<>(4);
     private Vertex current;
     private static final class Vertex {
@@ -38,6 +39,10 @@ public final class DanceVertexConsumer implements VertexConsumer {
         }
     }
     public DanceVertexConsumer(VertexConsumer output,PoseStack.Pose limbPose,Quaternionf rotation,float joint) {
+        this(output,limbPose,rotation,joint,false);
+    }
+    public DanceVertexConsumer(VertexConsumer output,PoseStack.Pose limbPose,Quaternionf rotation,float joint,boolean stableFaces) {
+        this.stableFaces=stableFaces;
         this.output=output;this.rotation=new Quaternionf(rotation);this.joint=joint;
         toWorld=new Matrix4f(limbPose.pose());toLocal=new Matrix4f(toWorld).invert();
         normalToWorld=new Matrix3f(limbPose.normal());normalToLocal=new Matrix3f(normalToWorld).invert();
@@ -61,6 +66,19 @@ public final class DanceVertexConsumer implements VertexConsumer {
         for(var vertex:quad)emit(vertex);quad.clear();current=null;
     }
     private void flushQuad() {
+        if(stableFaces) {
+            // Greedy sleeve shells span transparent and opaque texels. Keep shader mid-UVs
+            // and deformation local to each skin pixel instead of an entire arm face.
+            int rows=skinPixels(quad.get(0),quad.get(3));
+            int columns=skinPixels(quad.get(0),quad.get(1));
+            if(rows>2 || columns>2) {
+                for(int y=0;y<rows;y++)for(int x=0;x<columns;x++) {
+                    float a=(float)x/columns,b=(float)(x+1)/columns,c=(float)y/rows,d=(float)(y+1)/rows;
+                    emitFace(List.of(at(a,c),at(b,c),at(b,d),at(a,d)));
+                }
+                quad.clear();return;
+            }
+        }
         float min=Float.POSITIVE_INFINITY,max=Float.NEGATIVE_INFINITY;
         for(var v:quad){min=Math.min(min,v.point.y);max=Math.max(max,v.point.y);}
         if(max<=joint-1||min>=joint+1||max-min<.001F)emitPolygon(quad);
@@ -75,13 +93,37 @@ public final class DanceVertexConsumer implements VertexConsumer {
         }
         quad.clear();
     }
+    private Vertex at(float u,float v) {
+        return quad.get(0).between(quad.get(1),u).between(quad.get(3).between(quad.get(2),u),v);
+    }
+    private static int skinPixels(Vertex a,Vertex b) {
+        // Skin UVs use the 64x64 model layout even when outer voxels are enlarged.
+        float texels=Math.max(Math.abs(a.u-b.u),Math.abs(a.v-b.v))*64;
+        return Math.max(1,texels>.001F?Math.round(texels):(int)Math.ceil(a.point.distance(b.point)));
+    }
     private void emitPolygon(List<Vertex> polygon) {
         if(polygon.size()<3)return;
-        if(polygon.size()==4){for(var v:polygon)emit(v);return;}
+        if(polygon.size()==4){emitFace(polygon);return;}
         // Clipping transformed voxel quads can produce pentagons; do not silently drop a corner.
         for(int i=1;i<polygon.size()-1;i++) {
-            emit(polygon.getFirst());emit(polygon.get(i));emit(polygon.get(i+1));emit(polygon.get(i+1));
+            emitFace(List.of(polygon.getFirst(),polygon.get(i),polygon.get(i+1),polygon.get(i+1)));
         }
+    }
+    private void emitFace(List<Vertex> face) {
+        if(!stableFaces) {for(var v:face)emit(v);return;}
+        // Shader pipelines derive a face normal from vertex winding, not just setNormal().
+        // Preserve the authored outward side for mirrored voxel sleeves after deformation.
+        var points=new ArrayList<Vector3f>(4);
+        var expected=new Vector3f();
+        for(var v:face) {
+            points.add(DanceMesh.bend(new Vector3f(v.point),rotation,joint));
+            expected.add(DanceMesh.bendNormal(new Vector3f(v.normal),v.point,rotation,joint));
+        }
+        var geometric=new Vector3f(points.get(2)).sub(points.get(0))
+                .cross(new Vector3f(points.get(3)).sub(points.get(1)));
+        if(geometric.lengthSquared()<1e-12F)return;
+        boolean reverse=geometric.dot(expected)<0;
+        for(int i=0;i<4;i++)emit(face.get(reverse?3-i:i));
     }
     private void emit(Vertex vertex) {
         var normal=DanceMesh.bendNormal(new Vector3f(vertex.normal),vertex.point,rotation,joint);

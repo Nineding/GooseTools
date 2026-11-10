@@ -51,7 +51,10 @@ public final class SakuraClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         punchy = FabricLoader.getInstance().isModLoaded("punchy");
-        ClientTickEvents.START_CLIENT_TICK.register(mc->{if(stage==11||stage==13)mc.options.keyUse.setDown(true);});
+        ClientTickEvents.START_CLIENT_TICK.register(mc->{
+            if(stage==11||stage==13)mc.options.keyUse.setDown(true);
+            mc.options.keyUp.setDown(stage==10 && round==1 && ticks>=5 && ticks<25);
+        });
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
     }
 
@@ -237,7 +240,9 @@ public final class SakuraClient implements ClientModInitializer {
                 p.getInventory().setSelectedSlot(0);p.getInventory().setItem(0,SakuraStacks.sword(0,4,false));
                 p.setXRot(0);p.setYRot(0);mc.options.keyUse.setDown(false);
                 mc.options.setCameraType(round==0?CameraType.FIRST_PERSON:CameraType.THIRD_PERSON_FRONT);
+                mc.options.fov().set(round==0?70:35);
             }
+            if(round==1 && (ticks==13 || ticks==22))capture(mc,"cooldown-walk-"+ticks);
             if(ticks<30)return;
             require(com.goosethings.tools.client.swordman.SakuraIaidoRenderer.ready(),"iaido assets failed to load");
             capture(mc,"idle-"+round);
@@ -246,7 +251,8 @@ public final class SakuraClient implements ClientModInitializer {
         }
         if(stage==11) {
             require(ticks<3||com.goosethings.tools.client.swordman.SakuraIaidoClient.active(),"charge did not start: eligible="+com.goosethings.tools.client.swordman.SakuraIaidoClient.eligible()+" held="+mc.options.keyUse.isDown()+" model="+SakuraStacks.model(p.getMainHandItem())+" screen="+mc.gui.screen());
-            if(ticks==8)capture(mc,"insert-"+round);
+            if(ticks==5 || ticks==8 || ticks==12)capture(mc,"insert-"+round+"-"+ticks);
+            if(round==1 && (ticks==27 || ticks==29))capture(mc,"hold-still-"+ticks);
             if(ticks==25) {
                 capture(mc,"hold-"+round);
                 var f=com.goosethings.tools.client.swordman.SakuraIaidoClient.frame(0);
