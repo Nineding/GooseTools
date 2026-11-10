@@ -58,10 +58,16 @@ public final class GomokuClient {
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("goosetools", "board_countdown"), (g, delta) -> {
             Minecraft mc = Minecraft.getInstance();
             if (view == null || view.group() == 0 || view.position().id() == 0 || view.position().outcome() != 0 || mc.gui.screen() instanceof GomokuScreen || !presentationAllowed()) return;
-            int x = mc.getWindow().getGuiScaledWidth() - 190, y = mc.getWindow().getGuiScaledHeight() - 48;
-            g.fill(x - 6, y - 5, x + 184, y + 30, 0xCC181D22);
-            g.text(mc.font, gameName(view.position().kind()), x, y, 0xFFEABB63, false);
-            g.text(mc.font, text(view.position().turn() == view.position().color() ? "hud_yours" : "hud_theirs", "%ss · /boardgames", (remaining() + 999) / 1000), x, y + 15, remaining() <= 10000 ? 0xFFFF8D78 : 0xFFF5E8D0, false);
+            int w = Math.min(206, mc.getWindow().getGuiScaledWidth() - 16);
+            int x = mc.getWindow().getGuiScaledWidth() - w - 8, y = mc.getWindow().getGuiScaledHeight() - 62;
+            BoardGameSkin.panel(g, x, y, w, 50);
+            g.text(mc.font, gameName(view.position().kind()), x + 10, y + 9, BoardGameSkin.GOLD, false);
+            Component status = text(view.position().turn() == view.position().color() ? "hud_yours" : "hud_theirs", "%ss · /boardgames", (remaining() + 999) / 1000);
+            float scale = Math.min(1, (w - 20F) / Math.max(1, mc.font.width(status)));
+            g.pose().pushMatrix(); g.pose().translate(x + 10F, y + 25F); g.pose().scale(scale, scale);
+            g.text(mc.font, status, 0, 0, remaining() <= 10000 ? 0xFFFF8D78 : BoardGameSkin.INK, false);
+            g.pose().popMatrix();
+            BoardGameSkin.progress(g, x + 10, y + 40, w - 20, remaining());
         });
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (key.consumeClick()) {

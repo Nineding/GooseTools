@@ -25,7 +25,7 @@ import java.util.*;
 public final class GomokuGuiRegression implements ClientModInitializer {
     private final String role=System.getProperty("goosetools.gomokuRole","A");
     private boolean connecting,loaded,done,language,ready;
-    private int step,frames,scale=1,difficulty;
+    private int step,frames,difficulty;
     private long since=System.nanoTime(),matchId,revision=-1;
     private int originalColor,turnAtHide;
     private final Set<String> captures=new HashSet<>();
@@ -34,6 +34,8 @@ public final class GomokuGuiRegression implements ClientModInitializer {
     private long renderedId=-1,renderedRevision=-1;
     private int stableFrames;
     private int spectatorEntry, boardKind = 1;
+    private String visualGroup = "";
+    private int visualScale = 1, visualFrames;
     private boolean extrasDone, gamepadHidden;
     private static Path output(){return GomokuRegressionSupport.output();}
     @Override public void onInitializeClient(){if(Boolean.getBoolean("goosetools.gomokuRegression"))ClientTickEvents.END_CLIENT_TICK.register(this::tick);}
@@ -61,9 +63,9 @@ public final class GomokuGuiRegression implements ClientModInitializer {
             if(++stableFrames<4||frames<5)return; // Let the native screen render its current controls before clicking.
             switch(step){
                 case 0->{if(!Files.exists(output().resolve("B-connected.txt"))||v.group()!=1)return;setStage("idle");key();next();}
-                case 1->{if(!(mc.gui.screen() instanceof GomokuScreen s))return;if(frames==5){mc.options.guiScale().set(scale);mc.resizeGui();}if(frames<15)return;capture(mc,"menu-scale-"+scale);frames=0;if(++scale<=3)return;next();}
+                case 1->{if(!(mc.gui.screen() instanceof GomokuScreen)||!captureScales(mc,"menu"))return;next();}
                 case 2->{if(frames==5){mc.options.guiScale().set(2);mc.resizeGui();return;}if(!(mc.gui.screen() instanceof GomokuScreen s)||v.players().isEmpty())return;setStage("duel");click(s,85,110);next();}
-                case 3->{if(p.id()==0)return;matchId=p.id();originalColor=p.color();capture(mc,"pvp-board");next();}
+                case 3->{if(p.id()==0||!captureScales(mc,"board-0"))return;matchId=p.id();originalColor=p.color();capture(mc,"pvp-board");next();}
                 case 4->{
                     if(p.outcome()!=0){require(p.outcome()==p.color(),"A did not win");require(p.line().length==5,"missing winning line");capture(mc,"pvp-win");Files.writeString(output().resolve("winning-board.txt"),Arrays.toString(p.board()));setStage("rematch");next();return;}
                     if(p.turn()==p.color()&&revision!=p.revision()&&mc.gui.screen() instanceof GomokuScreen s){int cell=112;while(p.board()[cell]!=0)cell++;revision=p.revision();clickCell(s,cell);}
@@ -80,9 +82,9 @@ public final class GomokuGuiRegression implements ClientModInitializer {
                 case 14->{if(v.group()!=0)return;require(p.id()==0,"revival retained game");GomokuClient.action(BoardPackets.AI,1,1,BoardPackets.NONE);GomokuClient.open();control(8);next();}
                 case 15->{if(frames<20)return;require(v.group()==0&&p.id()==0,"swallowed player admitted");control(6);next();}
                 case 16->{if(v.group()!=1)return;key();setStage("idle");next();}
-                case 17->{if(Boolean.getBoolean("goosetools.boardRegressionOnly")){step=23;frames=0;return;}if(!(mc.gui.screen() instanceof GomokuScreen s)||p.id()!=0)return;click(s,65+difficulty*72,278);click(s,520,278);next();}
+                case 17->{if(Boolean.getBoolean("goosetools.boardRegressionOnly")){step=23;frames=0;return;}if(!(mc.gui.screen() instanceof GomokuScreen s)||p.id()!=0)return;click(s,65+difficulty*72,333);click(s,520,333);next();}
                 case 18->{if(p.id()==0||!(mc.gui.screen() instanceof GomokuScreen s))return;require(p.difficulty()==difficulty,"AI difficulty mismatch");if(p.board()[112]==0){clickCell(s,112);return;}if(count(p.board())<2)return;capture(mc,"ai-"+difficulty);click(s,490,312);next();}
-                case 19->{if(!(mc.gui.screen() instanceof GomokuScreen s))return;click(s,440,330);next();}
+                case 19->{if(!(mc.gui.screen() instanceof GomokuScreen s))return;if(frames<10)return;if(!captures.contains("resign-confirm")){capture(mc,"resign-confirm");return;}click(s,440,330);next();}
                 case 20->{if(p.outcome()==0||!(mc.gui.screen() instanceof GomokuScreen s))return;require(p.reason()==3,"resign confirmation failed");click(s,490,344);next();}
                 case 21->{if(p.id()!=0)return;if(++difficulty<3){step=17;frames=0;return;}control(7);next();}
                 case 22->{if(v.group()!=0)return;require(!(mc.gui.screen() instanceof GomokuScreen),"results did not close");control(6);next();}
@@ -92,24 +94,24 @@ public final class GomokuGuiRegression implements ClientModInitializer {
                 case 26->{if(p.id()==0)return;setStage("disconnect-now");next();}
                 case 27->{if(p.reason()!=4||p.outcome()==0)return;require(p.outcome()==p.color(),"disconnect did not forfeit");capture(mc,"disconnect-win");control(10);next();}
                 case 28->{if(p.id()!=0||mc.gui.screen() instanceof GomokuScreen)return;control(11);next();}
-                case 29->{if(!(mc.gui.screen() instanceof GomokuScreen s))return;click(s,520,278);next();}
+                case 29->{if(!(mc.gui.screen() instanceof GomokuScreen s))return;click(s,520,333);next();}
                 case 30->{if(p.id()==0)return;control(12);next();}
                 case 31->{if(v.group()!=0)return;require(p.id()==0&&!(mc.gui.screen() instanceof GomokuScreen),"preparation did not cancel");GomokuClient.action(BoardPackets.AI,1,1,BoardPackets.NONE);control(13);next();}
                 case 32->{if(frames<20)return;require(v.group()==0&&p.id()==0,"tutorial bypass");control(6);next();}
                 case 33->{if(v.group()!=1)return;control(11);next();}
-                case 34->{if(!(mc.gui.screen() instanceof GomokuScreen s))return;click(s,520,278);next();}
+                case 34->{if(!(mc.gui.screen() instanceof GomokuScreen s))return;click(s,520,333);next();}
                 case 35->{if(p.id()==0)return;control(14);next();}
                 case 36->{if(p.id()!=0)return;control(99);next();}
                 case 40->{if(mc.gui.screen() instanceof GomokuScreen screen)screen.onClose();control(15);next();}
                 case 41->{if(frames<25)return;capture(mc,"lobby-gamepad-world");mc.options.keyUse.setDown(true);next();}
                 case 42->{mc.options.keyUse.setDown(false);if(!(mc.gui.screen() instanceof GomokuScreen))return;step=50;frames=0;}
-                case 50->{if(!(mc.gui.screen() instanceof GomokuScreen s)||p.id()!=0)return;click(s,100+boardKind*204,190);next();}
-                case 51->{if(!(mc.gui.screen() instanceof GomokuScreen s))return;click(s,65+difficulty*72,278);click(s,520,278);next();}
-                case 52->{if(p.id()==0||!(mc.gui.screen() instanceof GomokuScreen s))return;require(p.kind()==boardKind&&p.difficulty()==difficulty,"new AI kind/difficulty");capture(mc,"board-"+boardKind+"-ai-"+difficulty);revision=p.revision();clickChess(s,p,p.legal()[0]);next();}
+                case 50->{if(!(mc.gui.screen() instanceof GomokuScreen s)||p.id()!=0)return;if(Boolean.getBoolean("goosetools.boardRegressionOnly")&&boardKind==1&&difficulty==0&&!captureScales(mc,"menu"))return;capture(mc,"board-lobby");click(s,100+boardKind*204,190);next();}
+                case 51->{if(!(mc.gui.screen() instanceof GomokuScreen s))return;click(s,65+difficulty*72,333);click(s,520,333);next();}
+                case 52->{if(p.id()==0||!(mc.gui.screen() instanceof GomokuScreen s))return;require(p.kind()==boardKind&&p.difficulty()==difficulty,"new AI kind/difficulty");if(difficulty==0&&!captureScales(mc,"board-"+boardKind))return;capture(mc,"board-"+boardKind+"-ai-"+difficulty);revision=p.revision();clickChess(s,p,p.legal()[0]);next();}
                 case 53->{if(p.revision()<revision+2||p.turn()!=p.color())return;require(p.last()>=0,"AI failed to move");key();next();}
                 case 54->{if(frames<25)return;require(!(mc.gui.screen() instanceof GomokuScreen),"hidden chess reopened");if(frames==25){capture(mc,"hud-"+boardKind+"-"+difficulty);return;}mc.player.connection.sendCommand("boardgames");next();}
                 case 55->{if(!(mc.gui.screen() instanceof GomokuScreen s))return;click(s,490,312);next();}
-                case 56->{if(!(mc.gui.screen() instanceof GomokuScreen s))return;click(s,440,330);next();}
+                case 56->{if(!(mc.gui.screen() instanceof GomokuScreen s))return;if(!captures.contains("board-resign-confirm")){capture(mc,"board-resign-confirm");return;}click(s,440,330);next();}
                 case 57->{if(p.outcome()==0||!(mc.gui.screen() instanceof GomokuScreen s))return;click(s,490,344);next();}
                 case 58->{if(p.id()!=0)return;if(++difficulty<3){step=50;frames=0;return;}difficulty=0;if(++boardKind<=2){step=50;frames=0;return;}boardKind=1;step=60;frames=0;}
                 case 60->{if(frames<80)return;if(!(mc.gui.screen() instanceof GomokuScreen s)||v.players().isEmpty())return;click(s,100+boardKind*204,190);setStage("chess-duel-"+boardKind);click(s,85,110);next();}
@@ -177,6 +179,13 @@ public final class GomokuGuiRegression implements ClientModInitializer {
     private static void clickCell(GomokuScreen s,int cell){click(s,GomokuScreen.GRID_X+cell%15*20,GomokuScreen.GRID_Y+cell/15*20);}
     private static void click(GomokuScreen s,double x,double y){var t=s.transform();s.mouseClicked(new MouseButtonEvent(t.x()+x*t.scale(),t.y()+y*t.scale(),new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT,0)),false);}
     private static void clickEntry(Minecraft mc){var screen=mc.gui.screen();var event=new MouseButtonEvent(screen.width-60,18,new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT,0));screen.mouseClicked(event,false);screen.mouseReleased(event);}
+    private boolean captureScales(Minecraft mc,String group){
+        if(!group.equals(visualGroup)){visualGroup=group;visualScale=1;visualFrames=0;}
+        if(visualScale>3){mc.options.guiScale().set(2);mc.resizeGui();return true;}
+        if(visualFrames++==0){mc.options.guiScale().set(visualScale);mc.resizeGui();}
+        if(visualFrames<10)return false;
+        capture(mc,group+"-scale-"+visualScale++);visualFrames=0;return false;
+    }
     private void capture(Minecraft mc,String name){if(captures.add(name))pendingCapture=name;}
     private void saveCapture(Minecraft mc,String name){Screenshot.takeScreenshot(mc.gameRenderer.mainRenderTarget(),image->{try(image){image.writeToFile(output().resolve(name+".png"));}catch(Exception e){mc.execute(()->finish(mc,"FAIL screenshot "+e));}});}
     private static void require(boolean condition,String message){if(!condition)throw new IllegalStateException(message);}

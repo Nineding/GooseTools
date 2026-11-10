@@ -955,7 +955,7 @@
   "gomoku.goosetools.reason_five": "五子连珠！",
   "gomoku.goosetools.rematch_wait": "等待对手同意…",
   "gomoku.goosetools.rematch": "再来一局 · 交换黑白",
-  "gomoku.goosetools.return": "返回五子棋大厅",
+  "gomoku.goosetools.return": "返回棋类大厅",
   "gomoku.goosetools.black": "黑棋",
   "gomoku.goosetools.white": "白棋",
   "gomoku.goosetools.easy": "简单",
@@ -974,7 +974,7 @@
   "gomoku.goosetools.xiangqi": "中国象棋",
   "gomoku.goosetools.chess": "西洋棋",
   "gomoku.goosetools.board_subtitle": "每步 60 秒",
-  "gomoku.goosetools.head_hint": "选择棋种后，点击上方玩家头像发出邀请",
+  "gomoku.goosetools.head_hint": "选择棋种后，点击玩家头像发出邀请",
   "gomoku.goosetools.available": "可邀请",
   "gomoku.goosetools.occupied": "忙碌中",
   "gomoku.goosetools.first_side": "%s先行",
@@ -1004,5 +1004,9 @@
   "gomoku.goosetools.piece_queen": "后",
   "gomoku.goosetools.piece_pawn": "兵",
   "gomoku.goosetools.river_chu": "楚 河",
-  "gomoku.goosetools.river_han": "汉 界"
+  "gomoku.goosetools.river_han": "汉 界",
+  "gomoku.goosetools.online": "在线玩家",
+  "gomoku.goosetools.card_0": "连成五子 · 黑棋先行",
+  "gomoku.goosetools.card_1": "楚河汉界 · 红方先行",
+  "gomoku.goosetools.card_2": "守护国王 · 白方先行"
 }

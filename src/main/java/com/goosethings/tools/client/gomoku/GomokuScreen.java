@@ -17,7 +17,7 @@ import java.util.*;
 
 public final class GomokuScreen extends Screen implements ProtectedInputScreen {
     public static final int WIDTH = 640, HEIGHT = 420, GRID_X = 48, GRID_Y = 92, STEP = 20;
-    private static final int INK = 0xFFF5E8D0, MUTED = 0xFFBDAF97, GOLD = 0xFFEABB63, DARK = 0xFF181D22;
+    private static final int INK = BoardGameSkin.INK, MUTED = BoardGameSkin.MUTED, GOLD = BoardGameSkin.GOLD;
     private final List<Hit> hits = new ArrayList<>();
     private int difficulty = 1, color = 1, page;
     private boolean resignConfirm, claimIntent;
@@ -31,88 +31,98 @@ public final class GomokuScreen extends Screen implements ProtectedInputScreen {
             minecraft.getSoundManager().play(SimpleSoundInstance.forUI(SoundEvent.createVariableRangeEvent(Identifier.withDefaultNamespace("block.stone.place")), 1.2F, .55F));
     }
     @Override public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
-        g.fill(0, 0, width, height, 0xD9101419);
+        g.fill(0, 0, width, height, 0xD9101C20);
         Transform t = transform(); mx = t.x(mouseX); my = t.y(mouseY); hits.clear();
         g.pose().pushMatrix(); g.pose().translate((float) t.x, (float) t.y); g.pose().scale((float) t.scale, (float) t.scale);
-        g.fill(3, 5, WIDTH + 3, HEIGHT + 5, 0x77000000);
-        g.fill(0, 0, WIDTH, HEIGHT, DARK); g.fill(0, 0, WIDTH, 3, GOLD);
+        BoardGameSkin.window(g, WIDTH, HEIGHT);
+        BoardGameSkin.header(g, 20, 14, 600, 34);
         var state = GomokuClient.view();
-        title(g, state == null || state.position().id() == 0 ? getTitle() : GomokuClient.gameName(state.position().kind()), 22, 17, 1.65F, INK);
-        label(g, text("board_subtitle", "60 SECONDS PER MOVE"), 200, 23, MUTED);
-        button(g, 541, 14, 78, 25, text("hide", "Hide"), true, this::onClose);
+        title(g, state == null || state.position().id() == 0 ? getTitle() : GomokuClient.gameName(state.position().kind()), 32, 23, 1.5F, INK);
+        fitted(g, text("board_subtitle", "60 SECONDS PER MOVE"), 346, 26, 185, 1.0F, MUTED);
+        button(g, 544, 19, 64, 24, text("hide", "Hide"), true, this::onClose);
         BoardPackets.View v = GomokuClient.view();
         if (v == null) label(g, text("loading", "Waiting for server…"), 24, 80, INK);
         else if (v.position().id() == 0) menu(g, v);
         else board(g, v.position());
         int notice = GomokuClient.notice();
         if (notice != 0) {
-            g.fill(12, 400, 628, 418, 0xFF55382A);
-            label(g, switch (notice) {
+            BoardGameSkin.panel(g, 12, 396, 616, 22);
+            fitted(g, switch (notice) {
                 case 1 -> text("unavailable", "Available in the lobby or after elimination only.");
                 case 2 -> text("busy", "That player is busy. Try again shortly.");
                 case 4 -> text("expired", "This invitation has expired.");
                 default -> text("invalid", "The action is no longer valid. The board has been refreshed.");
-            }, 21, 405, INK);
+            }, 24, 403, 592, 1.0F, INK);
         }
         g.pose().popMatrix();
     }
     private void menu(GuiGraphicsExtractor g, BoardPackets.View v) {
-        panel(g, 20, 59, 600, 97);
-        label(g, text("head_hint", "Choose a game, then click a player's head to invite."), 34, 70, GOLD);
+        BoardGameSkin.rail(g, 20, 58, 600, 92);
+        label(g, text("online", "Online players"), 34, 69, GOLD);
+        fitted(g, text("head_hint", "Choose a game, then click a player's head to invite."), 165, 71, 435, 1.0F, MUTED);
         int pages = Math.max(1, (v.players().size() + 7) / 8); page = Math.min(page, pages - 1);
-        button(g, 28, 100, 22, 38, text("previous", "<"), page > 0, () -> page--);
-        button(g, 590, 100, 22, 38, text("next", ">"), page + 1 < pages, () -> page++);
+        button(g, 28, 99, 22, 36, text("previous", "<"), page > 0, () -> page--);
+        button(g, 590, 99, 22, 36, text("next", ">"), page + 1 < pages, () -> page++);
         for (int n = 0; n < 8 && page * 8 + n < v.players().size(); n++) {
             BoardPackets.Person person = v.players().get(page * 8 + n); int x = 57 + n * 66;
             boolean available = person.available() && v.invite() == 0;
-            Hit hit = new Hit(x, 93, 62, 55, () -> GomokuClient.action(BoardPackets.INVITE, 0, 0, person.id()));
+            Hit hit = new Hit(x, 88, 62, 55, () -> GomokuClient.action(BoardPackets.INVITE, 0, 0, person.id()));
             if (available) hits.add(hit);
-            g.fill(x, 93, x + 62, 148, hit.contains(mx, my) && available ? 0xFF645137 : 0xFF30363C);
+            if (hit.contains(mx, my) && available) { g.fill(x, 88, x + 62, 143, 0x3359A79B); BoardGameSkin.outline(g, x, 88, 62, 55, GOLD); }
             var info = minecraft.getConnection().getPlayerInfo(person.id());
             Identifier skin = info == null ? DefaultPlayerSkin.get(person.id()).body().texturePath() : info.getSkin().body().texturePath();
-            g.blit(skin, x + 19, 97, x + 43, 121, 8F / 64, 16F / 64, 8F / 64, 16F / 64);
-            g.blit(skin, x + 19, 97, x + 43, 121, 40F / 64, 48F / 64, 8F / 64, 16F / 64);
+            BoardGameSkin.outline(g, x + 18, 91, 26, 26, 0xFFC1A777);
+            g.blit(skin, x + 19, 92, x + 43, 116, 8F / 64, 16F / 64, 8F / 64, 16F / 64);
+            g.blit(skin, x + 19, 92, x + 43, 116, 40F / 64, 48F / 64, 8F / 64, 16F / 64);
             float size = Math.min(1, 58F / Math.max(1, font.width(person.name())));
-            title(g, Component.literal(person.name()), x + 2, 125, size, available ? INK : MUTED);
-            title(g, text(available ? "available" : "occupied", available ? "Available" : "Busy"), x + 8, 138, .85F, available ? 0xFF8BCB9A : MUTED);
+            title(g, Component.literal(person.name()), x + Math.round((62 - font.width(person.name()) * size) / 2), 120, size, person.available() ? INK : MUTED);
+            centered(g, text(person.available() ? "available" : "occupied", person.available() ? "Available" : "Busy"), x + 31, 133, 56, .85F, person.available() ? 0xFF8BCB9A : MUTED);
         }
         if (v.players().isEmpty()) label(g, text("no_players", "No free opponents right now."), 60, 115, MUTED);
         for (int kind = 0; kind < 3; kind++) {
             int choice = kind, x = 20 + kind * 204;
-            button(g, x, 168, 192, 48, GomokuClient.gameName(kind), v.invite() == 0, () -> { GomokuClient.selectedKind = choice; color = 1; });
-            if (GomokuClient.selectedKind == kind) g.fill(x, 213, x + 192, 216, GOLD);
+            Hit hit = new Hit(x, 160, 192, 116, () -> { GomokuClient.selectedKind = choice; color = 1; });
+            BoardGameSkin.card(g, x, 160, 192, 116, GomokuClient.selectedKind == kind, hit.contains(mx, my), v.invite() == 0);
+            if (v.invite() == 0) hits.add(hit);
+            centered(g, GomokuClient.gameName(kind), x + 96, 170, 168, 1.4F, 0xFF432D20);
+            if (kind == 0) {
+                g.blit(texture("stones"), x + 62, 196, x + 102, 236, 0, .5F, 0, 1);
+                g.blit(texture("stones"), x + 86, 210, x + 126, 250, .5F, 1, 0, 1);
+            } else {
+                piece(g, kind, -ChessPosition.KING, x + 62, 194, 42);
+                piece(g, kind, kind == 1 ? ChessPosition.KING : ChessPosition.KNIGHT, x + 87, 209, 42);
+            }
+            centered(g, text("card_" + kind, switch (kind) { case 1 -> "Cross the river · Red starts"; case 2 -> "Protect your king · White starts"; default -> "Five in a row · Black starts"; }), x + 96, 257, 172, 1.0F, MUTED);
         }
-        panel(g, 20, 229, 600, 116);
-        label(g, text("computer", "Play the computer"), 34, 242, GOLD);
+        BoardGameSkin.rail(g, 20, 288, 600, 66);
+        label(g, text("computer", "Play the computer"), 34, 299, GOLD);
         for (int d = 0; d < 3; d++) {
             int choice = d, x = 34 + d * 72;
-            button(g, x, 265, 66, 27, difficultyName(d), true, () -> difficulty = choice);
-            if (difficulty == d) g.fill(x, 290, x + 66, 292, GOLD);
+            button(g, x, 321, 66, 24, difficultyName(d), v.invite() == 0, difficulty == d, () -> difficulty = choice);
         }
         for (int c = 1; c <= 2; c++) {
             int choice = c, x = 267 + (c - 1) * 86;
-            button(g, x, 265, 80, 27, sideName(GomokuClient.selectedKind, c), true, () -> color = choice);
-            if (color == c) g.fill(x, 290, x + 80, 292, GOLD);
+            button(g, x, 321, 80, 24, sideName(GomokuClient.selectedKind, c), v.invite() == 0, color == c, () -> color = choice);
         }
-        button(g, 455, 262, 148, 33, text("start", "Start game"), v.invite() == 0,
+        button(g, 455, 318, 148, 30, text("start", "Start game"), v.invite() == 0, true,
                 () -> GomokuClient.action(BoardPackets.AI, color, difficulty, BoardPackets.NONE));
-        label(g, text("rules_three", "Hidden boards keep counting down."), 34, 317, MUTED);
-        label(g, text("first_side", "%s moves first", sideName(GomokuClient.selectedKind, 1)), 330, 317, MUTED);
-        panel(g, 20, 358, 600, 40);
+        fitted(g, text("first_side", "%s moves first", sideName(GomokuClient.selectedKind, 1)), 267, 300, 170, 1.0F, MUTED);
+        fitted(g, text("rules_three", "Hidden boards keep counting down."), 455, 300, 148, .9F, MUTED);
+        panel(g, 20, 365, 600, 34);
         if (v.invite() == 0) {
-            label(g, text("waiting_hint", "Invite a friend, or warm up against the computer."), 34, 374, MUTED);
+            fitted(g, text("waiting_hint", "Invite a friend, or warm up against the computer."), 34, 377, 570, 1.15F, MUTED);
         } else if (v.inviteDirection() == 2) {
-            label(g, text("invitation", "%s invites you · %ss", v.inviteName() + " / " + GomokuClient.gameName(v.inviteKind()).getString(), (GomokuClient.inviteRemaining() + 999) / 1000), 34, 374, GOLD);
-            button(g, 440, 366, 77, 24, text("accept", "Accept"), true, () -> GomokuClient.action(BoardPackets.ACCEPT));
-            button(g, 526, 366, 77, 24, text("decline", "Decline"), true, () -> GomokuClient.action(BoardPackets.DECLINE));
+            fitted(g, text("invitation", "%s invites you · %ss", v.inviteName() + " / " + GomokuClient.gameName(v.inviteKind()).getString(), (GomokuClient.inviteRemaining() + 999) / 1000), 34, 377, 392, 1.15F, GOLD);
+            button(g, 440, 370, 77, 24, text("accept", "Accept"), true, true, () -> GomokuClient.action(BoardPackets.ACCEPT));
+            button(g, 526, 370, 77, 24, text("decline", "Decline"), true, () -> GomokuClient.action(BoardPackets.DECLINE));
         } else {
-            label(g, text("inviting", "Waiting for %s · %ss", v.inviteName() + " / " + GomokuClient.gameName(v.inviteKind()).getString(), (GomokuClient.inviteRemaining() + 999) / 1000), 34, 374, MUTED);
-            button(g, 526, 366, 77, 24, text("cancel", "Cancel"), true, () -> GomokuClient.action(BoardPackets.CANCEL_INVITE));
+            fitted(g, text("inviting", "Waiting for %s · %ss", v.inviteName() + " / " + GomokuClient.gameName(v.inviteKind()).getString(), (GomokuClient.inviteRemaining() + 999) / 1000), 34, 377, 478, 1.15F, MUTED);
+            button(g, 526, 370, 77, 24, text("cancel", "Cancel"), true, () -> GomokuClient.action(BoardPackets.CANCEL_INVITE));
         }
     }
     private void board(GuiGraphicsExtractor g, BoardPackets.Position p) {
         if (p.kind() == 0) {
-        g.blit(texture("board"), 20, 64, 356, 400, 0, 1, 0, 1);
+        BoardGameSkin.board(g, 20, 64, 336);
         for (int n = 0; n < 15; n++) {
             g.fill(GRID_X + n * STEP, GRID_Y, GRID_X + n * STEP + 1, GRID_Y + 281, 0xBD694019);
             g.fill(GRID_X, GRID_Y + n * STEP, GRID_X + 281, GRID_Y + n * STEP + 1, 0xBD694019);
@@ -145,12 +155,13 @@ public final class GomokuScreen extends Screen implements ProtectedInputScreen {
             label(g, player, 392, y + 18, INK);
             if (p.color() == c) label(g, text("you", "YOU"), 560, y, MUTED);
         }
-        g.fill(392, 183, 604, 184, 0xFF3E4244);
+        g.fill(392, 183, 604, 184, 0xFF69776A);
         if (p.outcome() == 0) {
             title(g, p.turn() == p.color() ? text("your_turn", "Your turn") : text("their_turn", "Opponent's turn"), 392, 201, 1.25F, INK);
             int seconds = (GomokuClient.remaining() + 999) / 1000;
-            title(g, text("seconds", "%ss", seconds), 392, 229, 2.4F, seconds <= 10 ? 0xFFFF8D78 : GOLD);
+            title(g, text("seconds", "%ss", seconds), 392, 226, 2.8F, seconds <= 10 ? 0xFFFF8D78 : GOLD);
             label(g, p.check() ? text("check", "CHECK - protect your king") : text("clock_hint", "Timeout loses this game."), 392, 260, p.check() ? 0xFFFF8D78 : MUTED);
+            BoardGameSkin.progress(g, 392, 281, 209, GomokuClient.remaining());
             if (p.kind() == 2 && !resignConfirm) button(g, 392, 334, 209, 23, text(claimIntent ? "claim_next" : "claim", claimIntent ? "Select the move to claim a draw" : "Claim draw"), p.turn() == p.color(), () -> {
                 if (p.claim()) GomokuClient.action(BoardPackets.CLAIM, -1, 0, BoardPackets.NONE); else claimIntent = !claimIntent;
             });
@@ -182,7 +193,7 @@ public final class GomokuScreen extends Screen implements ProtectedInputScreen {
             boolean asked = (p.rematchMask() & flag) != 0;
             button(g, 392, 292, 209, 28, asked ? text("rematch_wait", "Waiting for opponent…") : text("rematch", "Play again · swap colors"),
                     !asked && p.reason() != 4 && p.outcome() != 4, () -> GomokuClient.action(BoardPackets.REMATCH));
-            button(g, 392, 331, 209, 28, text("return", "Return to Gomoku lobby"), true, () -> GomokuClient.action(BoardPackets.LEAVE));
+            button(g, 392, 331, 209, 28, text("return", "Return to board game lobby"), true, () -> GomokuClient.action(BoardPackets.LEAVE));
         }
     }
     private void stone(GuiGraphicsExtractor g, int cell, int color) {
@@ -227,9 +238,9 @@ public final class GomokuScreen extends Screen implements ProtectedInputScreen {
     private static Component text(String key, String fallback, Object... args) { return GomokuClient.text(key, fallback, args); }
     private void chessBoard(GuiGraphicsExtractor g, BoardPackets.Position p) {
         int w = p.kind() == 1 ? 9 : 8, h = p.kind() == 1 ? 10 : 8;
-        g.blit(texture("board"), 20, 64, 356, 400, 0, 1, 0, 1);
+        BoardGameSkin.board(g, 20, 64, 336);
         if (p.kind() == 2) for (int y = 0; y < 8; y++) for (int x = 0; x < 8; x++)
-            g.fill(28 + x * 40, 72 + y * 40, 68 + x * 40, 112 + y * 40, (x + y) % 2 == 0 ? 0xFFE4D0AA : 0xFF79654D);
+            g.fill(28 + x * 40, 72 + y * 40, 68 + x * 40, 112 + y * 40, (x + y) % 2 == 0 ? 0xFFEAD5AA : 0xFF60756B);
         else {
             for (int y = 0; y < 10; y++) g.fill(60, 88 + y * 32, 317, 89 + y * 32, 0xFF694019);
             for (int x = 0; x < 9; x++) {
@@ -250,11 +261,7 @@ public final class GomokuScreen extends Screen implements ProtectedInputScreen {
             int y = p.kind() == 1 ? 88 + display / w * 32 : 92 + display / w * 40;
             if (p.last() >= 0 && (ChessPosition.from(p.last()) == i || ChessPosition.to(p.last()) == i)) g.fill(x - 14, y - 14, x + 15, y + 15, 0x8066A44E);
             if (selected == i) { g.fill(x - 17, y - 17, x + 18, y + 18, 0xCCF0C258); }
-            if (board[i] != 0) {
-                Identifier piece = pieceTexture(p.kind(), board[i]);
-                if (minecraft.getResourceManager().getResource(piece).isPresent()) g.blit(piece, x - 15, y - 15, x + 15, y + 15, 0, 1, 0, 1);
-                else title(g, pieceName(Math.abs(board[i])), x - 8, y - 4, .9F, board[i] > 0 ? 0xFFFFFFFF : 0xFF151515);
-            }
+            if (board[i] != 0) piece(g, p.kind(), board[i], x - 15, y - 15, 30);
             for (int m : p.legal()) if (selected == ChessPosition.from(m) && i == ChessPosition.to(m)) {
                 g.fill(x - 3, y - 3, x + 4, y + 4, 0xFF419567); break;
             }
@@ -294,6 +301,11 @@ public final class GomokuScreen extends Screen implements ProtectedInputScreen {
                 : switch (Math.abs(piece)) { case 1 -> "king"; case 2 -> "rook"; case 3 -> "knight"; case 4 -> "bishop"; case 5 -> "queen"; default -> "pawn"; };
         return Identifier.withDefaultNamespace("textures/item/" + (kind == 1 ? "chinese_cheese/" : "international_cheese/") + (piece > 0 ? kind == 1 ? "red_" : "white_" : "black_") + name + ".png");
     }
+    private void piece(GuiGraphicsExtractor g, int kind, int value, int x, int y, int size) {
+        Identifier image = pieceTexture(kind, value);
+        if (minecraft.getResourceManager().getResource(image).isPresent()) g.blit(image, x, y, x + size, y + size, 0, 1, 0, 1);
+        else centered(g, pieceName(Math.abs(value)), x + size / 2, y + size / 2 - 4, size, .9F, value > 0 ? 0xFFFFFFFF : 0xFF151515);
+    }
     private static Component sideName(int kind, int side) {
         if (kind == 1) return side == 1 ? text("red", "Red") : text("black", "Black");
         return colorName(kind == 2 ? 3 - side : side);
@@ -303,16 +315,24 @@ public final class GomokuScreen extends Screen implements ProtectedInputScreen {
     private static Identifier texture(String name) { return Identifier.fromNamespaceAndPath("goosetools", "textures/gui/gomoku/" + name + ".png"); }
     private void label(GuiGraphicsExtractor g, Component text, int x, int y, int ink) {
         // The CJK font needs roughly sixteen physical pixels to retain its strokes.
-        float size = Math.min(1.2F, (WIDTH - 22F - x) / Math.max(1, font.width(text)));
-        title(g, text, x, y, size, ink);
+        fitted(g, text, x, y, WIDTH - 32 - x, 1.2F, ink);
+    }
+    private void fitted(GuiGraphicsExtractor g, Component text, int x, int y, int width, float maxScale, int ink) {
+        title(g, text, x, y, Math.min(maxScale, width / (float) Math.max(1, font.width(text))), ink);
+    }
+    private void centered(GuiGraphicsExtractor g, Component text, int x, int y, int width, float maxScale, int ink) {
+        float size = Math.min(maxScale, width / (float) Math.max(1, font.width(text)));
+        title(g, text, x - Math.round(font.width(text) * size / 2), y, size, ink);
     }
     private void center(GuiGraphicsExtractor g, Component text, int x, int y, int ink) { title(g, text, x - Math.round(font.width(text) * .6F), y, 1.2F, ink); }
     private void title(GuiGraphicsExtractor g, Component text, int x, int y, float scale, int ink) { g.pose().pushMatrix(); g.pose().translate(x, y); g.pose().scale(scale, scale); g.text(font, text, 0, 0, ink, false); g.pose().popMatrix(); }
-    private void panel(GuiGraphicsExtractor g, int x, int y, int w, int h) { g.fill(x, y, x + w, y + h, 0xFF242A30); g.fill(x, y, x + w, y + 1, 0xFF45494A); }
+    private void panel(GuiGraphicsExtractor g, int x, int y, int w, int h) { BoardGameSkin.panel(g, x, y, w, h); }
     private void button(GuiGraphicsExtractor g, int x, int y, int w, int h, Component label, boolean enabled, Runnable action) {
+        button(g, x, y, w, h, label, enabled, false, action);
+    }
+    private void button(GuiGraphicsExtractor g, int x, int y, int w, int h, Component label, boolean enabled, boolean selected, Runnable action) {
         Hit hit = new Hit(x, y, w, h, action); boolean hover = hit.contains(mx, my);
-        g.fill(x, y, x + w, y + h, !enabled ? 0xFF303438 : hover ? 0xFF645137 : 0xFF3B4147);
-        g.fill(x, y + h - 1, x + w, y + h, enabled && hover ? GOLD : 0xFF53585B);
+        BoardGameSkin.button(g, x, y, w, h, enabled, selected, hover);
         float size = Math.min(1.2F, (w - 12F) / Math.max(1, font.width(label)));
         title(g, label, x + Math.round((w - font.width(label) * size) / 2), y + Math.round((h - 8 * size) / 2), size, enabled ? INK : 0xFF7B7F80);
         if (enabled) hits.add(hit);

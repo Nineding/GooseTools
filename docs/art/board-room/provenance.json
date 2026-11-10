@@ -1,0 +1,33 @@
+{
+  "source": "PixelLab MCP",
+  "date": "2026-11-10",
+  "status": "user-approved design; integrated in GooseTools 1.17.0+Alpha0.7",
+  "output": {
+    "width": 512,
+    "height": 336,
+    "format": "RGBA PNG"
+  },
+  "assets": [
+    {
+      "name": "lobby",
+      "id": "96c7051b-f999-4edf-acc0-81851fba48e2",
+      "sourceUrl": "https://backblaze.pixellab.ai/file/pixellab-characters/ui/6ef3a4cc-33a7-4497-814b-cba57e6b44de/96c7051b-f999-4edf-acc0-81851fba48e2/full.png",
+      "costGenerations": 25,
+      "perfectPixelPrompt": "fb4c02fb-d1b8-47b3-8369-a5f266b96aa8"
+    },
+    {
+      "name": "match",
+      "id": "84512197-e6a9-45f9-904d-89a3c6a622a5",
+      "sourceUrl": "https://backblaze.pixellab.ai/file/pixellab-characters/ui/6ef3a4cc-33a7-4497-814b-cba57e6b44de/84512197-e6a9-45f9-904d-89a3c6a622a5/full.png",
+      "costGenerations": 25,
+      "perfectPixelPrompt": "5a0bd14e-967d-4743-a43b-a6e12b5e8ea7"
+    }
+  ],
+  "processing": "Native one-pixel art first expanded 4x with nearest-exact so PerfectPixel's minimum grid size does not erase thin borders. PerfectPixel Majority Cluster/OpenCV/scale=1 recovers 512x336. Original alpha restored. Both jobs success; initial overcoarse attempts excluded.",
+  "preview": "HTML/CSS layout over processed assets, existing chess/gamepad/gomoku textures and sample avatars from existing resource-pack skins. Chrome headless screenshots; NOT in-game captures.",
+  "gitMain": {
+    "GooseTools": "88de860",
+    "GooseThings": "1381c11",
+    "MinecraftGooseGooseDuck": "72f8945"
+  }
+}

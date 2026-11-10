@@ -1,0 +1,156 @@
+{
+  "fb4c02fb-d1b8-47b3-8369-a5f266b96aa8": {
+    "prompt": [
+      2,
+      "fb4c02fb-d1b8-47b3-8369-a5f266b96aa8",
+      {
+        "1": {
+          "class_type": "LoadImage",
+          "inputs": {
+            "image": "board-ui-20261110-lobby.png"
+          }
+        },
+        "7": {
+          "class_type": "ImageScale",
+          "inputs": {
+            "image": [
+              "1",
+              0
+            ],
+            "upscale_method": "nearest-exact",
+            "width": 2048,
+            "height": 1344,
+            "crop": "disabled"
+          }
+        },
+        "2": {
+          "class_type": "PerfectPixel",
+          "inputs": {
+            "image": [
+              "7",
+              0
+            ],
+            "sampling": "Majority Cluster",
+            "export_scale": 1,
+            "backend": "OpenCV Backend"
+          }
+        },
+        "3": {
+          "class_type": "SaveImage",
+          "inputs": {
+            "images": [
+              "2",
+              0
+            ],
+            "filename_prefix": "board-ui-20261110/lobby-grid"
+          }
+        },
+        "4": {
+          "class_type": "ImageScale",
+          "inputs": {
+            "image": [
+              "2",
+              0
+            ],
+            "upscale_method": "nearest-exact",
+            "width": 512,
+            "height": 336,
+            "crop": "disabled"
+          }
+        },
+        "5": {
+          "class_type": "JoinImageWithAlpha",
+          "inputs": {
+            "image": [
+              "4",
+              0
+            ],
+            "alpha": [
+              "1",
+              1
+            ]
+          }
+        },
+        "6": {
+          "class_type": "SaveImage",
+          "inputs": {
+            "images": [
+              "5",
+              0
+            ],
+            "filename_prefix": "board-ui-20261110/lobby-pixel"
+          }
+        }
+      },
+      {
+        "create_time": 1794277746804
+      },
+      [
+        "6",
+        "3"
+      ]
+    ],
+    "outputs": {
+      "3": {
+        "images": [
+          {
+            "filename": "lobby-grid_00002_.png",
+            "subfolder": "board-ui-20261110",
+            "type": "output"
+          }
+        ]
+      },
+      "6": {
+        "images": [
+          {
+            "filename": "lobby-pixel_00002_.png",
+            "subfolder": "board-ui-20261110",
+            "type": "output"
+          }
+        ]
+      }
+    },
+    "status": {
+      "status_str": "success",
+      "completed": true,
+      "messages": [
+        [
+          "execution_start",
+          {
+            "prompt_id": "fb4c02fb-d1b8-47b3-8369-a5f266b96aa8",
+            "timestamp": 1794277746806
+          }
+        ],
+        [
+          "execution_cached",
+          {
+            "nodes": [],
+            "prompt_id": "fb4c02fb-d1b8-47b3-8369-a5f266b96aa8",
+            "timestamp": 1794277746819
+          }
+        ],
+        [
+          "execution_success",
+          {
+            "prompt_id": "fb4c02fb-d1b8-47b3-8369-a5f266b96aa8",
+            "timestamp": 1794277749618
+          }
+        ]
+      ]
+    },
+    "meta": {
+      "3": {
+        "node_id": "3",
+        "display_node": "3",
+        "parent_node": null,
+        "real_node_id": "3"
+      },
+      "6": {
+        "node_id": "6",
+        "display_node": "6",
+        "parent_node": null,
+        "real_node_id": "6"
+      }
+    }
+  }
+}
