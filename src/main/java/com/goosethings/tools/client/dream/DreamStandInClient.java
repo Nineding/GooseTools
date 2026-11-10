@@ -75,6 +75,13 @@ public final class DreamStandInClient {
         return liveAvatar(owner);
     }
 
+    public static boolean isLiveAvatar(Entity entity, UUID owner) {
+        View view = VIEWS.get(entity.getUUID());
+        return view != null && view.model == entity
+                && view.state.kind() == GooseToolsPayloads.DreamStandIn.LIVE_AVATAR
+                && view.state.sourcePlayerId().equals(owner);
+    }
+
     static DreamRemotePlayer liveAvatar(UUID owner) {
         for (View view : VIEWS.values()) {
             if (view.state.kind() == GooseToolsPayloads.DreamStandIn.LIVE_AVATAR

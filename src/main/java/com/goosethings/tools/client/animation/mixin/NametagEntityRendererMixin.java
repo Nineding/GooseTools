@@ -1,6 +1,7 @@
 package com.goosethings.tools.client.animation.mixin;
 
 import com.goosethings.tools.client.dream.DreamStandInClient;
+import com.goosethings.tools.client.mime.MimeControlClient;
 import com.goosethings.tools.client.nametag.NameTagClientState;
 import com.goosethings.tools.client.projection.ProjectionBodyClient;
 import com.goosethings.tools.marker.PlayerMarkerCatalog;
@@ -20,7 +21,7 @@ public abstract class NametagEntityRendererMixin {
     @Inject(method = "finalizeRenderState", at = @At("TAIL"))
     private void goosetools$replaceManagedNameTag(Entity entity, EntityRenderState state,
                                                    CallbackInfo callback) {
-        if (NameTagClientState.isManaged(entity)) {
+        if (MimeControlClient.hidesNameTag(entity) || NameTagClientState.isManaged(entity)) {
             state.nameTag = null;
             state.scoreText = null;
         }
