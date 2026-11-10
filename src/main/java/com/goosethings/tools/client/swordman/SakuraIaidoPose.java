@@ -8,6 +8,7 @@ public final class SakuraIaidoPose {
     public static final float SCALE = .72F;
     public static final float BLADE_GRIP = -1.5F;
     public static final float SHEATH_GRIP = 8F;
+    public static final float CUT_START = .14F, CUT_END = .32F;
     public record Transform(Vector3f position, Quaternionf rotation) {
         public Vector3f point(float x, float y, float z) {
             return rotation.transform(new Vector3f(x,y,z).mul(SCALE)).add(position);
@@ -22,9 +23,11 @@ public final class SakuraIaidoPose {
     // Put the mouth outside the left hip (screen-right from the front), clear of the torso.
     private static final Transform HOLD=at(3,8,-5.7F,.94F,.03F,.34F);
     private static final Transform INSERT_SHEATH=at(6,7,-5.5F,.94F,.3F,.12F);
-    private static final Transform DRAW=at(-7,5,-9,.94F,.03F,.34F);
-    private static final Transform CUT=at(-8,-1,-8,-.70F,-.68F,-.22F);
-    private static final Transform FOLLOW=at(-8,-3,-6,-.50F,-.85F,.05F);
+    private static final Transform CLEAR=at(-8,8,-9,.94F,.03F,.34F);
+    // Owner coordinates: expose the tip low on the left, then drive it forward/right/up.
+    private static final Transform DRAW=at(-6,8,-7.5F,.80F,.56F,.20F);
+    private static final Transform CUT=at(-5,2,-12.3F,-.38F,-.48F,-.79F);
+    private static final Transform FOLLOW=at(-6,0,-12.3F,-.48F,-.62F,-.62F);
     private static final Transform RETREAT=at(7,8,0,.94F,.03F,.34F);
     private SakuraIaidoPose() { }
     public static Frame idle() { return new Frame(REST_BLADE,REST_SHEATH,0,0,0,-1); }
@@ -51,13 +54,25 @@ public final class SakuraIaidoPose {
         return new Transform(sheath.rotation().transform(new Vector3f(0,-distance,0)).add(sheath.position()),new Quaternionf(sheath.rotation()));
     }
     public static Frame slash(float s) {
-        Transform blade, sheath; float turn;
-        if(s<.14F) {float t=ease(s/.14F);blade=mix(HOLD,DRAW,t);sheath=mix(HOLD,RETREAT,t);turn=.18F-.55F*t;}
-        else if(s<.25F) {float t=ease((s-.14F)/.11F);blade=mix(DRAW,CUT,t);sheath=RETREAT;turn=-.37F-.15F*t;}
-        else if(s<.43F) {float t=ease((s-.25F)/.18F);blade=mix(CUT,FOLLOW,t);sheath=RETREAT;turn=-.52F;}
-        else {float t=ease((s-.43F)/.72F);blade=mix(FOLLOW,REST_BLADE,t);sheath=mix(RETREAT,REST_SHEATH,t);turn=-.52F*(1-t);}
+        Transform blade, sheath; float turn,lean;
+        if(s<.08F) {float t=ease(s/.08F);blade=mix(HOLD,CLEAR,t);sheath=mix(HOLD,RETREAT,t);turn=.18F-.23F*t;lean=.13F+.07F*t;}
+        else if(s<CUT_START) {float t=ease((s-.08F)/(CUT_START-.08F));blade=mix(CLEAR,DRAW,t);sheath=RETREAT;turn=-.05F;lean=.2F;}
+        else if(s<CUT_END) {float t=ease((s-CUT_START)/(CUT_END-CUT_START));blade=mix(DRAW,CUT,t);sheath=RETREAT;turn=-.05F-.47F*t;lean=.2F+.12F*t;}
+        else if(s<.50F) {float t=ease((s-CUT_END)/(.50F-CUT_END));blade=mix(CUT,FOLLOW,t);sheath=RETREAT;turn=-.52F;lean=.32F-.08F*t;}
+        else {float t=ease((s-.50F)/.65F);blade=mix(FOLLOW,REST_BLADE,t);sheath=mix(RETREAT,REST_SHEATH,t);turn=-.52F*(1-t);lean=.24F*(1-t);}
         float weight=1-ease((s-.98F)/.17F);
-        return new Frame(blade,sheath,weight,.18F*weight,turn,s);
+        return new Frame(blade,sheath,weight,lean,turn,s);
+    }
+    public static Quaternionf firstPersonRotation() {
+        // A small presentation yaw retains the owner's left/right and the forward cut depth.
+        return new Quaternionf().rotationY((float)Math.toRadians(15));
+    }
+    public static Frame firstPerson(Frame frame) {
+        var rotation=firstPersonRotation();
+        return new Frame(view(frame.blade(),rotation),view(frame.sheath(),rotation),frame.weight(),frame.lean(),frame.turn(),frame.slash());
+    }
+    private static Transform view(Transform transform,Quaternionf rotation) {
+        return new Transform(rotation.transform(new Vector3f(transform.position())),new Quaternionf(rotation).mul(transform.rotation()));
     }
     public static Transform mix(Transform a,Transform b,float t) {
         return new Transform(new Vector3f(a.position).lerp(b.position,t),new Quaternionf(a.rotation).slerp(b.rotation,t));

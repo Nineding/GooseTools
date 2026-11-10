@@ -6,4 +6,5 @@ import org.joml.Quaternionf;
 public interface DancePart {
     void goosetools$bend(Quaternionf rotation, float joint);
     void goosetools$bendWithStableFaces(Quaternionf rotation, float joint);
+    void goosetools$bendWithStableFaces(Quaternionf rotation, float joint, float upperStretch);
 }

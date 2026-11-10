@@ -56,10 +56,7 @@ public final class SakuraIaidoRenderer {
         if(!SakuraIaidoClient.active() || !ready() || state==null) return false;
         var mc=Minecraft.getInstance();
         if(!mc.options.getCameraType().isFirstPerson()) return false;
-        var worldFrame=SakuraIaidoClient.frame(partial);
-        var viewRotation=new Quaternionf().rotationY((float)Math.toRadians(60));
-        var frame=new SakuraIaidoPose.Frame(view(worldFrame.blade(),viewRotation),view(worldFrame.sheath(),viewRotation),
-                worldFrame.weight(),worldFrame.lean(),worldFrame.turn(),worldFrame.slash());
+        var frame=SakuraIaidoPose.firstPerson(SakuraIaidoClient.frame(partial));
         boolean left=mc.player.getMainArm()==HumanoidArm.LEFT;
         poses.pushPose();
         // The camera rig is lower and farther forward than the third-person waist rig.
@@ -107,9 +104,9 @@ public final class SakuraIaidoRenderer {
     private static void submitWeapon(PoseStack poses,SubmitNodeCollector collector,SakuraIaidoPose.Frame frame,int light,boolean showBlade,boolean firstPerson) {
         mesh(poses,collector,sheath,frame.sheath(),light);
         if(showBlade) mesh(poses,collector,blade,frame.blade(),light);
-        if(frame.slash()>=.14F && frame.slash()<.5F) {
+        if(frame.slash()>=SakuraIaidoPose.CUT_START && frame.slash()<.54F) {
             poses.pushPose();
-            if(firstPerson) poses.rotate(new Quaternionf().rotationY((float)Math.toRadians(60)));
+            if(firstPerson) poses.rotate(SakuraIaidoPose.firstPersonRotation());
             trail(poses,collector,frame.slash());poses.popPose();
         }
     }
@@ -127,17 +124,21 @@ public final class SakuraIaidoRenderer {
         out.addVertex(pose,x,y,z).setColor(color).setUv(u,v).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose,n[0],n[1],n[2]);
     }
     private static void trail(PoseStack poses,SubmitNodeCollector collector,float seconds) {
-        int alpha=(int)(195*(1-SakuraIaidoPose.ease((seconds-.27F)/.23F)));
+        int alpha=(int)(195*(1-SakuraIaidoPose.ease((seconds-SakuraIaidoPose.CUT_END)/.22F)));
         List<Vector3f[]> strips=new ArrayList<>();
+        float end=Math.min(SakuraIaidoPose.CUT_END,seconds),start=Math.max(SakuraIaidoPose.CUT_START,end-.12F);
         for(int i=0;i<12;i++) {
-            float a=Math.max(.14F,Math.min(.32F,seconds)-.12F+i*.01F),b=a+.01F;
+            float a=start+(end-start)*i/12,b=start+(end-start)*(i+1)/12;
             var one=SakuraIaidoPose.slash(a).blade();var two=SakuraIaidoPose.slash(b).blade();
             strips.add(new Vector3f[]{one.point(0,21.6F,0),one.point(0,24.2F,0),two.point(0,24.2F,0),two.point(0,21.6F,0)});
         }
         collector.submitCustomGeometry(poses,RenderTypes.entityTranslucentEmissive(TEXTURE),(pose,out)->{
             for(var strip:strips) for(var p:strip) vertex(out,pose,p.x,p.y,p.z,.112F,.12F,(alpha<<24)|0xffc3e1,0xf000f0,new float[]{0,1,0});
             for(int i=0;i<7;i++) {
-                float t=Math.max(0,seconds-.16F),x=-5-i*1.2F-t*8,y=7-i*.5F+t*t*14,z=-8+(i%3)*1.5F;
+                float emitted=SakuraIaidoPose.CUT_START+i*.025F,t=seconds-emitted;
+                if(t<0)continue;
+                var tip=SakuraIaidoPose.slash(emitted).blade().point(0,23,0);
+                float x=tip.x-t*2,y=tip.y+t*t*14,z=tip.z-t*4;
                 float r=.14F+i*.018F;
                 for(float[] v:new float[][]{{-r,0},{0,-r*1.7F},{r,0},{0,r*1.7F}})
                     vertex(out,pose,x+v[0],y+v[1],z,.112F,.12F,(alpha<<24)|0xffb1d5,0xf000f0,new float[]{0,0,-1});
@@ -156,29 +157,29 @@ public final class SakuraIaidoRenderer {
         arm(model.rightArm,right,false,thin,w,false);arm(model.leftArm,left,true,thin,w,false);
         model.rightLeg.xRot=lerp(model.rightLeg.xRot,-.13F,w);model.leftLeg.xRot=lerp(model.leftLeg.xRot,.17F,w);
     }
-    private static SakuraIaidoPose.Transform view(SakuraIaidoPose.Transform pose,Quaternionf rotation) {
-        return new SakuraIaidoPose.Transform(rotation.transform(new Vector3f(pose.position())),new Quaternionf(rotation).mul(pose.rotation()));
-    }
     private static void arm(ModelPart part,Vector3f hand,boolean left,boolean thin,float weight,boolean firstPerson) {
         // Two-bone reach, using the project's existing skin/sleeve articulation.
         Vector3f shoulder=firstPerson?new Vector3f(left?9:-9,18,3):new Vector3f(left?5.5F:-5.5F,2.8F,left?1:-2);
         Vector3f direction=new Vector3f(hand).sub(shoulder);float distance=direction.length();
+        float upperStretch=firstPerson?Math.max(1,(distance-3.5F)/4):1;
+        float upperLength=4*upperStretch,lowerLength=4,maxReach=upperLength+lowerLength-.1F;
         // The grip is at the palm centre (Y=8), not at the end of the sleeve (Y=10).
-        if(distance>7.9F) {shoulder.fma(distance-7.9F,direction.normalize());direction.set(hand).sub(shoulder);distance=7.9F;}
+        if(distance>maxReach) {shoulder.fma(distance-maxReach,direction.normalize());direction.set(hand).sub(shoulder);distance=maxReach;}
         direction.normalize();
         Vector3f bend=new Vector3f(left?1:-1,.45F,.25F);
         bend.fma(-bend.dot(direction),direction).normalize();
-        Vector3f elbow=new Vector3f(shoulder).fma(distance*.5F,direction).fma((float)Math.sqrt(Math.max(0,16-distance*distance*.25F)),bend);
+        float along=(upperLength*upperLength-lowerLength*lowerLength+distance*distance)/(2*distance);
+        Vector3f elbow=new Vector3f(shoulder).fma(along,direction).fma((float)Math.sqrt(Math.max(0,upperLength*upperLength-along*along)),bend);
         Quaternionf upper=new Quaternionf().rotationTo(new Vector3f(0,1,0),new Vector3f(elbow).sub(shoulder).normalize());
         Quaternionf lower=new Quaternionf().rotationTo(new Vector3f(0,1,0),new Vector3f(hand).sub(elbow).normalize());
         float centre=(left?1:-1)*(thin?.5F:1);
         // Account for the lower arm's lateral centre after bending around the model's pivot.
-        Vector3f origin=new Vector3f(hand).sub(upper.transform(new Vector3f(0,4,0)))
+        Vector3f origin=new Vector3f(hand).sub(upper.transform(new Vector3f(0,upperLength,0)))
                 .sub(lower.transform(new Vector3f(centre,4,0)));
         Vector3f angles=upper.getEulerAnglesZYX(new Vector3f());
         part.setPos(lerp(part.x,origin.x,weight),lerp(part.y,origin.y,weight),lerp(part.z,origin.z,weight));
         part.setRotation(lerp(part.xRot,angles.x,weight),lerp(part.yRot,angles.y,weight),lerp(part.zRot,angles.z,weight));
-        ((DancePart)(Object)part).goosetools$bendWithStableFaces(new Quaternionf().slerp(new Quaternionf(upper).invert().mul(lower),weight),4);
+        ((DancePart)(Object)part).goosetools$bendWithStableFaces(new Quaternionf().slerp(new Quaternionf(upper).invert().mul(lower),weight),4,upperStretch);
     }
     private static float lerp(float a,float b,float t) { return a+(b-a)*t; }
 }

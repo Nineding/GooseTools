@@ -4,6 +4,20 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SakuraIaidoTimelineTest {
+    @Test void tipAndGripDriveForwardFromOwnersLowLeftToHighRightInBothViews() {
+        for(boolean firstPerson:new boolean[]{false,true}) {
+            var start=SakuraIaidoPose.slash(SakuraIaidoPose.CUT_START);
+            var end=SakuraIaidoPose.slash(SakuraIaidoPose.CUT_END);
+            if(firstPerson){start=SakuraIaidoPose.firstPerson(start);end=SakuraIaidoPose.firstPerson(end);}
+            var low=start.blade().point(0,24,0);var high=end.blade().point(0,24,0);
+            assertTrue(low.x>4 && low.y>14,"drawn tip starts on the owner's low-left side");
+            assertTrue(high.x<-8 && high.y<0,"cut finishes on the owner's upper-right side");
+            assertTrue(high.z<low.z-16,"blade must cut at least one block forward, not lift in front of the chest");
+            var handStart=start.blade().point(0,SakuraIaidoPose.BLADE_GRIP,0);
+            var handEnd=end.blade().point(0,SakuraIaidoPose.BLADE_GRIP,0);
+            assertTrue(handEnd.z<handStart.z-2,"the hand drives forward with the blade");
+        }
+    }
     @Test void cutRisesAcrossTheBodyAndChargingHandsStayApart() {
         var start=SakuraIaidoPose.slash(.14F).blade().point(0,24,0);
         var end=SakuraIaidoPose.slash(.30F).blade().point(0,24,0);
@@ -44,7 +58,7 @@ class SakuraIaidoTimelineTest {
     @Test void bladeAndSheathShareInsertionAxisAndClearBeforeSlash() {
         var hold=SakuraIaidoPose.sample(SakuraIaidoTimeline.Phase.HOLD,1);
         assertEquals(hold.blade(),hold.sheath());
-        var drawn=SakuraIaidoPose.slash(.14F);
+        var drawn=SakuraIaidoPose.slash(.08F);
         var tip=drawn.blade().point(.78F,24.12F,0);
         var mouth=drawn.sheath().point(0,3.7F,0);
         var direction=drawn.sheath().rotation().transform(new org.joml.Vector3f(0,1,0));

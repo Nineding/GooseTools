@@ -12,6 +12,8 @@ import net.minecraft.world.item.Items;
 public final class SakuraServer implements ModInitializer {
     private final Path root = Path.of(System.getProperty("sakura.probe"));
     private final java.util.Set<String> sent=new java.util.HashSet<>();
+    private record Dash(net.minecraft.world.phys.Vec3 start,net.minecraft.world.phys.Vec3 direction,int began) { }
+    private final java.util.Map<java.util.UUID,Dash> dashes=new java.util.HashMap<>();
     private boolean equipped;
     private boolean finished;
 
@@ -32,8 +34,21 @@ public final class SakuraServer implements ModInitializer {
             for(var player:players) for(int round=0;round<2;round++) {
                 String key=player.getGameProfile().name().substring(6)+"-dash-request-"+round;
                 if(Files.exists(root.resolve(key)) && sent.add(key)) {
-                    net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(player,
-                        new com.goosethings.tools.swordman.SwordmanPackets.Motion(player.getX(),player.getY(),player.getZ(),true));
+                    double yaw=Math.toRadians(player.getYRot());
+                    dashes.put(player.getUUID(),new Dash(player.position(),new net.minecraft.world.phys.Vec3(-Math.sin(yaw),0,Math.cos(yaw)),server.getTickCount()));
+                }
+            }
+            for(var player:players) {
+                var dash=dashes.get(player.getUUID());if(dash==null)continue;
+                int elapsed=server.getTickCount()-dash.began();
+                double t=Math.clamp(elapsed/8.0,0,1),progress=t*t*(3-2*t);
+                var point=dash.start().add(dash.direction().scale(6*progress));
+                player.setPos(point);
+                net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(player,
+                        new com.goosethings.tools.swordman.SwordmanPackets.Motion(point.x,point.y,point.z,elapsed<=8));
+                if(elapsed>8) {
+                    player.connection.teleport(point.x,point.y,point.z,player.getYRot(),player.getXRot());
+                    dashes.remove(player.getUUID());
                 }
             }
             if (Files.exists(root.resolve("A-result")) && Files.exists(root.resolve("B-result"))) {

@@ -11,6 +11,17 @@ import java.util.ArrayList;
 import static org.junit.jupiter.api.Assertions.*;
 
 class DanceVertexConsumerTest {
+    @Test void firstPersonReachExtendsUpperArmWithoutStretchingTheHandOrWidth() {
+        var out=new Capture();var rotation=new Quaternionf().rotationX(.6F);
+        var stream=new DanceVertexConsumer(out,new PoseStack().last(),rotation,4,false,3);
+        for(float[] xy:new float[][]{{-2,7},{2,7},{2,9},{-2,9}})
+            stream.addVertex(xy[0]/16,xy[1]/16,-2/16F,-1,0,0,0,0,0,0,-1);
+        stream.finish();assertEquals(4,out.points.size());
+        var expected=DanceMesh.bend(new Vector3f(-2,15,-2),rotation,12).div(16);
+        assertEquals(0,expected.distance(out.points.getFirst()),1e-6);
+        assertEquals(4/16F,out.points.get(0).distance(out.points.get(1)),1e-6);
+        assertEquals(2/16F,out.points.get(1).distance(out.points.get(2)),1e-6);
+    }
     @Test void enlargedSleeveShellSplitsOnSkinTexelsRatherThanWorldPixelBoundaries() {
         var out=new Capture();
         var stream=new DanceVertexConsumer(out,new PoseStack().last(),new Quaternionf(),4,true);

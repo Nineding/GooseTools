@@ -17,11 +17,15 @@ public abstract class DancePartMixin implements DancePart {
     @Unique private Quaternionf goosetools$bend;
     @Unique private float goosetools$joint;
     @Unique private boolean goosetools$stableFaces;
+    @Unique private float goosetools$upperStretch=1;
     @Override public void goosetools$bend(Quaternionf rotation,float joint) {
-        goosetools$bend=rotation;goosetools$joint=joint;goosetools$stableFaces=false;
+        goosetools$bend=rotation;goosetools$joint=joint;goosetools$stableFaces=false;goosetools$upperStretch=1;
     }
     @Override public void goosetools$bendWithStableFaces(Quaternionf rotation,float joint) {
-        goosetools$bend(rotation,joint);goosetools$stableFaces=true;
+        goosetools$bendWithStableFaces(rotation,joint,1);
+    }
+    @Override public void goosetools$bendWithStableFaces(Quaternionf rotation,float joint,float upperStretch) {
+        goosetools$bend(rotation,joint);goosetools$stableFaces=true;goosetools$upperStretch=upperStretch;
     }
     @WrapMethod(method="render(Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;III)V")
     private void goosetools$articulate(PoseStack poses,VertexConsumer vertices,int light,int overlay,int color,Operation<Void> original) {
@@ -29,7 +33,7 @@ public abstract class DancePartMixin implements DancePart {
             original.call(poses,vertices,light,overlay,color);return;
         }
         poses.pushPose();translateAndRotate(poses);
-        var bent=new DanceVertexConsumer(vertices,poses.last(),goosetools$bend,goosetools$joint,goosetools$stableFaces);
+        var bent=new DanceVertexConsumer(vertices,poses.last(),goosetools$bend,goosetools$joint,goosetools$stableFaces,goosetools$upperStretch);
         poses.popPose();
         // Children keep the same consumer, so their own 3D offsets are included exactly once.
         original.call(poses,bent,light,overlay,color);

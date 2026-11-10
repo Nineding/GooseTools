@@ -6,6 +6,10 @@ Third-person captures use a narrower FOV to inspect hand/sleeve clearance, inclu
 
 The default SkinLayers3D fast renderer remains enabled for release checks. `SAKURA_SKIN_FAST=false` disables greedy sleeve shells only in the isolated instance for diagnosis; it is not a production workaround. `DanceVertexConsumerTest` covers outward face winding and UV-aligned subdivision of enlarged sleeve shells.
 
+Approved-motion samples now move each player six blocks over eight ticks using the server's smoothstep profile, then send the normal stop/correction. Both clients assert actual displacement. `motion-<view>-<tick>.png` records the full blade sequence during that movement; the test does not substitute a stationary approval packet for a dash. Pose tests separately require the drawn tip to start on the owner's low-left side and finish high-right with forward travel of at least one block in both view rigs, including forward hand movement.
+
+The isolated server is peaceful to prevent slime knockback from contaminating the trajectory. B's continuous captures allow only one pending GPU readback; skipped tick numbers are retained so previews can preserve timing instead of flooding a single rendered frame with duplicate requests. A retains the ordinary key-frame captures.
+
 From the GooseTools project, with JDK 25 and the sibling Whoiskiller resource pack:
 
 ```powershell

@@ -228,10 +228,15 @@ public final class SakuraClient implements ClientModInitializer {
 
     private int round;
     private int captures;
+    private Vec3 dashStart;
+    private volatile boolean motionCapturePending;
     private void capture(Minecraft mc,String name) {
+        boolean motion=name.startsWith("motion-");
+        if(motion && motionCapturePending)return;
+        if(motion)motionCapturePending=true;
         net.minecraft.client.Screenshot.takeScreenshot(mc.gameRenderer.mainRenderTarget(),image->{try(image){
             image.writeToFile(root.resolve(role+"-"+name+".png"));captures++;
-        }catch(Exception e){throw new RuntimeException(e);}});
+        }catch(Exception e){throw new RuntimeException(e);}finally{if(motion)motionCapturePending=false;}});
     }
     private void iaido(Minecraft mc) throws Exception {
         var p=mc.player; ticks++;
@@ -268,14 +273,17 @@ public final class SakuraClient implements ClientModInitializer {
             }
             if(ticks<30)return;
             mc.options.keyUse.setDown(false);
+            dashStart=p.position();
             Files.writeString(root.resolve(role+"-dash-request-"+round),"dash");
             stage=12;ticks=0;return;
         }
         if(stage==12) {
             float time=com.goosethings.tools.client.swordman.SakuraIaidoClient.frame(0).slash();
-            if(time>=0 && time<.12)capture(mc,"draw-"+round+"-"+ticks);
-            if(time>=.15 && time<.4)capture(mc,"cut-"+round+"-"+ticks);
+            if(punchy && time>=0 && time<1.15F)capture(mc,"motion-"+round+"-"+String.format(java.util.Locale.ROOT,"%02d",ticks));
+            if(!punchy && time>=0 && time<.12)capture(mc,"draw-"+round+"-"+ticks);
+            if(!punchy && time>=.15 && time<.4)capture(mc,"cut-"+round+"-"+ticks);
             if(ticks<38)return;
+            require(p.position().subtract(dashStart).horizontalDistance()>5.5,"approved motion did not move the player forward");
             require(!com.goosethings.tools.client.swordman.SakuraIaidoClient.active(),"slash failed to recover");
             p.getInventory().setItem(0,SakuraStacks.sword(0,2,false));
             if(++round<2){stage=10;ticks=0;return;}

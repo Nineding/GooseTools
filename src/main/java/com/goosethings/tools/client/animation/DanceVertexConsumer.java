@@ -16,7 +16,7 @@ public final class DanceVertexConsumer implements VertexConsumer {
     private final Matrix4f toLocal,toWorld;
     private final Matrix3f normalToLocal,normalToWorld;
     private final Quaternionf rotation;
-    private final float joint;
+    private final float joint,restJoint,upperStretch;
     private final boolean stableFaces;
     private final List<Vertex> quad=new ArrayList<>(4);
     private Vertex current;
@@ -42,15 +42,21 @@ public final class DanceVertexConsumer implements VertexConsumer {
         this(output,limbPose,rotation,joint,false);
     }
     public DanceVertexConsumer(VertexConsumer output,PoseStack.Pose limbPose,Quaternionf rotation,float joint,boolean stableFaces) {
+        this(output,limbPose,rotation,joint,stableFaces,1);
+    }
+    public DanceVertexConsumer(VertexConsumer output,PoseStack.Pose limbPose,Quaternionf rotation,float joint,boolean stableFaces,float upperStretch) {
         this.stableFaces=stableFaces;
-        this.output=output;this.rotation=new Quaternionf(rotation);this.joint=joint;
+        this.output=output;this.rotation=new Quaternionf(rotation);this.restJoint=joint;this.joint=joint*upperStretch;this.upperStretch=upperStretch;
         toWorld=new Matrix4f(limbPose.pose());toLocal=new Matrix4f(toWorld).invert();
         normalToWorld=new Matrix3f(limbPose.normal());normalToLocal=new Matrix3f(normalToWorld).invert();
     }
     @Override public VertexConsumer addVertex(float x,float y,float z) {
         // VertexConsumer has no endVertex; the following addVertex (or finish) commits attributes.
         if(quad.size()==4)flushQuad();
-        current=new Vertex(toLocal.transformPosition(new Vector3f(x,y,z)).mul(16));quad.add(current);return this;
+        var point=toLocal.transformPosition(new Vector3f(x,y,z)).mul(16);
+        // First-person shoulders stay off-screen; extend only the upper arm, not the hand.
+        point.y=point.y<=restJoint?point.y*upperStretch:point.y+this.joint-restJoint;
+        current=new Vertex(point);quad.add(current);return this;
     }
     @Override public VertexConsumer setColor(int r,int g,int b,int a){return setColor(a<<24|r<<16|g<<8|b);}
     @Override public VertexConsumer setColor(int color){current.color=color;return this;}
@@ -58,7 +64,7 @@ public final class DanceVertexConsumer implements VertexConsumer {
     @Override public VertexConsumer setUv1(int u,int v){current.overlay=u&65535|v<<16;return this;}
     @Override public VertexConsumer setUv2(int u,int v){current.light=u&65535|v<<16;return this;}
     @Override public VertexConsumer setUv3(float u,float v){current.u3=u;current.v3=v;current.hasUv3=true;return this;}
-    @Override public VertexConsumer setNormal(float x,float y,float z){normalToLocal.transform(current.normal.set(x,y,z));return this;}
+    @Override public VertexConsumer setNormal(float x,float y,float z){normalToLocal.transform(current.normal.set(x,y,z));if(current.point.y<=joint)current.normal.y/=upperStretch;return this;}
     @Override public VertexConsumer setLineWidth(float width){current.width=width;current.hasWidth=true;return this;}
     public void finish() {
         if(quad.size()==4)flushQuad();

@@ -120,7 +120,7 @@ try:
     (server / "server.properties").write_text(
         f"online-mode=false\nserver-ip=127.0.0.1\nserver-port={port}\n"
         "level-type=minecraft:flat\nview-distance=4\nsimulation-distance=5\n"
-        "generate-structures=false\nmax-players=2\nmax-tick-time=-1\nwhite-list=false\n"
+        "generate-structures=false\ndifficulty=peaceful\nmax-players=2\nmax-tick-time=-1\nwhite-list=false\n"
     )
     launch("server", "Server", ["nogui"], [])
     for _ in range(160):
