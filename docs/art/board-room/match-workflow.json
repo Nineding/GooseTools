@@ -1,0 +1,79 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "board-ui-20261110-match.png"
+    }
+  },
+  "7": {
+    "class_type": "ImageScale",
+    "inputs": {
+      "image": [
+        "1",
+        0
+      ],
+      "upscale_method": "nearest-exact",
+      "width": 2048,
+      "height": 1344,
+      "crop": "disabled"
+    }
+  },
+  "2": {
+    "class_type": "PerfectPixel",
+    "inputs": {
+      "image": [
+        "7",
+        0
+      ],
+      "sampling": "Majority Cluster",
+      "export_scale": 1,
+      "backend": "OpenCV Backend"
+    }
+  },
+  "3": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "2",
+        0
+      ],
+      "filename_prefix": "board-ui-20261110/match-grid"
+    }
+  },
+  "4": {
+    "class_type": "ImageScale",
+    "inputs": {
+      "image": [
+        "2",
+        0
+      ],
+      "upscale_method": "nearest-exact",
+      "width": 512,
+      "height": 336,
+      "crop": "disabled"
+    }
+  },
+  "5": {
+    "class_type": "JoinImageWithAlpha",
+    "inputs": {
+      "image": [
+        "4",
+        0
+      ],
+      "alpha": [
+        "1",
+        1
+      ]
+    }
+  },
+  "6": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "5",
+        0
+      ],
+      "filename_prefix": "board-ui-20261110/match-pixel"
+    }
+  }
+}

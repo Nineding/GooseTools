@@ -962,7 +962,7 @@
   "gomoku.goosetools.reason_five": "Five stones in a row.",
   "gomoku.goosetools.rematch_wait": "Waiting for opponent…",
   "gomoku.goosetools.rematch": "Play again · swap colors",
-  "gomoku.goosetools.return": "Return to Gomoku lobby",
+  "gomoku.goosetools.return": "Return to board game lobby",
   "gomoku.goosetools.black": "Black",
   "gomoku.goosetools.white": "White",
   "gomoku.goosetools.easy": "Easy",
@@ -1004,5 +1004,9 @@
   "gomoku.goosetools.piece_queen": "Queen",
   "gomoku.goosetools.piece_pawn": "Pawn",
   "gomoku.goosetools.river_chu": "CHU RIVER",
-  "gomoku.goosetools.river_han": "HAN BORDER"
+  "gomoku.goosetools.river_han": "HAN BORDER",
+  "gomoku.goosetools.online": "Online players",
+  "gomoku.goosetools.card_0": "Five in a row · Black starts",
+  "gomoku.goosetools.card_1": "Cross the river · Red starts",
+  "gomoku.goosetools.card_2": "Protect your king · White starts"
 }
