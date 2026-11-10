@@ -3,6 +3,7 @@ package com.goosethings.tools.task;
 import com.goosethings.tools.game.GameServer;
 import com.goosethings.tools.game.GameSession;
 import com.goosethings.tools.game.GameType;
+import com.goosethings.tools.dream.DreamSpatialContext;
 import com.goosethings.tools.network.MandatoryHandshake;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -12,6 +13,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.scores.ScoreHolder;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,7 +30,18 @@ public final class GuiTaskBridge {
     private GuiTaskBridge() {}
     public static void register() {
         ServerLifecycleEvents.SERVER_STOPPED.register(s -> bindings.clear());
-        ServerPlayConnectionEvents.DISCONNECT.register((h, s) -> bindings.remove(h.player.getUUID()));
+        ServerPlayConnectionEvents.DISCONNECT.register((h, s) -> {
+            Binding binding = bindings.remove(h.player.getUUID());
+            if (binding != null && !binding.ended && binding.kind.equals(TaskType.FISHING.id)) fail(h.player, binding);
+        });
+        ServerPlayConnectionEvents.JOIN.register((h, sender, server) -> {
+            if (!h.player.entityTags().contains("inTaskFishingMaster")) return;
+            var scoreboard = server.getScoreboard();
+            var objective = scoreboard.getObjective("ggdGuiState");
+            var state = objective == null ? null : scoreboard.getPlayerScoreInfo(h.player, objective);
+            // An active session cannot survive a server restart or disconnect.
+            if (state != null && state.value() == 1) score(h.player, "ggdGuiState", 3);
+        });
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             for (UUID id : java.util.List.copyOf(bindings.keySet())) {
                 ServerPlayer player = server.getPlayerList().getPlayer(id);
@@ -50,7 +63,7 @@ public final class GuiTaskBridge {
     }
     public static LiteralArgumentBuilder<CommandSourceStack> command() {
         var players = Commands.argument("players", EntityArgument.players());
-        for (String kind : new String[]{"traffic", "whack", "pipes", "knobs", "timing", "cleaning", "keepgreen", "cutwires", "purification", "purificationlaser", "arcade", "civil", "foodsafety", "nuclear", "powerstation", "telecom"}) {
+        for (String kind : new String[]{"traffic", "whack", "pipes", "knobs", "timing", "cleaning", "keepgreen", "cutwires", "purification", "purificationlaser", "arcade", "civil", "foodsafety", "nuclear", "powerstation", "telecom", "fishingmaster"}) {
             players.then(Commands.literal(kind).executes(c -> {
                 int opened = 0;
                 for (ServerPlayer p : EntityArgument.getPlayers(c, "players")) if (start(p, kind)) opened++;
@@ -83,6 +96,13 @@ public final class GuiTaskBridge {
         bindings.put(p.getUUID(), new Binding(kind, id));
         score(p, "ggdGuiState", 1); score(p, "ggdGuiTime", 0); score(p, "ggdGuiHits", 0);
         return true;
+    }
+    static boolean fishingAllowed(ServerPlayer player) {
+        return player.entityTags().contains("inTaskGooseGui") && eligible(player)
+                && !player.entityTags().contains("chapelInSewer")
+                && GuiTaskEligibility.kindAllowed(player.entityTags(), TaskType.FISHING.id, map(player))
+                && DreamSpatialContext.runFor(player, () -> player.level().dimension().equals(Level.OVERWORLD)
+                        && player.distanceToSqr(-932, 114, -619) <= 9);
     }
     public static void clear(ServerPlayer p) {
         bindings.remove(p.getUUID());

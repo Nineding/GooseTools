@@ -60,6 +60,11 @@ final class GuiTaskEligibility {
     }
 
     static boolean kindAllowed(Set<String> tags, String kind, int map) {
+        if (kind.equals(TaskType.FISHING.id)) {
+            return map == 8 && tags.contains("inTaskFishingMaster") && tags.contains("task.fishingmaster.available")
+                    && !tags.contains("task.fishingmaster.finished") && !tags.contains("spectator")
+                    && !tags.contains("dlcGhostActive");
+        }
         return (!artisanKind(kind) || map == 11) && kindAllowed(tags, kind);
     }
 }

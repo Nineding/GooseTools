@@ -9,6 +9,11 @@
     "artisan": "#D0C9A227"
   },
   "tasks": {
+    "fishingmaster": {
+      "translation_key": "item.task.fishingmaster.available",
+      "category": "normal",
+      "fallback": "Fishing Master"
+    },
     "rhythmmaster": {
       "translation_key": "item.task.rhythmmaster.available",
       "category": "normal",
