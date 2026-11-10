@@ -6,7 +6,6 @@ import com.goosethings.tools.client.punchy.PunchySkillSword;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.item.ItemModelResolver;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
-import net.minecraft.client.resources.model.cuboid.ItemTransform;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
@@ -14,19 +13,11 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.joml.Vector3f;
 
 /** Keeps Punchy's arm pose while restoring models that only the holder should see. */
 @Pseudo
 @Mixin(targets = "punchy.client.render.PunchyArmRenderer", remap = false)
 abstract class PunchyHeldItemMixin {
-    @Unique
-    private static final ItemTransform goosetools$rightSwordGrip = new ItemTransform(
-            new Vector3f(0, -90, 55), new Vector3f(0, 4 / 16.0F, 0.5F / 16), new Vector3f(0.85F));
-    @Unique
-    private static final ItemTransform goosetools$leftSwordGrip = new ItemTransform(
-            new Vector3f(0, 90, -55), new Vector3f(0, 4 / 16.0F, 0.5F / 16), new Vector3f(0.85F));
-
     @WrapOperation(
             method = "submitVanillaItem",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/item/ItemModelResolver;"
@@ -61,11 +52,7 @@ abstract class PunchyHeldItemMixin {
                 original.call(resolver, state, stack, context, holder);
                 return;
             }
-            ItemRenderStateAccess access = (ItemRenderStateAccess) state;
-            ItemTransform grip = context.leftHand() ? goosetools$leftSwordGrip : goosetools$rightSwordGrip;
-            for (int i = 0; i < access.goosetools$getActiveLayerCount(); i++) {
-                access.goosetools$getLayers()[i].setItemTransform(grip);
-            }
+            PunchySkillSword.applyGrip(state, context);
             return;
         }
         if (context == firstPerson || goosetools$hasVisibleLayer(state)) {

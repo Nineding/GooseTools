@@ -6,7 +6,12 @@
   "client": [
     "ItemRenderLayerAccess",
     "ItemRenderStateAccess",
+    "SakuraHandRefreshMixin",
+    "SakuraOwnerHandMixin",
     "PunchyHeldItemMixin",
+    "PunchySakuraRefreshMixin",
+    "PunchyMovesSakuraAttackMixin",
+    "PunchyMovesSakuraBindingMixin",
     "PunchySkillSwordKindMixin",
     "PunchyWornHeadFaceMixin",
     "PunchyWornHeadGlintsMixin"
