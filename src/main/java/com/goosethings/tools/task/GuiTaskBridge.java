@@ -12,6 +12,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.scores.ScoreHolder;
@@ -21,6 +22,7 @@ import java.util.UUID;
 
 /** Only authoritative, explicitly bound sessions publish progress to the datapack. */
 public final class GuiTaskBridge {
+    private static final Identifier FISHING_TRAINING_LEVEL = Identifier.fromNamespaceAndPath("ggd_training", "goosechapel");
     private static final Map<UUID, Binding> bindings = new HashMap<>();
     private static final class Binding {
         final String kind; final long session;
@@ -47,19 +49,22 @@ public final class GuiTaskBridge {
                 ServerPlayer player = server.getPlayerList().getPlayer(id);
                 if (player == null) { bindings.remove(id); continue; }
                 Binding binding = bindings.get(id);
-                if (binding != null && (!player.entityTags().contains("inTaskGooseGui") || !eligible(player)
-                        || !GuiTaskEligibility.kindAllowed(player.entityTags(), binding.kind, map(player)))) clear(player);
+                if (binding != null && (!player.entityTags().contains("inTaskGooseGui")
+                        || !bindingAllowed(player, binding.kind))) clear(player);
             }
         });
         ArcadeStations.register();
         PurificationStation.register();
     }
     public static boolean eligible(ServerPlayer p) {
+        return eligible(p, map(p), false);
+    }
+    private static boolean eligible(ServerPlayer p, int map, boolean training) {
         var sb = p.level().getServer().getScoreboard();
         var objective = sb.getObjective("ggdadv");
         var dlc = objective == null ? null : sb.getPlayerScoreInfo(ScoreHolder.forNameOnly("FullBloodDLC"), objective);
-        return p.isAlive() && GuiTaskEligibility.eligible(p.entityTags(), map(p), dlc != null && dlc.value() == 1)
-                && !TaskServer.meeting(p.level().getServer(), p);
+        return p.isAlive() && GuiTaskEligibility.eligible(p.entityTags(), map, dlc != null && dlc.value() == 1)
+                && (training || !TaskServer.meeting(p.level().getServer(), p));
     }
     public static LiteralArgumentBuilder<CommandSourceStack> command() {
         var players = Commands.argument("players", EntityArgument.players());
@@ -81,7 +86,7 @@ public final class GuiTaskBridge {
     }
     private static boolean start(ServerPlayer p, String kind) {
         clear(p);
-        if (!eligible(p) || !GuiTaskEligibility.kindAllowed(p.entityTags(), kind, map(p))
+        if (!bindingAllowed(p, kind)
                 || !MandatoryHandshake.isVerified(p) || !p.entityTags().contains("inTaskGooseGui")) return false;
         long id;
         if (kind.equals("arcade")) id = 0;
@@ -97,11 +102,22 @@ public final class GuiTaskBridge {
         score(p, "ggdGuiState", 1); score(p, "ggdGuiTime", 0); score(p, "ggdGuiHits", 0);
         return true;
     }
+    private static boolean bindingAllowed(ServerPlayer player, String kind) {
+        if (kind.equals(TaskType.FISHING.id)) return fishingAllowed(player);
+        return eligible(player) && GuiTaskEligibility.kindAllowed(player.entityTags(), kind, map(player));
+    }
+    static boolean fishingTraining(ServerPlayer player) {
+        return player.entityTags().contains("ggdTraining")
+                && TaskServer.dimension(player).identifier().equals(FISHING_TRAINING_LEVEL);
+    }
     static boolean fishingAllowed(ServerPlayer player) {
-        return player.entityTags().contains("inTaskGooseGui") && eligible(player)
-                && !player.entityTags().contains("chapelInSewer")
-                && GuiTaskEligibility.kindAllowed(player.entityTags(), TaskType.FISHING.id, map(player))
-                && DreamSpatialContext.runFor(player, () -> player.level().dimension().equals(Level.OVERWORLD)
+        var tags = player.entityTags();
+        boolean training = fishingTraining(player);
+        int map = training ? 8 : map(player);
+        return tags.contains("inTaskGooseGui") && !tags.contains("chapelInSewer")
+                && eligible(player, map, training) && GuiTaskEligibility.kindAllowed(tags, TaskType.FISHING.id, map)
+                && DreamSpatialContext.runFor(player, () -> (training || (!tags.contains("ggdTraining")
+                        && player.level().dimension().equals(Level.OVERWORLD)))
                         && player.distanceToSqr(-932, 114, -619) <= 9);
     }
     public static void clear(ServerPlayer p) {
@@ -133,8 +149,7 @@ public final class GuiTaskBridge {
     public static void taskProgress(ServerPlayer p, long id, boolean complete) {
         Binding b = bindings.get(p.getUUID());
         if (b != null && !b.ended && b.session == id && !b.kind.equals("traffic")
-                && !b.kind.equals("whack") && !b.kind.equals("arcade") && eligible(p)
-                && GuiTaskEligibility.kindAllowed(p.entityTags(), b.kind, map(p)) && complete) success(p, b);
+                && !b.kind.equals("whack") && !b.kind.equals("arcade") && complete && bindingAllowed(p, b.kind)) success(p, b);
     }
     public static boolean taskBound(ServerPlayer p, long id) {
         Binding b = bindings.get(p.getUUID());
