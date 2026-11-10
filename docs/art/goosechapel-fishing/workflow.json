@@ -1,0 +1,871 @@
+{
+  "panel": {
+    "1": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "goosechapel_fishing/panel.png"
+      }
+    },
+    "2": {
+      "class_type": "ImageScale",
+      "inputs": {
+        "image": [
+          "1",
+          0
+        ],
+        "upscale_method": "nearest-exact",
+        "width": 832,
+        "height": 640,
+        "crop": "disabled"
+      }
+    },
+    "3": {
+      "class_type": "PerfectPixel",
+      "inputs": {
+        "image": [
+          "2",
+          0
+        ],
+        "sampling": "Majority Cluster",
+        "export_scale": 1,
+        "backend": "OpenCV Backend"
+      }
+    },
+    "4": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "3",
+          0
+        ],
+        "filename_prefix": "goosechapel_fishing/panel-grid"
+      }
+    },
+    "5": {
+      "class_type": "ImageScale",
+      "inputs": {
+        "image": [
+          "3",
+          0
+        ],
+        "upscale_method": "nearest-exact",
+        "width": 208,
+        "height": 160,
+        "crop": "disabled"
+      }
+    },
+    "6": {
+      "class_type": "JoinImageWithAlpha",
+      "inputs": {
+        "image": [
+          "5",
+          0
+        ],
+        "alpha": [
+          "1",
+          1
+        ]
+      }
+    },
+    "7": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "6",
+          0
+        ],
+        "filename_prefix": "goosechapel_fishing/panel"
+      }
+    }
+  },
+  "fish_gold": {
+    "1": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "goosechapel_fishing/fish_gold.png"
+      }
+    },
+    "2": {
+      "class_type": "ImageScale",
+      "inputs": {
+        "image": [
+          "1",
+          0
+        ],
+        "upscale_method": "nearest-exact",
+        "width": 128,
+        "height": 96,
+        "crop": "disabled"
+      }
+    },
+    "3": {
+      "class_type": "PerfectPixel",
+      "inputs": {
+        "image": [
+          "2",
+          0
+        ],
+        "sampling": "Majority Cluster",
+        "export_scale": 1,
+        "backend": "OpenCV Backend"
+      }
+    },
+    "4": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "3",
+          0
+        ],
+        "filename_prefix": "goosechapel_fishing/fish_gold-grid"
+      }
+    },
+    "5": {
+      "class_type": "ImageScale",
+      "inputs": {
+        "image": [
+          "3",
+          0
+        ],
+        "upscale_method": "nearest-exact",
+        "width": 32,
+        "height": 24,
+        "crop": "disabled"
+      }
+    },
+    "6": {
+      "class_type": "JoinImageWithAlpha",
+      "inputs": {
+        "image": [
+          "5",
+          0
+        ],
+        "alpha": [
+          "1",
+          1
+        ]
+      }
+    },
+    "7": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "6",
+          0
+        ],
+        "filename_prefix": "goosechapel_fishing/fish_gold"
+      }
+    }
+  },
+  "fish_coral": {
+    "1": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "goosechapel_fishing/fish_coral.png"
+      }
+    },
+    "2": {
+      "class_type": "ImageScale",
+      "inputs": {
+        "image": [
+          "1",
+          0
+        ],
+        "upscale_method": "nearest-exact",
+        "width": 128,
+        "height": 96,
+        "crop": "disabled"
+      }
+    },
+    "3": {
+      "class_type": "PerfectPixel",
+      "inputs": {
+        "image": [
+          "2",
+          0
+        ],
+        "sampling": "Majority Cluster",
+        "export_scale": 1,
+        "backend": "OpenCV Backend"
+      }
+    },
+    "4": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "3",
+          0
+        ],
+        "filename_prefix": "goosechapel_fishing/fish_coral-grid"
+      }
+    },
+    "5": {
+      "class_type": "ImageScale",
+      "inputs": {
+        "image": [
+          "3",
+          0
+        ],
+        "upscale_method": "nearest-exact",
+        "width": 32,
+        "height": 24,
+        "crop": "disabled"
+      }
+    },
+    "6": {
+      "class_type": "JoinImageWithAlpha",
+      "inputs": {
+        "image": [
+          "5",
+          0
+        ],
+        "alpha": [
+          "1",
+          1
+        ]
+      }
+    },
+    "7": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "6",
+          0
+        ],
+        "filename_prefix": "goosechapel_fishing/fish_coral"
+      }
+    }
+  },
+  "fish_mint": {
+    "1": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "goosechapel_fishing/fish_mint.png"
+      }
+    },
+    "2": {
+      "class_type": "ImageScale",
+      "inputs": {
+        "image": [
+          "1",
+          0
+        ],
+        "upscale_method": "nearest-exact",
+        "width": 128,
+        "height": 96,
+        "crop": "disabled"
+      }
+    },
+    "3": {
+      "class_type": "PerfectPixel",
+      "inputs": {
+        "image": [
+          "2",
+          0
+        ],
+        "sampling": "Majority Cluster",
+        "export_scale": 1,
+        "backend": "OpenCV Backend"
+      }
+    },
+    "4": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "3",
+          0
+        ],
+        "filename_prefix": "goosechapel_fishing/fish_mint-grid"
+      }
+    },
+    "5": {
+      "class_type": "ImageScale",
+      "inputs": {
+        "image": [
+          "3",
+          0
+        ],
+        "upscale_method": "nearest-exact",
+        "width": 32,
+        "height": 24,
+        "crop": "disabled"
+      }
+    },
+    "6": {
+      "class_type": "JoinImageWithAlpha",
+      "inputs": {
+        "image": [
+          "5",
+          0
+        ],
+        "alpha": [
+          "1",
+          1
+        ]
+      }
+    },
+    "7": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "6",
+          0
+        ],
+        "filename_prefix": "goosechapel_fishing/fish_mint"
+      }
+    }
+  },
+  "cannon": {
+    "1": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "goosechapel_fishing/cannon.png"
+      }
+    },
+    "2": {
+      "class_type": "ImageScale",
+      "inputs": {
+        "image": [
+          "1",
+          0
+        ],
+        "upscale_method": "nearest-exact",
+        "width": 192,
+        "height": 128,
+        "crop": "disabled"
+      }
+    },
+    "3": {
+      "class_type": "PerfectPixel",
+      "inputs": {
+        "image": [
+          "2",
+          0
+        ],
+        "sampling": "Majority Cluster",
+        "export_scale": 1,
+        "backend": "OpenCV Backend"
+      }
+    },
+    "4": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "3",
+          0
+        ],
+        "filename_prefix": "goosechapel_fishing/cannon-grid"
+      }
+    },
+    "5": {
+      "class_type": "ImageScale",
+      "inputs": {
+        "image": [
+          "3",
+          0
+        ],
+        "upscale_method": "nearest-exact",
+        "width": 48,
+        "height": 32,
+        "crop": "disabled"
+      }
+    },
+    "6": {
+      "class_type": "JoinImageWithAlpha",
+      "inputs": {
+        "image": [
+          "5",
+          0
+        ],
+        "alpha": [
+          "1",
+          1
+        ]
+      }
+    },
+    "7": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "6",
+          0
+        ],
+        "filename_prefix": "goosechapel_fishing/cannon"
+      }
+    }
+  },
+  "reticle": {
+    "1": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "goosechapel_fishing/reticle.png"
+      }
+    },
+    "2": {
+      "class_type": "ImageScale",
+      "inputs": {
+        "image": [
+          "1",
+          0
+        ],
+        "upscale_method": "nearest-exact",
+        "width": 96,
+        "height": 96,
+        "crop": "disabled"
+      }
+    },
+    "3": {
+      "class_type": "PerfectPixel",
+      "inputs": {
+        "image": [
+          "2",
+          0
+        ],
+        "sampling": "Majority Cluster",
+        "export_scale": 1,
+        "backend": "OpenCV Backend"
+      }
+    },
+    "4": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "3",
+          0
+        ],
+        "filename_prefix": "goosechapel_fishing/reticle-grid"
+      }
+    },
+    "5": {
+      "class_type": "ImageScale",
+      "inputs": {
+        "image": [
+          "3",
+          0
+        ],
+        "upscale_method": "nearest-exact",
+        "width": 24,
+        "height": 24,
+        "crop": "disabled"
+      }
+    },
+    "6": {
+      "class_type": "JoinImageWithAlpha",
+      "inputs": {
+        "image": [
+          "5",
+          0
+        ],
+        "alpha": [
+          "1",
+          1
+        ]
+      }
+    },
+    "7": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "6",
+          0
+        ],
+        "filename_prefix": "goosechapel_fishing/reticle"
+      }
+    }
+  },
+  "net": {
+    "1": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "goosechapel_fishing/net.png"
+      }
+    },
+    "2": {
+      "class_type": "ImageScale",
+      "inputs": {
+        "image": [
+          "1",
+          0
+        ],
+        "upscale_method": "nearest-exact",
+        "width": 160,
+        "height": 160,
+        "crop": "disabled"
+      }
+    },
+    "3": {
+      "class_type": "PerfectPixel",
+      "inputs": {
+        "image": [
+          "2",
+          0
+        ],
+        "sampling": "Majority Cluster",
+        "export_scale": 1,
+        "backend": "OpenCV Backend"
+      }
+    },
+    "4": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "3",
+          0
+        ],
+        "filename_prefix": "goosechapel_fishing/net-grid"
+      }
+    },
+    "5": {
+      "class_type": "ImageScale",
+      "inputs": {
+        "image": [
+          "3",
+          0
+        ],
+        "upscale_method": "nearest-exact",
+        "width": 40,
+        "height": 40,
+        "crop": "disabled"
+      }
+    },
+    "6": {
+      "class_type": "JoinImageWithAlpha",
+      "inputs": {
+        "image": [
+          "5",
+          0
+        ],
+        "alpha": [
+          "1",
+          1
+        ]
+      }
+    },
+    "7": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "6",
+          0
+        ],
+        "filename_prefix": "goosechapel_fishing/net"
+      }
+    }
+  },
+  "close": {
+    "1": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "goosechapel_fishing/close.png"
+      }
+    },
+    "2": {
+      "class_type": "ImageScale",
+      "inputs": {
+        "image": [
+          "1",
+          0
+        ],
+        "upscale_method": "nearest-exact",
+        "width": 96,
+        "height": 96,
+        "crop": "disabled"
+      }
+    },
+    "3": {
+      "class_type": "PerfectPixel",
+      "inputs": {
+        "image": [
+          "2",
+          0
+        ],
+        "sampling": "Majority Cluster",
+        "export_scale": 1,
+        "backend": "OpenCV Backend"
+      }
+    },
+    "4": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "3",
+          0
+        ],
+        "filename_prefix": "goosechapel_fishing/close-grid"
+      }
+    },
+    "5": {
+      "class_type": "ImageScale",
+      "inputs": {
+        "image": [
+          "3",
+          0
+        ],
+        "upscale_method": "nearest-exact",
+        "width": 24,
+        "height": 24,
+        "crop": "disabled"
+      }
+    },
+    "6": {
+      "class_type": "JoinImageWithAlpha",
+      "inputs": {
+        "image": [
+          "5",
+          0
+        ],
+        "alpha": [
+          "1",
+          1
+        ]
+      }
+    },
+    "7": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "6",
+          0
+        ],
+        "filename_prefix": "goosechapel_fishing/close"
+      }
+    }
+  },
+  "pearl_empty": {
+    "1": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "goosechapel_fishing/pearl_empty.png"
+      }
+    },
+    "2": {
+      "class_type": "ImageScale",
+      "inputs": {
+        "image": [
+          "1",
+          0
+        ],
+        "upscale_method": "nearest-exact",
+        "width": 64,
+        "height": 64,
+        "crop": "disabled"
+      }
+    },
+    "3": {
+      "class_type": "PerfectPixel",
+      "inputs": {
+        "image": [
+          "2",
+          0
+        ],
+        "sampling": "Majority Cluster",
+        "export_scale": 1,
+        "backend": "OpenCV Backend"
+      }
+    },
+    "4": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "3",
+          0
+        ],
+        "filename_prefix": "goosechapel_fishing/pearl_empty-grid"
+      }
+    },
+    "5": {
+      "class_type": "ImageScale",
+      "inputs": {
+        "image": [
+          "3",
+          0
+        ],
+        "upscale_method": "nearest-exact",
+        "width": 16,
+        "height": 16,
+        "crop": "disabled"
+      }
+    },
+    "6": {
+      "class_type": "JoinImageWithAlpha",
+      "inputs": {
+        "image": [
+          "5",
+          0
+        ],
+        "alpha": [
+          "1",
+          1
+        ]
+      }
+    },
+    "7": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "6",
+          0
+        ],
+        "filename_prefix": "goosechapel_fishing/pearl_empty"
+      }
+    }
+  },
+  "pearl_full": {
+    "1": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "goosechapel_fishing/pearl_full.png"
+      }
+    },
+    "2": {
+      "class_type": "ImageScale",
+      "inputs": {
+        "image": [
+          "1",
+          0
+        ],
+        "upscale_method": "nearest-exact",
+        "width": 64,
+        "height": 64,
+        "crop": "disabled"
+      }
+    },
+    "3": {
+      "class_type": "PerfectPixel",
+      "inputs": {
+        "image": [
+          "2",
+          0
+        ],
+        "sampling": "Majority Cluster",
+        "export_scale": 1,
+        "backend": "OpenCV Backend"
+      }
+    },
+    "4": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "3",
+          0
+        ],
+        "filename_prefix": "goosechapel_fishing/pearl_full-grid"
+      }
+    },
+    "5": {
+      "class_type": "ImageScale",
+      "inputs": {
+        "image": [
+          "3",
+          0
+        ],
+        "upscale_method": "nearest-exact",
+        "width": 16,
+        "height": 16,
+        "crop": "disabled"
+      }
+    },
+    "6": {
+      "class_type": "JoinImageWithAlpha",
+      "inputs": {
+        "image": [
+          "5",
+          0
+        ],
+        "alpha": [
+          "1",
+          1
+        ]
+      }
+    },
+    "7": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "6",
+          0
+        ],
+        "filename_prefix": "goosechapel_fishing/pearl_full"
+      }
+    }
+  },
+  "trigger": {
+    "1": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "goosechapel_fishing/trigger.png"
+      }
+    },
+    "2": {
+      "class_type": "ImageScale",
+      "inputs": {
+        "image": [
+          "1",
+          0
+        ],
+        "upscale_method": "nearest-exact",
+        "width": 128,
+        "height": 128,
+        "crop": "disabled"
+      }
+    },
+    "3": {
+      "class_type": "PerfectPixel",
+      "inputs": {
+        "image": [
+          "2",
+          0
+        ],
+        "sampling": "Majority Cluster",
+        "export_scale": 1,
+        "backend": "OpenCV Backend"
+      }
+    },
+    "4": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "3",
+          0
+        ],
+        "filename_prefix": "goosechapel_fishing/trigger-grid"
+      }
+    },
+    "5": {
+      "class_type": "ImageScale",
+      "inputs": {
+        "image": [
+          "3",
+          0
+        ],
+        "upscale_method": "nearest-exact",
+        "width": 32,
+        "height": 32,
+        "crop": "disabled"
+      }
+    },
+    "6": {
+      "class_type": "JoinImageWithAlpha",
+      "inputs": {
+        "image": [
+          "5",
+          0
+        ],
+        "alpha": [
+          "1",
+          1
+        ]
+      }
+    },
+    "7": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "6",
+          0
+        ],
+        "filename_prefix": "goosechapel_fishing/trigger"
+      }
+    }
+  }
+}

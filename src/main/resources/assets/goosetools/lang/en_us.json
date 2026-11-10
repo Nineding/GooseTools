@@ -1008,5 +1008,7 @@
   "gomoku.goosetools.online": "Online players",
   "gomoku.goosetools.card_0": "Five in a row · Black starts",
   "gomoku.goosetools.card_1": "Cross the river · Red starts",
-  "gomoku.goosetools.card_2": "Protect your king · White starts"
+  "gomoku.goosetools.card_2": "Protect your king · White starts",
+  "task.goosetools.fishingmaster.title": "Fishing Master",
+  "task.goosetools.ui.fishing_help": "Aim and left-click to cast the net."
 }

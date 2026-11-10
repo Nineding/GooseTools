@@ -1,6 +1,7 @@
 package com.goosethings.tools.client.task;
 
 import com.goosethings.tools.task.TaskLayout;
+import com.goosethings.tools.task.FishingLayout;
 import com.goosethings.tools.task.KeepGreenLayout;
 import com.goosethings.tools.task.CutWiresLayout;
 import com.goosethings.tools.task.PurificationLayout;
@@ -29,6 +30,12 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
             RED = 0xFFE77969, EDGE = 0xFF7C8A91;
     private static final Identifier DIAL = texture("dial"), READER = texture("reader"),
             BIN = texture("bin"), KNOB = texture("knob"), CARD = texture("key_card"), GREEN_BRUSH = texture("green_paint_brush"), SCISSORS = texture("wire_scissors");
+    private static final Identifier FISHING_PANEL = texture("fishing/panel"), CANNON = texture("fishing/cannon"),
+            RETICLE = texture("fishing/reticle"), NET = texture("fishing/net"), FISHING_CLOSE = texture("fishing/close"),
+            PEARL_EMPTY = texture("fishing/pearl_empty"), PEARL_FULL = texture("fishing/pearl_full");
+    private static final Identifier[] FISH = {texture("fishing/fish_gold"), texture("fishing/fish_coral"), texture("fishing/fish_mint")};
+    private static final TaskLayout.Rect FISHING_CLOSE_AREA = new TaskLayout.Rect(380, 4, 24, 24);
+    private static final int CANNON_X = 210, CANNON_Y = 259;
     private static final int[] WIRE_COLORS = {0xFFFF7588, 0xFF67BAFF, 0xFFFFD066, 0xFFBB91FF};
     private static final String[] FEEDBACK = {"waiting", "play", "success", "miss", "wrong_wire", "insert_card",
             "card_ready", "too_fast", "too_slow", "incomplete_swipe", "drop_in_bin", "align_knob",
@@ -42,6 +49,7 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
     private final TaskPackets.Open open;
     private final TaskType type;
     private final TaskLayout layout;
+    private final FishingLayout fishing;
     private final double[] garbageX, garbageY, knobAngles;
     private TaskPackets.State state;
     private boolean readySent, closing;
@@ -54,11 +62,14 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
     private ItemStack sponge;
     private int pressedMemory = -1;
     private long pressedUntil;
+    private long castAt = -1;
+    private double castX, castY;
 
     public TaskScreen(TaskPackets.Open open) {
         super(Component.translatableWithFallback("task.goosetools." + TaskType.values()[open.task()].id + ".title",
                 TaskType.values()[open.task()].fallback));
         this.open = open; type = TaskType.values()[open.task()]; layout = new TaskLayout(open.seed());
+        fishing = type == TaskType.FISHING ? new FishingLayout(open.seed()) : null;
         garbageX = layout.garbageX.clone(); garbageY = layout.garbageY.clone(); knobAngles = layout.knobInitial.clone();
     }
 
@@ -94,12 +105,16 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
     }
 
     @Override public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-        graphics.fill(0, 0, width, height, 0xAE101416);
+        if (fishing == null) graphics.fill(0, 0, width, height, 0xAE101416);
         Transform transform = transform();
         graphics.pose().pushMatrix();
         graphics.pose().translate((float) transform.x, (float) transform.y);
         graphics.pose().scale((float) transform.scale, (float) transform.scale);
         double mx = transform.virtualX(mouseX), my = transform.virtualY(mouseY);
+        if (fishing != null) {
+            drawFishing(graphics, mx, my);
+            graphics.pose().popMatrix(); return;
+        }
         if (type == TaskType.PURIFICATION || type == TaskType.PURIFICATIONLASER) {
             drawPurification(graphics, mx, my);
             graphics.pose().popMatrix(); return;
@@ -131,6 +146,7 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
             case PURIFICATION, PURIFICATIONLASER -> "Operate the purification system.";
             case POWERSTATION -> "Restore the power station.";
             case TELECOM, NUCLEAR, FOODSAFETY, CIVIL -> "Complete the professional simulation.";
+            case FISHING -> throw new IllegalStateException("Fishing has its own panel");
         };
         int helpY = 56;
         for (FormattedCharSequence line : font.split(Component.translatableWithFallback(
@@ -493,11 +509,68 @@ public final class TaskScreen extends Screen implements com.goosethings.tools.cl
         if (CutWiresLayout.inside(mx, my)) sprite(g, SCISSORS, (int)mx - 12, (int)my - 12, 48, 48);
     }
 
+    private void drawFishing(GuiGraphicsExtractor g, double mx, double my) {
+        // The last six source rows are padding below the cabinet.
+        g.blit(FISHING_PANEL, 2, 0, 418, 308, 0, 1, 0, 154 / 160.0F);
+        g.text(font, getTitle(), 20, 11, 0xFFFBE3A0, true);
+        long elapsed = elapsed();
+        long seconds = (Math.max(0, FishingLayout.TIME_LIMIT - elapsed) + 999) / 1000;
+        Component timer = text("time", "%s s", seconds);
+        g.text(font, timer, 368 - font.width(timer), 11, seconds <= 5 ? RED : INK, true);
+        sprite(g, FISHING_CLOSE, 380, 4, 24, 24);
+
+        if (state != null && state.started()) for (int i = 0; i < FishingLayout.FISH_COUNT; i++) {
+            if (masked(i)) continue;
+            FishingLayout.Fish fish = fishing.fish(i, elapsed);
+            int x = (int) Math.round(fish.x()) - 23, y = (int) Math.round(fish.y()) - 17;
+            float left = fish.right() ? 0 : 1;
+            g.blit(FISH[i % FISH.length], x, y, x + 46, y + 34, left, 1 - left, 0, 1);
+        }
+
+        boolean aiming = FishingLayout.WATER.contains(mx, my) && elapsed < FishingLayout.TIME_LIMIT;
+        g.pose().pushMatrix();
+        g.pose().translate(CANNON_X, CANNON_Y);
+        if (aiming) g.pose().rotate((float) Math.atan2(mx - CANNON_X, CANNON_Y - my));
+        sprite(g, CANNON, -29, -33, 58, 39);
+        g.pose().popMatrix();
+
+        long castAge = now() - castAt;
+        if (castAt >= 0 && castAge < 250) {
+            double flight = Math.min(1, castAge / 100.0);
+            int x = (int) Math.round(CANNON_X + (castX - CANNON_X) * flight);
+            int y = (int) Math.round(CANNON_Y - 19 + (castY - CANNON_Y + 19) * flight);
+            int radius = (int) (9 + 17 * flight);
+            sprite(g, NET, x - radius, y - radius, radius * 2, radius * 2);
+        }
+        if (aiming && state != null && state.started() && !state.complete()) {
+            sprite(g, RETICLE, (int) mx - 13, (int) my - 13, 26, 26);
+        }
+
+        Component status = state == null || !state.started() ? text("waiting", "Waiting for the server…")
+                : state.complete() ? text("success", "Task complete!") : text("fishing_help", "Aim and left-click to cast the net.");
+        g.text(font, status, 21, 284, INK, true);
+        int caught = state == null ? 0 : state.progress();
+        for (int i = 0; i < FishingLayout.FISH_COUNT; i++) {
+            sprite(g, i < caught ? PEARL_FULL : PEARL_EMPTY, 266 + i * 25, 278, 21, 21);
+        }
+    }
+
     @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (event.button() != InputConstants.MOUSE_BUTTON_LEFT) return super.mouseClicked(event, doubleClick);
         Transform t = transform(); double x = t.virtualX(event.x()), y = t.virtualY(event.y());
-        if (TaskLayout.CLOSE.contains(x, y)) { onClose(); return true; }
+        if ((fishing == null ? TaskLayout.CLOSE : FISHING_CLOSE_AREA).contains(x, y)) { onClose(); return true; }
         if (state == null || !state.started()) return true;
+        if (fishing != null) {
+            long now = now();
+            if (!state.complete() && elapsed() < FishingLayout.TIME_LIMIT && FishingLayout.WATER.contains(x, y)
+                    && (castAt < 0 || now - castAt >= FishingLayout.CAST_INTERVAL)) {
+                castAt = now;
+                castX = x;
+                castY = y;
+                send(TaskSession.HIT, -1, x, y);
+            }
+            return true;
+        }
         if (state.complete()) {
             if (TaskLayout.REPLAY.contains(x, y)) send(TaskSession.REPLAY, -1, x, y);
             return true;

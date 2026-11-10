@@ -79,7 +79,7 @@ public final class TaskServer {
                 source.sendFailure(message("unavailable", "%s needs the matching GooseTools version", player.getName()));
                 continue;
             }
-            if (!player.isAlive() || meeting(player.level().getServer(), player)) {
+            if (!player.isAlive() || taskMeeting(player, type)) {
                 source.sendFailure(message("busy", "%s cannot start a trial while dead or in a meeting", player.getName()));
                 continue;
             }
@@ -102,7 +102,8 @@ public final class TaskServer {
 
     public static long openBound(ServerPlayer player, TaskType type) {
         if (!MandatoryHandshake.isVerified(player) || !ServerPlayNetworking.canSend(player, TaskPackets.Open.TYPE)
-                || !player.isAlive() || meeting(player.level().getServer(), player) || !PurificationStation.valid(player, type)) return 0;
+                || !player.isAlive() || taskMeeting(player, type) || !PurificationStation.valid(player, type)
+                || (type == TaskType.FISHING && !GuiTaskBridge.fishingAllowed(player))) return 0;
         return open(player, type);
     }
 
@@ -112,11 +113,12 @@ public final class TaskServer {
         if (trial == null || trial.session.id != packet.sessionId()) return;
         if (packet.action() == TaskSession.CANCEL) { close(player); return; }
         if (packet.action() == TaskSession.REPLAY) {
-            if (trial.session.complete()) open(player, trial.session.type);
+            if (trial.session.complete() && (trial.session.type != TaskType.FISHING
+                    || !GuiTaskBridge.taskBound(player, trial.session.id))) open(player, trial.session.type);
             return;
         }
         if (!PurificationStation.valid(player, trial.session.type) || !player.isAlive() || !sameDimension(player, trial)
-                || meeting(player.level().getServer(), player)) { close(player); return; }
+                || taskMeeting(player, trial.session.type) || invalidFishing(player, trial)) { close(player); return; }
         if (trial.session.apply(packet.sequence(), packet.action(), packet.item(), packet.x(), packet.y(), packet.elapsed(),
                 PurificationStation.time(player, trial.session.type), player.connection.latency())) sendState(player, trial);
     }
@@ -127,11 +129,17 @@ public final class TaskServer {
             Trial trial = SESSIONS.get(id);
             ServerPlayer player = server.getPlayerList().getPlayer(id);
             if (player == null) { SESSIONS.remove(id); continue; }
-            if (!PurificationStation.valid(player, trial.session.type) || !player.isAlive() || !sameDimension(player, trial) || meeting(server, player)
+            if (!PurificationStation.valid(player, trial.session.type) || !player.isAlive() || !sameDimension(player, trial) || taskMeeting(player, trial.session.type)
+                    || invalidFishing(player, trial)
                     || PurificationStation.time(player, trial.session.type) - trial.session.createdAt > (trial.session.type == TaskType.POWERSTATION || trial.session.type.profession() ? 3_600_000 : 600_000)
                     || (!trial.session.started() && PurificationStation.time(player, trial.session.type) - trial.session.createdAt > 15_000)) { close(player); continue; }
             if (trial.session.tick(PurificationStation.time(player, trial.session.type))) sendState(player, trial);
         }
+    }
+
+    private static boolean invalidFishing(ServerPlayer player, Trial trial) {
+        return trial.session.type == TaskType.FISHING && (trial.session.expired(now())
+                || (GuiTaskBridge.taskBound(player, trial.session.id) && !GuiTaskBridge.fishingAllowed(player)));
     }
 
     private static void sendState(ServerPlayer player, Trial trial) {
@@ -183,6 +191,12 @@ public final class TaskServer {
 
     private static boolean sameDimension(ServerPlayer player, Trial trial) {
         return trial.dimension.equals(dimension(player));
+    }
+
+    private static boolean taskMeeting(ServerPlayer player, TaskType type) {
+        // Training sessions do not share the formal game's meeting phase.
+        return !(type == TaskType.FISHING && GuiTaskBridge.fishingTraining(player))
+                && meeting(player.level().getServer(), player);
     }
 
     public static boolean meeting(MinecraftServer server, ServerPlayer player) {

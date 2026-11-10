@@ -42,7 +42,7 @@ public final class BlindDuckServerSmoke implements DedicatedServerModInitializer
             done = true;
             String result;
             try {
-                check(com.goosethings.tools.GooseTools.PROTOCOL_VERSION == 50, "protocol");
+                check(com.goosethings.tools.GooseTools.PROTOCOL_VERSION == 51, "protocol");
                 for (String id : new String[]{"lobby:invreplace/toggle/blind_duck_mode",
                         "lobby:invreplace/menu_main", "lobby:settings_display/ggd/update",
                         "lobby:settings_display/ggd/apply", "lobby:settings_display/ggd/apply_turn",
@@ -87,7 +87,8 @@ public final class BlindDuckServerSmoke implements DedicatedServerModInitializer
                 var local = BlindDuckAppearance.equipment(UUID.randomUUID());
                 check(local.get(EquipmentSlot.HEAD.ordinal()).get(DataComponents.PROFILE).skinPatch().body().isPresent(), "dedicated-side outfit codec");
                 verifyParticles(server);
-                result = "PASS dedicated server protocol 50 without client class loading; real setting toggle; legacy black leather/head and unique profile; fixed question-mark asset; zero Duck/Mimic/stand-in particles in blind mode; disabled restores particles";
+                result = "PASS dedicated server protocol " + com.goosethings.tools.GooseTools.PROTOCOL_VERSION
+                        + " without client class loading; real setting toggle; legacy black leather/head and unique profile; fixed question-mark asset; zero Duck/Mimic/stand-in particles in blind mode; disabled restores particles";
             } catch (Throwable error) { error.printStackTrace(); result = "FAIL " + error; }
             try { Files.writeString(Path.of(System.getProperty("goosetools.blindDuckServerResult")), result); }
             catch (Exception error) { throw new RuntimeException(error); }

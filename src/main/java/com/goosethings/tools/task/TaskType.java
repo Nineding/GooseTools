@@ -11,7 +11,8 @@ public enum TaskType {
     KEEPGREEN("keepgreen", "Keep the Lights Green", 3),
     CUTWIRES("cutwires", "Cut the Wires", 4),
     PURIFICATION("purification", "Purification Chamber", 1),
-    PURIFICATIONLASER("purificationlaser", "Sabotage Purification Laser", 1);
+    PURIFICATIONLASER("purificationlaser", "Sabotage Purification Laser", 1),
+    FISHING("fishingmaster", "Fishing Master", FishingLayout.FISH_COUNT);
 
     public final String id;
     public final String fallback;

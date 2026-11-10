@@ -1008,5 +1008,7 @@
   "gomoku.goosetools.online": "在线玩家",
   "gomoku.goosetools.card_0": "连成五子 · 黑棋先行",
   "gomoku.goosetools.card_1": "楚河汉界 · 红方先行",
-  "gomoku.goosetools.card_2": "守护国王 · 白方先行"
+  "gomoku.goosetools.card_2": "守护国王 · 白方先行",
+  "task.goosetools.fishingmaster.title": "捕鱼达人",
+  "task.goosetools.ui.fishing_help": "瞄准后左键撒网"
 }

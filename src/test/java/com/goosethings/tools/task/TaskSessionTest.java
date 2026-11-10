@@ -22,6 +22,35 @@ class TaskSessionTest {
         return time;
     }
 
+    @Test void fishingCountsEachMovingFishOnlyOnce() {
+        TaskSession s = trial(TaskType.FISHING);
+        FishingLayout layout = new FishingLayout(s.seed);
+        for (int i = 0; i < FishingLayout.FISH_COUNT; i++) {
+            long elapsed = i * 1_000L;
+            var fish = layout.fish(i, elapsed);
+            assertTrue(action(s, TaskSession.HIT, -1, fish.x(), fish.y(), elapsed));
+            var caught = layout.fish(i, elapsed + 350);
+            assertFalse(action(s, TaskSession.HIT, -1, caught.x(), caught.y(), elapsed + 350));
+            assertEquals(i + 1, s.progress());
+        }
+        assertTrue(s.complete());
+        assertFalse(s.expired(START + FishingLayout.TIME_LIMIT));
+    }
+
+    @Test void fishingRejectsRapidCastsAndExpiredInputs() {
+        TaskSession s = trial(TaskType.FISHING);
+        FishingLayout layout = new FishingLayout(s.seed);
+        assertFalse(action(s, TaskSession.HIT, -1, 210, 55, 10));
+        var fish = layout.fish(0, 20);
+        assertFalse(action(s, TaskSession.HIT, -1, fish.x(), fish.y(), 20));
+        assertEquals(0, s.progress());
+        long deadline = FishingLayout.TIME_LIMIT;
+        assertFalse(s.expired(START + deadline - 1));
+        assertTrue(s.expired(START + deadline));
+        fish = layout.fish(0, deadline - 1);
+        assertFalse(s.apply(seq++, TaskSession.HIT, -1, fish.x(), fish.y(), deadline - 1, START + deadline, 0));
+    }
+
     @Test void timingRequiresSixHitsAndCompletesOnce() {
         TaskSession s = trial(TaskType.TIMING);
         long time = 0;

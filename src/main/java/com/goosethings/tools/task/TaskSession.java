@@ -25,6 +25,7 @@ public final class TaskSession {
     private int stage, cursor;
     private long lastCharge = -1;
     private final PurificationLaserLayout laser;
+    private final FishingLayout fishing;
     private int laserBits;
     private long phaseAt, lastBrushAt;
     private double brushX, brushY;
@@ -33,6 +34,7 @@ public final class TaskSession {
         this.id = id; this.type = type; this.seed = seed; this.createdAt = now;
         layout = new TaskLayout(seed);
         laser = type == TaskType.PURIFICATIONLASER ? new PurificationLaserLayout(seed) : null;
+        fishing = type == TaskType.FISHING ? new FishingLayout(seed) : null;
         if (laser != null) laserBits = laser.initialBits;
         station = type == TaskType.POWERSTATION ? new PowerStationSession(seed) : null;
         profession = type.profession() ? new com.goosethings.tools.task.profession.ProfessionSession(type, seed) : null;
@@ -56,7 +58,7 @@ public final class TaskSession {
             feedback = switch (type) { case SWIPE -> INSERT_CARD; case MEMORY -> WATCH_SEQUENCE; case CLEANING -> WIPE; default -> PLAY; };
             return true;
         }
-        if (!started || complete) return false;
+        if (!started || complete || expired(now)) return false;
         long elapsed = now - startedAt;
         // Bounded input-history window compensates transit time without trusting arbitrary timestamps.
         long tolerance = Math.min(350, 100 + Math.max(0, latency));
@@ -77,12 +79,28 @@ public final class TaskSession {
             case CUTWIRES -> cutWires(action, x, y, now);
             case PURIFICATION -> purification(action, item, x, y, now);
             case PURIFICATIONLASER -> purificationLaser(action, item, x, y);
+            case FISHING -> fishing(action, x, y, clientElapsed, elapsed);
             case POWERSTATION, TELECOM, NUCLEAR, FOODSAFETY, CIVIL -> false;
         };
         if (progress == type.total && !complete) {
             complete = true; finishedAt = now; feedback = SUCCESS;
         }
         return changed;
+    }
+
+    private boolean fishing(int action, double x, double y, long aimedAt, long elapsed) {
+        if (action != HIT || !FishingLayout.WATER.contains(x, y)
+                || elapsed - lastHit < FishingLayout.CAST_INTERVAL) return false;
+        lastHit = elapsed;
+        int fish = fishing.catchAt(mask, x, y, Math.min(aimedAt, elapsed));
+        if (fish < 0) return false;
+        mask |= 1 << fish;
+        progress++;
+        return true;
+    }
+
+    public boolean expired(long now) {
+        return fishing != null && started && !complete && now - startedAt >= FishingLayout.TIME_LIMIT;
     }
 
     private boolean sorting(int action, int item, double x, double y) {
