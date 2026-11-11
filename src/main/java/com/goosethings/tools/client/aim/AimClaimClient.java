@@ -59,7 +59,7 @@ public final class AimClaimClient {
         double nearestDistance = Double.POSITIVE_INFINITY;
         AABB searchBox = viewpoint.getBoundingBox().expandTowards(direction.scale(unobstructedDistance)).inflate(1.0D);
         for (Entity entity : level.getEntities(player, searchBox, AimClaimClient::isVisualAimEntity)) {
-            if (entity == viewpoint || NameTagClientState.sourcePlayerId(entity).equals(player.getUUID())) continue;
+            if (entity == viewpoint || player.getUUID().equals(NameTagClientState.sourcePlayerId(entity))) continue;
             Vec3 interpolatedPosition = entity.getPosition(partialTick);
             AABB renderedBox = entity.getBoundingBox().move(interpolatedPosition.subtract(entity.position()));
             Vec3 intersection = renderedBox.contains(origin)
@@ -117,6 +117,7 @@ public final class AimClaimClient {
     private static boolean isVisualAimEntity(Entity entity) {
         return !entity.isRemoved()
                 && !entity.isSpectator()
+                && !com.goosethings.tools.pet.PetEffects.isPet(entity)
                 && (entity.getType() == EntityTypes.PLAYER || entity.getType() == EntityTypes.MANNEQUIN);
     }
 }

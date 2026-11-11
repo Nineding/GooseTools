@@ -81,6 +81,7 @@ public final class NameTagClientState {
 
     /** Resolves real players and profile-backed stand-ins to the same source UUID. */
     public static UUID sourcePlayerId(Entity entity) {
+        if (com.goosethings.tools.pet.PetEffects.isPet(entity)) return null;
         if (entity != null && MimeControllerViewClient.isControlling()
                 && MimeControllerViewClient.targetId() != null) {
             Minecraft minecraft = Minecraft.getInstance();
