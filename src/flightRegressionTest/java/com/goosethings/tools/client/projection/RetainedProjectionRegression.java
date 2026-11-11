@@ -4,6 +4,8 @@ import com.goosethings.tools.GooseTools;
 import com.goosethings.tools.client.dream.DreamAvatarClient;
 import com.goosethings.tools.client.dream.DreamTestLatency;
 import com.goosethings.tools.client.dream.DreamTcpFixture;
+import com.goosethings.tools.client.nametag.NameTagClientState;
+import com.goosethings.tools.client.nametag.NameTagRenderer;
 import com.goosethings.tools.dream.DreamAvatarServer;
 import com.goosethings.tools.dream.DreamSpatialContext;
 import com.goosethings.tools.network.MandatoryHandshake;
@@ -11,11 +13,16 @@ import com.goosethings.tools.network.GooseToolsPayloads;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import com.goosethings.tools.projection.ProjectionBodyServer;
 import com.mojang.authlib.GameProfile;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
+import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.player.RemotePlayer;
+import net.minecraft.client.renderer.SubmitNodeStorage;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
@@ -28,6 +35,7 @@ import net.minecraft.server.level.ClientInformation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.CommonListenerCookie;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
+import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -43,6 +51,7 @@ import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.phys.Vec3;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Proxy;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -220,6 +229,9 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
                             new net.minecraft.world.entity.player.Input(false,false,false,false,false,true,false)));
                 }
                 require(mc.getCameraEntity()==movementCamera && movementCamera!=mc.player,"victim camera fell back onto the teleported LocalPlayer");
+                if (ticks == 4) verifyMimeNameTags(mc, CameraType.THIRD_PERSON_BACK);
+                if (ticks == 6) mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
+                if (ticks == 12) verifyMimeNameTags(mc, CameraType.THIRD_PERSON_FRONT);
                 Vec3 current=movementCamera.position();
                 require(current.distanceTo(previousCameraPosition)<.5,"victim camera jumped during controlled walking");
                 previousCameraPosition=current;
@@ -264,6 +276,7 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
             }
             if (stage == 3) {
                 movementCamera=mc.getCameraEntity();movementStart=previousCameraPosition=movementCamera.position();movementSamples=0;
+                if (!ownerView && scenario == 7) mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
                 walkingFrames=bodyWalkingFrames=0;
                 ownBodyStart=previousOwnBody=mc.player.position();ownBodyLerpFrames=ownBodyWalkFrames=0;
                 cameraTravel=ownBodyTravel=0;
@@ -300,6 +313,7 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
                 }
                 if(!ownerView && scenario==7) {
                     countCorrections=false;
+                    mc.options.setCameraType(CameraType.FIRST_PERSON);
                     require(corrections.get()==0,"victim received continuous position teleports: "+corrections.get());
                     require(movementCamera.position().distanceTo(movementStart)>1,"victim's spectator-style body camera did not follow movement");
                     require(victimControllerFrames>0,"controlled victim saw controller nameplate but no actual rendered controller model");
@@ -325,6 +339,7 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
                     && mc.getCameraEntity()==mc.player,"victim camera/input was not restored after disconnect cleanup");
             boolean verifyMimeRecovery=!ownerView && scenario==7;
             if(verifyMimeRecovery && !mimeRecoveryAttack) {
+                verifyMimeNameTags(mc, CameraType.FIRST_PERSON);
                 require(!com.goosethings.tools.client.mime.MimeControlClient.blocksLocalInput(),"victim's attack lock survived cleanup");
                 require(mc.player.input.keyPresses.shift(),"victim's native Shift input did not recover");
                 Entity interaction=mc.level.getEntity(mimeRecoveryEntityId);
@@ -353,9 +368,51 @@ public final class RetainedProjectionRegression implements ClientModInitializer 
                 finish(mc,"PASS "+checks+" checks: backend JOIN camera/input reset and scene revision isolation, actual four-role datapack entry points, owner and tracked remote observer, "
                         +"Seagull borrowing, predicted Mime input, continuous tracked player identity/walk cycles, victim follow camera with zero ongoing teleports, native body ID/render, 20-block separation, crosshair/voice origins, "
                         +"physical/remote coordinates, armour, airborne gravity/landing, native sprint particles/footsteps, silence restoration, return, meeting/swallowing/death/disconnect cleanup, "
-                        +"Mime victim native attack/use suppression, queued self-attack rejection without disconnect, Shift lock and post-control native attack/Shift recovery");
+                        +"Mime victim third-person nametag privacy and recovery, native attack/use suppression, queued self-attack rejection without disconnect, Shift lock and post-control native attack/Shift recovery");
             } else stage=0;
         } catch (Throwable error) { GooseTools.LOGGER.error("Retained projection regression failed",error);finish(mc,"FAIL "+error); }
+    }
+
+    private void verifyMimeNameTags(Minecraft mc, CameraType perspective) throws Exception {
+        boolean following = !perspective.isFirstPerson();
+        var camera = mc.gameRenderer.mainCamera();
+        require(mc.options.getCameraType() == perspective, "unexpected perspective during nameplate check");
+        require(camera.entity() == (following ? movementCamera : mc.player), "unexpected render camera");
+        var entry = NameTagClientState.entry(fakeId);
+        require(entry != null && !entry.name().isEmpty(), "missing controller nameplate fixture");
+        float partialTick = mc.getDeltaTracker().getGameTimeDeltaPartialTick(true);
+        Vec3 cameraPosition = camera.position();
+        List<Vec3> positions = new ArrayList<>();
+        var collector = new SubmitNodeStorage() {
+            @Override public void submitText(PoseStack poses, float x, float y, FormattedCharSequence text,
+                    boolean shadow, Font.DisplayMode mode, int light, int colour, int background, int outline) {
+                var plain = new StringBuilder();
+                text.accept((index, style, codepoint) -> { plain.appendCodePoint(codepoint); return true; });
+                if (entry.name().contentEquals(plain)) {
+                    var pose = poses.last().pose();
+                    positions.add(new Vec3(pose.m30(), 0, pose.m32()));
+                }
+            }
+        };
+        var context = (LevelRenderContext) Proxy.newProxyInstance(LevelRenderContext.class.getClassLoader(),
+                new Class<?>[]{LevelRenderContext.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "poseStack" -> new PoseStack();
+                    case "submitNodeCollector" -> collector;
+                    default -> throw new UnsupportedOperationException(method.getName());
+                });
+        var render = NameTagRenderer.class.getDeclaredMethod("renderWorld", LevelRenderContext.class);
+        render.setAccessible(true);
+        render.invoke(null, context);
+        if (following) {
+            Vec3 relative = movementCamera.getPosition(partialTick).subtract(cameraPosition);
+            require(positions.stream().noneMatch(position -> position.distanceToSqr(relative.x, 0, relative.z) < .01),
+                    "Mime controller name leaked above the private camera avatar in " + perspective);
+        }
+        Entity body = mc.level.getEntity(sourceId);
+        require(body != null, "controller body was not tracked during the nameplate check");
+        Vec3 relative = body.getPosition(partialTick).subtract(cameraPosition);
+        require(positions.stream().anyMatch(position -> position.distanceToSqr(relative.x, 0, relative.z) < .01),
+                "real Mime body lost its ordinary nameplate");
     }
 
     private void installPack(Minecraft mc) throws Exception {

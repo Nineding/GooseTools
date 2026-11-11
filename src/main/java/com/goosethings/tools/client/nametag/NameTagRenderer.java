@@ -1,5 +1,6 @@
 package com.goosethings.tools.client.nametag;
 
+import com.goosethings.tools.client.mime.MimeControlClient;
 import com.goosethings.tools.marker.PlayerMarkerCatalog;
 import com.goosethings.tools.client.vision.VisionFogState;
 import com.goosethings.tools.client.vision.WitchDoctorTargetClient;
@@ -97,6 +98,9 @@ public final class NameTagRenderer {
         Vec3 cameraPosition = camera.position();
         float partialTick = client.getDeltaTracker().getGameTimeDeltaPartialTick(true);
         for (Entity entity : client.level.entitiesForRendering()) {
+            if (MimeControlClient.hidesNameTag(entity)) {
+                continue;
+            }
             renderObserverRole(context, client, camera, cameraPosition, partialTick, entity);
             UUID sourceId = NameTagClientState.sourcePlayerId(entity);
             GooseToolsPayloads.NameTagEntry entry = NameTagClientState.entry(sourceId);

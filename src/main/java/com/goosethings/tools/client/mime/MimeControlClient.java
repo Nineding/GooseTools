@@ -63,6 +63,11 @@ public final class MimeControlClient {
         return controlled && followBody && !DreamAvatarClient.retainedProjection();
     }
 
+    /** The private camera avatar wears the target's skin but belongs to the controller. */
+    public static boolean hidesNameTag(Entity entity) {
+        return followsBody() && DreamStandInClient.isLiveAvatar(entity, controllerId);
+    }
+
     private static void tickCamera(Minecraft client) {
         if (!followsBody() || client.player == null || client.level == null) return;
         Entity avatar = DreamStandInClient.cameraAvatar(controllerId);
