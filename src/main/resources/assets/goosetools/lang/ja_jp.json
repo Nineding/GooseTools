@@ -84,5 +84,6 @@
   "marker.goosetools.tasks.category.gold": "職人タスク",
   "marker.goosetools.tasks.category.series": "連続タスク",
   "marker.goosetools.tasks.category.artisan": "職人タスク",
-  "item.task.sacrificebell": "生贄の鐘"
+  "item.task.sacrificebell": "生贄の鐘",
+  "info.line.no_survivorswin": "生存者なし"
 }

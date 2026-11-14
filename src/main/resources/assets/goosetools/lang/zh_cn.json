@@ -1017,5 +1017,6 @@
   "marker.goosetools.tasks.category.gold": "精工任务",
   "marker.goosetools.tasks.category.series": "系列任务",
   "marker.goosetools.tasks.category.artisan": "精工任务",
-  "item.task.sacrificebell": "牺牲铃"
+  "item.task.sacrificebell": "牺牲铃",
+  "info.line.no_survivorswin": "无人生还"
 }

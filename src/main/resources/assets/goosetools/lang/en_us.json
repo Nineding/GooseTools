@@ -1017,5 +1017,6 @@
   "marker.goosetools.tasks.category.gold": "Artisan Task",
   "marker.goosetools.tasks.category.series": "Task Series",
   "marker.goosetools.tasks.category.artisan": "Artisan Task",
-  "item.task.sacrificebell": "Sacrifice Bell"
+  "item.task.sacrificebell": "Sacrifice Bell",
+  "info.line.no_survivorswin": "No Survivors"
 }

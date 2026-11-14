@@ -17,5 +17,6 @@
   "marker.goosetools.tasks.category.gold": "精工任務",
   "marker.goosetools.tasks.category.series": "系列任務",
   "marker.goosetools.tasks.category.artisan": "精工任務",
-  "item.task.sacrificebell": "犧牲鈴"
+  "item.task.sacrificebell": "犧牲鈴",
+  "info.line.no_survivorswin": "無人生還"
 }
