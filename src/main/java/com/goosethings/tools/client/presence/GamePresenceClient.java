@@ -28,6 +28,8 @@ public final class GamePresenceClient {
         CraftPresenceCompat.refresh();
     }
 
+    public static int mapId() { return connected ? mapId : -1; }
+
     public static String phaseId() {
         return connected ? phase.id() : "";
     }

@@ -26,6 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import net.minecraft.world.phys.Vec3;
 
 public final class GgdMapElementRenderer
         extends MinimapElementRenderer<GgdMapElementRenderer.Element, GgdMapElementRenderer.Context> {
@@ -69,24 +70,17 @@ public final class GgdMapElementRenderer
         graphics.pose().scale(textScale, textScale, 1.0F);
         try {
         if (element.kind() == ElementKind.TASK) {
-            var config = ClientTaskMarkers.current();
-            var task = config.task(element.textKey());
-            Component taskName = Component.translatableWithFallback(task.translationKey(), task.fallback());
-            int width = minecraft.font.width(taskName);
-            String kind = element.goldTask() ? "gold" : element.emergencyTask() ? "emergency" : "normal";
-            int left = -width / 2 - 2, right = width / 2 + 3;
-            int start = config.backgroundAt(element.textKey(), kind, 0);
-            int end = config.backgroundAt(element.textKey(), kind, 1);
-            graphics.fill(left - 1, -6, right + 1, 6, 0xD0171717);
-            if (start == end) {
-                graphics.fill(left, -5, right, 5, start);
-            } else {
-                for (int x = left; x < right; x++) {
-                    graphics.fill(x, -5, x + 1, 5,
-                            config.backgroundAt(element.textKey(), kind, (double) (x - left) / (right - left - 1)));
+            drawTaskIcon(graphics, element, info.location == MinimapElementRenderLocation.IN_WORLD ? 10 : 6);
+            if (info.location == MinimapElementRenderLocation.IN_WORLD) {
+                Vec3 eye = minecraft.gameRenderer.mainCamera().position();
+                long distance = Math.round(eye.distanceTo(new Vec3(element.x(), element.y(), element.z())));
+                graphics.drawCenteredString(minecraft.font, distance + "m", 0, 8, taskColor(element));
+                int alpha = Math.round(context.taskFocus.alpha(element.textKey()) * 255);
+                if (alpha >= 4) {
+                    graphics.drawCenteredString(minecraft.font, taskName(element), 0, -17,
+                            (alpha << 24) | (taskColor(element) & 0xFFFFFF));
                 }
             }
-            graphics.drawCenteredString(minecraft.font, taskName, 0, -4, 0xFFFFFFFF);
             return true;
         }
 
@@ -99,7 +93,11 @@ public final class GgdMapElementRenderer
         }
 
         if (element.kind() == ElementKind.BELL) {
-            drawBellIcon(graphics);
+            if (bellHasTask(element, context.frameElements)) {
+                drawAtlasIcon(graphics, "item/bell", 2, -5, 3);
+            } else {
+                drawBellIcon(graphics);
+            }
             return true;
         }
 
@@ -108,7 +106,7 @@ public final class GgdMapElementRenderer
             return true;
         }
 
-        Component name = Component.translatable(element.textKey());
+        Component name = com.goosethings.tools.client.regions.RegionClient.label(element.textKey());
         int width = minecraft.font.width(name);
         graphics.fill(-width / 2 - 2, -5, width / 2 + 3, 5, 0x8C111111);
         graphics.drawCenteredString(minecraft.font, name, 0, -4,
@@ -140,7 +138,9 @@ public final class GgdMapElementRenderer
             int clipLeft,
             int clipTop,
             int clipRight,
-            int clipBottom) {
+            int clipBottom,
+            int mouseX,
+            int mouseY) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.getWindow().getWidth() <= 0
                 || minecraft.getWindow().getHeight() <= 0
@@ -160,6 +160,12 @@ public final class GgdMapElementRenderer
         float markerScale = WorldMapOverlayProjection.markerScale(
                 GgdClientPreferences.mapMarkerScale(), toGuiX, toGuiY);
 
+        Element hovered = null;
+        double nearestHit = Double.POSITIVE_INFINITY;
+        boolean mouseInMap = mouseX >= clipLeft && mouseX < clipRight
+                && mouseY >= clipTop && mouseY < clipBottom;
+        // Keep controls clickable even if a task projects behind them.
+        boolean mouseOverControls = mouseX >= 58 && mouseX < 208 && mouseY >= 8 && mouseY < 52;
         graphics.enableScissor(clipLeft, clipTop, clipRight, clipBottom);
         try {
             for (Element element : WORLD_MAP_OVERLAY_CONTEXT.frameElements) {
@@ -168,6 +174,15 @@ public final class GgdMapElementRenderer
                 int screenY = WorldMapOverlayProjection.coordinate(
                         element.z(), cameraZ, mapScale, toGuiY, graphics.guiHeight());
 
+                if (element.kind() == ElementKind.TASK && mouseInMap && !mouseOverControls
+                        && screenX >= clipLeft && screenX < clipRight
+                        && screenY >= clipTop && screenY < clipBottom) {
+                    double hit = TaskTrackingFocus.hitDistance(mouseX, mouseY, screenX, screenY, markerScale);
+                    if (hit < nearestHit) {
+                        hovered = element;
+                        nearestHit = hit;
+                    }
+                }
                 graphics.pose().pushMatrix();
                 graphics.pose().translate(screenX, screenY);
                 graphics.pose().scale(markerScale, markerScale);
@@ -180,29 +195,19 @@ public final class GgdMapElementRenderer
         } finally {
             graphics.disableScissor();
         }
+        if (hovered != null) {
+            int color = taskColor(hovered) & 0xFFFFFF;
+            graphics.setComponentTooltipForNextFrame(minecraft.font, List.of(
+                    taskName(hovered).copy().withStyle(style -> style.withColor(color)),
+                    Component.translatable("marker.goosetools.tasks.category." + taskCategory(hovered))
+                            .withStyle(style -> style.withColor(0xB8BCC5))), mouseX, mouseY);
+        }
     }
 
     private static void renderWorldMapElement(GuiGraphicsExtractor graphics, Element element) {
         Minecraft minecraft = Minecraft.getInstance();
         if (element.kind() == ElementKind.TASK) {
-            var config = ClientTaskMarkers.current();
-            var task = config.task(element.textKey());
-            Component taskName = Component.translatableWithFallback(task.translationKey(), task.fallback());
-            int width = minecraft.font.width(taskName);
-            String kind = element.goldTask() ? "gold" : element.emergencyTask() ? "emergency" : "normal";
-            int left = -width / 2 - 2, right = width / 2 + 3;
-            int start = config.backgroundAt(element.textKey(), kind, 0);
-            int end = config.backgroundAt(element.textKey(), kind, 1);
-            graphics.fill(left - 1, -6, right + 1, 6, 0xD0171717);
-            if (start == end) {
-                graphics.fill(left, -5, right, 5, start);
-            } else {
-                for (int x = left; x < right; x++) {
-                    graphics.fill(x, -5, x + 1, 5,
-                            config.backgroundAt(element.textKey(), kind, (double) (x - left) / (right - left - 1)));
-                }
-            }
-            graphics.centeredText(minecraft.font, taskName, 0, -4, 0xFFFFFFFF);
+            drawAtlasIcon(graphics, taskSprite(element), 12);
             return;
         }
 
@@ -215,7 +220,11 @@ public final class GgdMapElementRenderer
         }
 
         if (element.kind() == ElementKind.BELL) {
-            drawAtlasIcon(graphics, "item/bell");
+            if (bellHasTask(element, WORLD_MAP_OVERLAY_CONTEXT.frameElements)) {
+                drawAtlasIcon(graphics, "item/bell", 5, -11, 6);
+            } else {
+                drawAtlasIcon(graphics, "item/bell");
+            }
             return;
         }
 
@@ -224,15 +233,52 @@ public final class GgdMapElementRenderer
             return;
         }
 
-        Component name = Component.translatable(element.textKey());
+        Component name = com.goosethings.tools.client.regions.RegionClient.label(element.textKey());
         int width = minecraft.font.width(name);
         graphics.fill(-width / 2 - 2, -5, width / 2 + 3, 5, 0x8C111111);
         graphics.centeredText(minecraft.font, name, 0, -4,
                 element.activeRoom() ? 0xFFFFD54A : 0xFFFFFFFF);
     }
 
-    private static boolean isEmergencyTask(String kind) {
-        return "emergency".equalsIgnoreCase(kind);
+    static String taskCategory(Element element) {
+        String kind = element.taskKind();
+        return ClientTaskMarkers.current().category(element.textKey(), kind);
+    }
+
+    static Component taskName(Element element) {
+        var task = ClientTaskMarkers.current().task(element.textKey());
+        return Component.translatableWithFallback(task.translationKey(), task.fallback());
+    }
+
+    static String taskSprite(Element element) {
+        return switch (taskCategory(element)) {
+            case "gold", "artisan" -> "item/artisan";
+            case "duck", "emergency" -> "item/task_evil";
+            default -> "item/task_good";
+        };
+    }
+
+    static int taskColor(Element element) {
+        String kind = element.taskKind();
+        int configured = ClientTaskMarkers.current().backgroundAt(element.textKey(), kind, 0.5);
+        // Lift the existing palette for legibility directly over the world, without a text panel.
+        int result = 0xFF000000;
+        for (int shift : new int[]{0, 8, 16}) {
+            int channel = (configured >>> shift) & 255;
+            result |= (int) Math.round(channel + (255 - channel) * 0.55) << shift;
+        }
+        return result;
+    }
+
+    private static void drawTaskIcon(MinimapElementGraphics graphics, Element element, int size) {
+        drawAtlasIcon(graphics, taskSprite(element), -size / 2, -size / 2, size);
+    }
+
+    static boolean bellHasTask(Element bell, List<Element> elements) {
+        return elements.stream().anyMatch(task -> task.kind() == ElementKind.TASK
+                && Math.abs(task.x() - bell.x()) < 0.01
+                && Math.abs(task.z() - bell.z()) < 0.01
+                && Math.abs(task.y() - bell.y()) <= 3);
     }
 
 
@@ -262,30 +308,46 @@ public final class GgdMapElementRenderer
     }
 
     private static void drawAtlasIcon(MinimapElementGraphics graphics, String spritePath) {
+        drawAtlasIcon(graphics, spritePath, -8, -8, 16);
+    }
+
+    private static void drawAtlasIcon(MinimapElementGraphics graphics, String spritePath, int x, int y, int size) {
         var atlas = Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(AtlasIds.ITEMS);
         TextureAtlasSprite sprite = atlas.getSprite(Identifier.withDefaultNamespace(spritePath));
-        graphics.blit(sprite, -8, -8, 16, 16, RenderPipelines.GUI_TEXTURED);
+        graphics.blit(sprite, x, y, size, size, RenderPipelines.GUI_TEXTURED);
     }
 
     private static void drawAtlasIcon(GuiGraphicsExtractor graphics, String spritePath) {
+        drawAtlasIcon(graphics, spritePath, 16);
+    }
+
+    private static void drawAtlasIcon(GuiGraphicsExtractor graphics, String spritePath, int size) {
+        drawAtlasIcon(graphics, spritePath, -size / 2, -size / 2, size);
+    }
+
+    private static void drawAtlasIcon(GuiGraphicsExtractor graphics, String spritePath, int x, int y, int size) {
         var atlas = Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(AtlasIds.ITEMS);
         TextureAtlasSprite sprite = atlas.getSprite(Identifier.withDefaultNamespace(spritePath));
-        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, -8, -8, 16, 16);
+        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, x, y, size, size);
     }
 
     record Element(String textKey, double x, double y, double z,
-                   ElementKind kind, boolean activeRoom, boolean goldTask,
-                   boolean emergencyTask) {
+                   ElementKind kind, boolean activeRoom, String taskKind) {
         static Element room(Room room, boolean active) {
-            return new Element(room.key(), room.x(), 64.0D, room.z(), ElementKind.ROOM, active, false, false);
+            return new Element(room.key(), room.x(), 64.0D, room.z(), ElementKind.ROOM, active, "normal");
         }
 
         static Element task(String id, double x, double y, double z, boolean gold, boolean emergency) {
-            return new Element(id, x, y, z, ElementKind.TASK, false, gold, emergency);
+            return task(id, x, y, z, gold ? "gold" : emergency ? "emergency" : "normal");
+        }
+
+        static Element task(String id, double x, double y, double z, String kind) {
+            String normalized = kind == null ? "normal" : kind.toLowerCase(java.util.Locale.ROOT);
+            return new Element(id, x, y, z, ElementKind.TASK, false, normalized);
         }
 
         static Element special(ElementKind kind, double x, double y, double z) {
-            return new Element("", x, y, z, kind, false, false, false);
+            return new Element("", x, y, z, kind, false, "normal");
         }
     }
 
@@ -299,6 +361,8 @@ public final class GgdMapElementRenderer
         }
 
         boolean contains(double otherX, double otherY, double otherZ) {
+            var custom=com.goosethings.tools.client.regions.RegionClient.definition(key);
+            if(custom!=null)return custom.contains(otherX,otherY,otherZ,0);
             return areas.stream().anyMatch(area -> area.contains(otherX, otherY, otherZ))
                     && excludedAreas.stream().noneMatch(area -> area.contains(otherX, otherY, otherZ));
         }
@@ -341,29 +405,44 @@ public final class GgdMapElementRenderer
     }
 
     static final class Context {
-        private final List<Layout> layouts = loadLayouts();
+        private final TaskTrackingFocus taskFocus = new TaskTrackingFocus();
+        private Object trackingLevel;
+        private List<Layout> layouts = loadLayouts();
+        private long regionGeneration=-1;private String regionDimension="";
         private List<Element> frameElements = List.of();
         private Iterator<Element> iterator = List.<Element>of().iterator();
 
         private void rebuild(MinimapElementRenderLocation location) {
             Minecraft minecraft = Minecraft.getInstance();
+            if (trackingLevel != minecraft.level) {
+                taskFocus.clear();
+                trackingLevel = minecraft.level;
+            }
             if (minecraft.player == null
                     || minecraft.level == null
                     || !GgdMapState.isGameActive(minecraft)) {
                 frameElements = List.of();
+                taskFocus.clear();
                 return;
             }
 
             boolean inWorld = location == MinimapElementRenderLocation.IN_WORLD;
             if (inWorld && (!GgdMapState.taskPathsVisible() || GgdMapState.isMeetingView(minecraft))) {
                 frameElements = List.of();
+                taskFocus.clear();
                 return;
             }
 
             var mapPosition = GgdMapState.effectiveMapPosition(minecraft);
             if (mapPosition == null) {
                 frameElements = List.of();
+                taskFocus.clear();
                 return;
+            }
+            String currentDimension=minecraft.level.dimension().identifier().toString();
+            if(regionGeneration!=com.goosethings.tools.client.regions.RegionClient.generation()||!regionDimension.equals(currentDimension)){
+                layouts=RegionLayouts.apply(loadLayouts(),currentDimension);
+                regionGeneration=com.goosethings.tools.client.regions.RegionClient.generation();regionDimension=currentDimension;
             }
             Layout active = layouts.stream()
                     .filter(layout -> layout.contains(mapPosition.x, mapPosition.z))
@@ -371,6 +450,7 @@ public final class GgdMapElementRenderer
                     .orElse(null);
             if (active == null) {
                 frameElements = List.of();
+                taskFocus.clear();
                 return;
             }
 
@@ -383,7 +463,8 @@ public final class GgdMapElementRenderer
                 Room currentRoom = active.currentRoom(
                         mapPosition.x, mapPosition.y, mapPosition.z, shownRooms);
                 for (Room room : shownRooms) {
-                    result.add(Element.room(room, room == currentRoom));
+                    var region=com.goosethings.tools.client.regions.RegionClient.definition(room.key());
+                    if(region==null||!region.hiddenOnMap())result.add(Element.room(room, room == currentRoom));
                 }
 
                 var last = GgdMapState.findMarker(minecraft, GgdMapState.MEETING_LAST_POSITION);
@@ -419,15 +500,19 @@ public final class GgdMapElementRenderer
                     continue;
                 }
                 if (active.contains(x, z)) {
-                    String kind = marker.kind();
-                    result.add(Element.task(id, x, y, z,
-                            "gold".equalsIgnoreCase(kind), isEmergencyTask(kind)));
+                    result.add(Element.task(id, x, y, z, marker.kind()));
                 }
             }
             // Meeting marks stay above task and room labels.
             result.sort(java.util.Comparator.comparingInt(e ->
                     e.kind() == ElementKind.LAST_POSITION ? 2 : e.kind() == ElementKind.REPORTED_BODY ? 1 : 0));
             frameElements = result;
+            if (inWorld) {
+                var camera = minecraft.gameRenderer.mainCamera();
+                var forward = camera.forwardVector();
+                taskFocus.update(result, camera.position(), new Vec3(forward.x(), forward.y(), forward.z()),
+                        System.nanoTime());
+            }
         }
 
         private static void addSpecialMarker(
@@ -476,6 +561,7 @@ public final class GgdMapElementRenderer
             Room closest = null;
             double closestDistance = Double.MAX_VALUE;
             for (Room room : candidates) {
+                if (!room.areas().isEmpty()) continue;
                 double distance = room.distanceSquared(x, z);
                 if (distance < closestDistance) {
                     closest = room;

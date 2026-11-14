@@ -5,6 +5,7 @@ import com.goosethings.tools.dream.DreamSpatialContext;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Relative;
+import net.minecraft.world.entity.PositionMoveRotation;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
@@ -46,7 +47,15 @@ public abstract class DreamPlayerMixin {
     private void dream$taskTeleport(ServerLevel level,double x,double y,double z,Set<Relative> relative,float yaw,float pitch,boolean transition,
                                   CallbackInfoReturnable<Boolean> c) {
         ServerPlayer owner=(ServerPlayer)(Object)this;
-        if(DreamSpatialContext.enabled() && DreamAvatarServer.active(owner))
-            c.setReturnValue(DreamAvatarServer.move(owner,level,new Vec3(x,y,z),yaw,pitch));
+        if(DreamSpatialContext.enabled() && DreamAvatarServer.active(owner)) {
+            Entity actor = DreamAvatarServer.actor(owner);
+            // Vanilla passes offsets for axes in Relative, including task seat exits.
+            // Resolve against the remote actor before moving it, just as vanilla does.
+            PositionMoveRotation destination = PositionMoveRotation.calculateAbsolute(
+                    PositionMoveRotation.of(actor),
+                    new PositionMoveRotation(new Vec3(x,y,z), Vec3.ZERO, yaw, pitch), relative);
+            c.setReturnValue(DreamAvatarServer.move(owner,level,destination.position(),
+                    destination.yRot(),destination.xRot()));
+        }
     }
 }

@@ -9,6 +9,16 @@
     "artisan": "#D0C9A227"
   },
   "tasks": {
+    "gooseship_sacrificebell": {
+      "translation_key": "item.task.sacrificebell",
+      "fallback": "Sacrifice Bell",
+      "category": "duck"
+    },
+    "eagleton_sacrificebell": {
+      "translation_key": "item.task.sacrificebell",
+      "fallback": "Sacrifice Bell",
+      "category": "duck"
+    },
     "fishingmaster": {
       "translation_key": "item.task.fishingmaster.available",
       "category": "normal",

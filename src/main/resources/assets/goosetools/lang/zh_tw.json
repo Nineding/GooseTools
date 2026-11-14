@@ -10,5 +10,13 @@
   "intro.goosetools.counts.geese": "鵝陣營",
   "intro.goosetools.counts.ducks": "鴨陣營",
   "intro.goosetools.counts.birds": "鳥陣營",
-  "marker.ggd_xaero_map.last_position_label": "會前位置"
+  "marker.ggd_xaero_map.last_position_label": "會前位置",
+  "marker.goosetools.tasks.category.normal": "普通任務",
+  "marker.goosetools.tasks.category.duck": "破壞任務",
+  "marker.goosetools.tasks.category.emergency": "緊急任務",
+  "marker.goosetools.tasks.category.gold": "精工任務",
+  "marker.goosetools.tasks.category.series": "系列任務",
+  "marker.goosetools.tasks.category.artisan": "精工任務",
+  "item.task.sacrificebell": "犧牲鈴",
+  "info.line.no_survivorswin": "無人生還"
 }

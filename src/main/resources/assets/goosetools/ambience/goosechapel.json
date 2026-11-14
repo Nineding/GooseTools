@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "map_id": 8,
+  "dimensions": ["minecraft:overworld", "ggd_training:goosechapel"],
+  "fade_in_ticks": 10,
+  "fade_out_ticks": 14,
+  "priority_fade_out_ticks": 4,
+  "border_grace_blocks": 0.5,
+  "regions": [
+    {
+      "id": "factory",
+      "sound": "ggd:ambience/goosechapel/factory",
+      "volume": 0.8,
+      "areas": [
+        {"min_x": -1002, "max_x": -991, "min_y": 114.5, "max_y": 121, "min_z": -675, "max_z": -649},
+        {"min_x": -1002, "max_x": -990, "min_y": 114.5, "max_y": 121, "min_z": -649, "max_z": -637}
+      ]
+    },
+    {
+      "id": "tavern",
+      "sound": "ggd:ambience/goosechapel/tavern",
+      "continuous": true,
+      "volume": 0.9,
+      "areas": [
+        {"min_x": -997, "max_x": -977, "min_y": 115.5, "max_y": 121, "min_z": -728, "max_z": -711},
+        {"min_x": -1002, "max_x": -997, "min_y": 115.5, "max_y": 121, "min_z": -727, "max_z": -720}
+      ]
+    },
+    {
+      "id": "gateway",
+      "sound": "ggd:ambience/goosechapel/dock",
+      "volume": 0.7,
+      "areas": [
+        {"min_x": -944, "max_x": -926, "min_y": 113.5, "max_y": 123, "min_z": -645, "max_z": -628},
+        {"min_x": -939, "max_x": -926, "min_y": 113.5, "max_y": 123, "min_z": -628, "max_z": -615}
+      ]
+    }
+  ]
+}

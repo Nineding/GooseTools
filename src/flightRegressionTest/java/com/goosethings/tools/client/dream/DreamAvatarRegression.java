@@ -130,6 +130,10 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                         for (String relative : java.util.List.of(
                                 "mainsys/advancement/test/ifinvchange.json",
                                 "mainsys/function/invchanged.mcfunction", "mainsys/function/invchanged2.mcfunction",
+                                "ggd/function/task/goosechapel/listenprayer/sit.mcfunction",
+                                "ggd/function/task/goosechapel/listenprayer/dismount.mcfunction",
+                                "ggd/function/task/goosechapel/captainstory/sit.mcfunction",
+                                "ggd/function/task/goosechapel/captainstory/dismount.mcfunction",
                                 "ggd/function/canceltask.mcfunction", "ggd/function/rccheck.mcfunction",
                                 "ggd/function/invreplace.mcfunction", "ggd/function/invreplace_prepare.mcfunction",
                                 "ggd/function/skill/dream", "ggd/function/prox_gui_lock/clear_tags_only.mcfunction",
@@ -186,6 +190,7 @@ public final class DreamAvatarRegression implements ClientModInitializer {
             }
             if(stage==6) {checkGroundControls(mc);return;}
             if(stage==7) {checkNativeInteractions(mc);return;}
+            if(stage==8) {checkTaskSeats(mc);return;}
             if (stage == 0) {
                 if (scenario == 0 && mc.player.tickCount < 30) return;
                 mc.player.walkAnimation.update(.8F,1,1);
@@ -370,7 +375,7 @@ public final class DreamAvatarRegression implements ClientModInitializer {
                     previousFlightZ=movementStart.z;
                     DreamTestLatency.enabled=true;
                     mc.options.setCameraType(CameraType.THIRD_PERSON_BACK);
-                    DreamTestLatency.enabled=false;stage=7;ticks=0;targetWait=0;interactionCase=0;
+                    DreamTestLatency.enabled=false;stage=scenario==0?8:7;ticks=0;targetWait=0;interactionCase=0;
                 }
             } else if (stage == 2) {
                 DreamRemotePlayer body = DreamStandInClient.liveAvatar(mc.player.getUUID());
@@ -511,6 +516,47 @@ public final class DreamAvatarRegression implements ClientModInitializer {
             GooseTools.LOGGER.error("Dream avatar regression failed", error);
             finish(mc, "FAIL " + error);
         }
+    }
+
+    /** Exercise shipped arrow-seat functions, including both captain-story exit branches. */
+    private void checkTaskSeats(Minecraft mc) {
+        int currentTick = ticks++;
+        if (currentTick < 185) pending = server(mc, p -> {
+            Entity actor = DreamAvatarServer.actor(p);
+            require(actor != null, "task seat ended the dream");
+            String task = currentTick < 60 ? "listenprayer" : "captainstory";
+            if (currentTick == 0 || currentTick == 60 || currentTick == 120) {
+                for (String objective : java.util.List.of("ggdId", "ggdPrayerOnSit", "ggdPrayerSit", "ggdCapOnSit", "ggdCapSit"))
+                    command(p, "scoreboard objectives add " + objective + " dummy");
+                command(p, "scoreboard players set @s ggdId 1");
+                DreamAvatarServer.move(p, (net.minecraft.server.level.ServerLevel)actor.level(), new Vec3(515.5,101,4.5),0,0);
+                if (currentTick == 120)
+                    command(p, "summon interaction 515.5 101 4.5 {Tags:[\"captainstory_seat\",\"dreamSeatProbe\"]}");
+                command(p, "execute positioned 515.5 101 4.5 run function ggd:task/goosechapel/" + task + "/sit");
+                require(actor.getVehicle() != null, "task seat did not mount dream actor");
+            }
+            if (currentTick == 50 || currentTick == 110 || currentTick == 170)
+                command(p, "function ggd:task/goosechapel/" + task + "/dismount");
+            require(actor.getY() > 99 && actor.getY() < 105, "task seat displaced dream actor tick=" + currentTick + " vehicle=" + actor.getVehicle() + " pos=" + actor.position());
+            require(p.isAlive() && !p.entityTags().contains("dreamFatal"), "task seat killed dream owner");
+            if (currentTick == 170) {
+                require(actor.position().distanceToSqr(new Vec3(515.5,101.6,4.5)) < .001,
+                        "task exit did not use its interaction anchor");
+                command(p, "kill @e[tag=dreamSeatProbe]");
+                DreamSpatialContext.run(true, () -> {
+                    require(p.teleportTo(p.level(), 2, 102, -3,
+                            Set.of(net.minecraft.world.entity.Relative.X, net.minecraft.world.entity.Relative.Z,
+                                    net.minecraft.world.entity.Relative.Y_ROT), 30, 15, false), "mixed relative teleport failed");
+                    return null;
+                });
+                require(actor.position().distanceToSqr(new Vec3(517.5,102,1.5)) < .001,
+                        "mixed relative/absolute task coordinates were lost");
+                require(Math.abs(actor.getYRot()-30) < .001 && Math.abs(actor.getXRot()-15) < .001,
+                        "task relative rotation was lost");
+            }
+            assertSeated(p);
+        });
+        else { stage=7; ticks=0; }
     }
 
     /** Native client actions must create the original interaction/attack NBT as the real owner. */
