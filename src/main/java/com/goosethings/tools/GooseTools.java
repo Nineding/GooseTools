@@ -38,6 +38,7 @@ public final class GooseTools implements ModInitializer {
     @Override
     public void onInitialize() {
         GooseToolsPayloads.registerTypes();
+        com.goosethings.tools.regions.RegionDataServer.register();
         com.goosethings.tools.outfit.OutfitServer.register();
         com.goosethings.tools.swordman.SwordmanSync.register();
         com.goosethings.tools.intro.RoleIntroServer.register();

@@ -1010,5 +1010,12 @@
   "gomoku.goosetools.card_1": "楚河汉界 · 红方先行",
   "gomoku.goosetools.card_2": "守护国王 · 白方先行",
   "task.goosetools.fishingmaster.title": "捕鱼达人",
-  "task.goosetools.ui.fishing_help": "瞄准后左键撒网"
+  "task.goosetools.ui.fishing_help": "瞄准后左键撒网",
+  "marker.goosetools.tasks.category.normal": "普通任务",
+  "marker.goosetools.tasks.category.duck": "破坏任务",
+  "marker.goosetools.tasks.category.emergency": "紧急任务",
+  "marker.goosetools.tasks.category.gold": "精工任务",
+  "marker.goosetools.tasks.category.series": "系列任务",
+  "marker.goosetools.tasks.category.artisan": "精工任务",
+  "item.task.sacrificebell": "牺牲铃"
 }
