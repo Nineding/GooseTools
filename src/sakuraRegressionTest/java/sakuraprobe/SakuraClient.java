@@ -50,6 +50,10 @@ public final class SakuraClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        if (Boolean.getBoolean("sakura.skillRefresh")) {
+            new SkillRefreshClient().onInitializeClient();
+            return;
+        }
         if (Boolean.getBoolean("sakura.roleKnives")) {
             new RoleKnifeClient().onInitializeClient();
             return;
