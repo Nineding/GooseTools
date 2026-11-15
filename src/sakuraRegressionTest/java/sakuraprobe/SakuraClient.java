@@ -50,6 +50,10 @@ public final class SakuraClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        if (Boolean.getBoolean("sakura.roleKnives")) {
+            new RoleKnifeClient().onInitializeClient();
+            return;
+        }
         punchy = FabricLoader.getInstance().isModLoaded("punchy");
         ClientTickEvents.START_CLIENT_TICK.register(mc->{
             if(stage==11||stage==13)mc.options.keyUse.setDown(true);

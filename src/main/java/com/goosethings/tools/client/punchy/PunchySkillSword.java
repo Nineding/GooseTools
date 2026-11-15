@@ -41,11 +41,18 @@ public final class PunchySkillSword {
         }
         var definition = stack.get(DataComponents.ITEM_MODEL);
         var customModel = stack.get(DataComponents.CUSTOM_MODEL_DATA);
-        if (definition == null || !definition.getNamespace().equals("minecraft") || customModel == null) {
+        if (definition == null || customModel == null) {
             return false;
         }
         String model = customModel.getString(0);
         if (model == null) {
+            return false;
+        }
+        // Role cosmetics replace item_model but retain the knife discriminator in every ability state.
+        if (definition.getNamespace().equals("ggd") && definition.getPath().startsWith("role_knife/")) {
+            return model.equals("15");
+        }
+        if (!definition.getNamespace().equals("minecraft")) {
             return false;
         }
         // Match the effective item definition so task-locked items with item_model overrides work too.
@@ -66,13 +73,13 @@ public final class PunchySkillSword {
         return "sakura_sword".equals(model) || "sakura_sword_charging".equals(model);
     }
 
-    public static boolean isLocalSakuraForMoves(ItemStack stack) {
+    public static boolean isLocalSwordForMoves(ItemStack stack) {
         Minecraft client = Minecraft.getInstance();
         LocalPlayer player = client.player;
         // Moves passes the holder's actual main-hand stack to the sword check and clip bindings.
         return player != null && player == client.getCameraEntity() && !player.isSpectator()
                 && !client.options.getCameraType().isFirstPerson()
-                && stack == player.getMainHandItem() && isSakura(stack);
+                && stack == player.getMainHandItem() && matches(stack);
     }
 
     public static boolean isSakuraRefresh(ItemStack previous, ItemStack current, LocalPlayer player) {

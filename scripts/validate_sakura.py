@@ -18,6 +18,7 @@ with socket.socket() as port_socket:
     port_socket.bind(("127.0.0.1", 0))
     port = port_socket.getsockname()[1]
 children = {}
+role_knives = os.environ.get("SAKURA_ROLE_KNIVES") == "true"
 
 
 def quote(arg):
@@ -41,6 +42,8 @@ def launch(name, environment, program, mods):
         "-Doshi.os.windows.perfos.disabled=true", "-Doshi.util.wmi.timeout=2000",
         f"-Dsakura.probe={run}", f"-Dsakura.port={port}", f"-Dsakura.role={name}",
         "-Dsakura.quick="+os.environ.get("SAKURA_QUICK","false"),
+        "-Dsakura.roleKnives=" + str(role_knives).lower(),
+        "-Droleknife.pack=" + str(game / "GooseGooseDuck/resourcepack"),
         "-Dfabric.addMods=" + os.pathsep.join(map(str, mods)),
         "-classpath", classpath, spec["main"], *spec["program"], *program,
     ]
@@ -68,6 +71,12 @@ def prepare_client(name):
     selector["cases"] = [case for case in selector["cases"] if case["when"] in ("sakura_sword", "sakura_sword_charging")]
     assert len(selector["cases"]) == 2
     (items / "carrot_on_a_stick.json").write_text(json.dumps(definition), encoding="utf-8")
+    if role_knives:
+        for relative in ("assets/ggd/items/role_knife", "assets/ggd/models/item/role_knife",
+                         "assets/ggd/textures/item/role_knife", "assets/minecraft/models/item",
+                         "assets/minecraft/textures/item"):
+            shutil.copytree(repo / relative, base / relative, dirs_exist_ok=True)
+        shutil.copyfile(repo / "assets/minecraft/items/carrot_on_a_stick.json", items / "carrot_on_a_stick.json")
     overlay = root / "iaido-test.zip"
     import zipfile
     with zipfile.ZipFile(overlay,"w",zipfile.ZIP_DEFLATED) as z:
@@ -135,13 +144,13 @@ try:
 
     for name in ("A", "B"):
         prepare_client(name)
-        extras = [game / "mods" / mod for mod in ("punchy-3.2-fabric-26.3.jar", "punchy-moves-1.0.8-fabric-26.3.jar")] if name == "B" else []
+        extras = [game / "mods" / mod for mod in ("punchy-3.2b-fabric-26.3.jar", "punchy-moves-1.0.9-fabric-26.3.jar")] if name == "B" else []
         if name == "B" and os.environ.get("SAKURA_SKINLAYERS", "true") == "true":
             extras.append(game / "mods/skinlayers3d-fabric-1.11.4-mc26.3.jar")
         if name == "B" and os.environ.get("SAKURA_IRIS") == "true":
             extras += [game / "mods" / name for name in ("iris-fabric-1.11.7+mc26.3.jar", "sodium-fabric-0.9.2+mc26.3.jar")]
         launch(name, "Client", ["--username", "Sakura" + name, "--width", "900", "--height", "560"], extras)
-    deadline = time.monotonic() + 240
+    deadline = time.monotonic() + (420 if role_knives else 240)
     reported = set()
     while time.monotonic() < deadline:
         hide_validation_windows()
