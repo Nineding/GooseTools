@@ -144,8 +144,17 @@ public record TaskMarkerConfig(Map<String, Integer> colors, Map<String, Task> ta
         return (int) Long.parseLong(value.substring(1), 16);
     }
 
+    // Old server configuration files and payloads may predate newly added display metadata.
+    // Lookups inherit missing bundled entries while serialized, bounded user data stays intact.
+    private static final class Bundled {
+        private static final TaskMarkerConfig CONFIG = defaults();
+    }
+
     public Task task(String id) {
-        return tasks.getOrDefault(id, new Task("item.task." + id + ".available", "Task", "normal"));
+        Task configured = tasks.get(id);
+        if (configured != null) return configured;
+        return Bundled.CONFIG.tasks.getOrDefault(id,
+                new Task("item.task." + id + ".available", "Task", "normal"));
     }
 
     public int background(String id, String kind) {
@@ -155,14 +164,15 @@ public record TaskMarkerConfig(Map<String, Integer> colors, Map<String, Task> ta
     public int backgroundAt(String id, String kind, double fraction) {
         String category = category(id, kind);
         Gradient gradient = gradients.get(category);
-        return gradient == null ? colors.get(category) : gradient.at(fraction);
+        int fallback = Bundled.CONFIG.colors.getOrDefault(category, colors.get("normal"));
+        return gradient == null ? colors.getOrDefault(category, fallback) : gradient.at(fraction);
     }
 
-    private String category(String id, String kind) {
+    public String category(String id, String kind) {
         // Explicit gold markers remain special; configured IDs override the old emergency transport
         // category used for duck prerequisites. Unknown IDs still honor runtime emergency/gold.
         return "gold".equals(kind) ? "gold"
-                : tasks.containsKey(id) ? tasks.get(id).category()
+                : tasks.containsKey(id) || Bundled.CONFIG.tasks.containsKey(id) ? task(id).category()
                 : colors.containsKey(kind) ? kind : "normal";
     }
 

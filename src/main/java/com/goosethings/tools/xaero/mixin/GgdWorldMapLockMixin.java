@@ -161,7 +161,9 @@ public abstract class GgdWorldMapLockMixin {
                 clippedLeft,
                 clippedTop,
                 clippedRight,
-                clippedBottom);
+                clippedBottom,
+                mouseX,
+                mouseY);
     }
 
     private static double ggd$clampCameraCenter(

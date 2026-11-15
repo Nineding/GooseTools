@@ -63,13 +63,13 @@ public final class MatchResultScreen extends Screen implements ProtectedInputScr
         var winners = payload.roster().stream().filter(MatchResultPayload.Player::winner).toList();
         drawGroup(g, losers, height * .025F, height * .215F, height * .055F, 21);
         int theme = MatchResultPolicy.theme(payload.outcome());
-        String fallback = theme == 0 ? "Goose Victory" : theme == 1 ? "Duck Victory"
+        String fallback = theme == 4 ? "No Survivors" : theme == 0 ? "Goose Victory" : theme == 1 ? "Duck Victory"
                 : theme == 3 ? "Lover Victory" : payload.outcome().substring(0, 1).toUpperCase()+payload.outcome().substring(1)+" Victory";
         Component title = Component.translatableWithFallback(MatchResultPolicy.victoryKey(payload.outcome()), fallback);
-        int color = theme == 0 ? 0xFF5EFF36 : theme == 1 ? 0xFFFF9898 : theme == 3 ? 0xFFFFB6D7 : 0xFF000000 | MatchResultPolicy.neutralColor(payload.outcome());
-        centered(g, title, width*.5F, height*.305F, Math.min(4.8F*ui(), width*.9F/Math.max(1, font.width(title))), color);
+        int color = theme == 4 ? 0xFFD0D0D6 : theme == 0 ? 0xFF5EFF36 : theme == 1 ? 0xFFFF9898 : theme == 3 ? 0xFFFFB6D7 : 0xFF000000 | MatchResultPolicy.neutralColor(payload.outcome());
+        centered(g, title, width*.5F, (theme == 4 ? height*.45F : height*.305F), Math.min(4.8F*ui(), width*.9F/Math.max(1, font.width(title))), color);
         Component reason = Component.translatableWithFallback(MatchResultPolicy.reasonKey(payload.outcome()), "");
-        drawReason(g, reason);
+        if (theme != 4) drawReason(g, reason);
         drawGroup(g, winners, height*.53F, height*.96F, height*.175F, 10);
         float cover = com.goosethings.tools.intro.PresentationTransition.resultCoverOpacity(System.nanoTime()-started);
         if (cover > 0) {
@@ -199,7 +199,7 @@ public final class MatchResultScreen extends Screen implements ProtectedInputScr
     private void ensureBackground() {
         if (textureReady) return;
         int tint = switch(MatchResultPolicy.theme(payload.outcome())) {
-            case 1 -> 0xC10B18; case 2 -> MatchResultPolicy.neutralColor(payload.outcome()); case 3 -> 0xE85C99; default -> 0xD9DEE6;
+            case 4 -> 0x92949C; case 1 -> 0xC10B18; case 2 -> MatchResultPolicy.neutralColor(payload.outcome()); case 3 -> 0xE85C99; default -> 0xD9DEE6;
         };
         NativeImage image = new NativeImage(512,288,false);
         for (int y=0;y<288;y++) for(int x=0;x<512;x++) {

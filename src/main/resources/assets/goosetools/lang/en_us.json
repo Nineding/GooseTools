@@ -1010,5 +1010,13 @@
   "gomoku.goosetools.card_1": "Cross the river · Red starts",
   "gomoku.goosetools.card_2": "Protect your king · White starts",
   "task.goosetools.fishingmaster.title": "Fishing Master",
-  "task.goosetools.ui.fishing_help": "Aim and left-click to cast the net."
+  "task.goosetools.ui.fishing_help": "Aim and left-click to cast the net.",
+  "marker.goosetools.tasks.category.normal": "Normal Task",
+  "marker.goosetools.tasks.category.duck": "Sabotage Task",
+  "marker.goosetools.tasks.category.emergency": "Emergency Task",
+  "marker.goosetools.tasks.category.gold": "Artisan Task",
+  "marker.goosetools.tasks.category.series": "Task Series",
+  "marker.goosetools.tasks.category.artisan": "Artisan Task",
+  "item.task.sacrificebell": "Sacrifice Bell",
+  "info.line.no_survivorswin": "No Survivors"
 }

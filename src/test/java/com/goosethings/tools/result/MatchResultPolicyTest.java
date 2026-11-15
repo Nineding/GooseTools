@@ -5,6 +5,13 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 class MatchResultPolicyTest {
+    @Test void noSurvivorsHasGreyThemeAndNoWinnersIncludingChampions() {
+        assertTrue(MatchResultPolicy.validOutcome("no_survivors"));
+        assertEquals(4, MatchResultPolicy.theme("no_survivors"));
+        assertEquals("info.line.no_survivorswin", MatchResultPolicy.victoryKey("no_survivors"));
+        for (String faction : Set.of("good", "evil", "neutral"))
+            assertFalse(MatchResultPolicy.winner("no_survivors", faction, "dodo", true, Set.of("Champion")));
+    }
     @Test void deadTeamMembersWinWithoutChampionAndMimicRetainsTrueFaction() {
         assertTrue(MatchResultPolicy.winner("good_elimination", "good", "mimic", false, Set.of("spectator")));
         assertFalse(MatchResultPolicy.winner("evil", "good", "mimic", false, Set.of()));

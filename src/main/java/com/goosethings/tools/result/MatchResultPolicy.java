@@ -10,13 +10,13 @@ public final class MatchResultPolicy {
     public static boolean validOutcome(String outcome) {
         return outcome != null && (outcome.startsWith("good_")
                 && Set.of("good_elimination", "good_objective", "good_lucid_dream").contains(outcome)
-                || "evil".equals(outcome) || "lover".equals(outcome) || NEUTRAL.contains(outcome));
+                || "no_survivors".equals(outcome) || "evil".equals(outcome) || "lover".equals(outcome) || NEUTRAL.contains(outcome));
     }
     public static int theme(String outcome) {
-        return outcome.startsWith("good_") ? 0 : outcome.equals("evil") ? 1 : outcome.equals("lover") ? 3 : 2;
+        return outcome.equals("no_survivors") ? 4 : outcome.startsWith("good_") ? 0 : outcome.equals("evil") ? 1 : outcome.equals("lover") ? 3 : 2;
     }
     public static boolean winner(String outcome, String faction, String role, boolean lover, Set<String> tags) {
-        if (!validOutcome(outcome)) return false;
+        if (!validOutcome(outcome) || outcome.equals("no_survivors")) return false;
         if (outcome.startsWith("good_")) return "good".equals(faction);
         if (outcome.equals("evil")) return "evil".equals(faction);
         if (outcome.equals("lover")) return lover || tags.contains("Champion");
