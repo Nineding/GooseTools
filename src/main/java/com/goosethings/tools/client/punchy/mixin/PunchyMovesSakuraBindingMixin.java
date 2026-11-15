@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 abstract class PunchyMovesSakuraBindingMixin {
     @Inject(method = "groupFor", at = @At("HEAD"), cancellable = true, require = 0)
     private static void goosetools$useNativeSwordBinding(ItemStack stack, CallbackInfoReturnable<String> result) {
-        if (PunchySkillSword.isLocalSakuraForMoves(stack)) {
+        if (PunchySkillSword.isLocalSwordForMoves(stack)) {
             result.setReturnValue("sword");
         }
     }
