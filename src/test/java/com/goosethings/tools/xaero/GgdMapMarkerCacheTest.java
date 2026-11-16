@@ -18,6 +18,35 @@ class GgdMapMarkerCacheTest {
     }
 
     @Test
+    void trackingDefaultsOnAndManualDisableSurvivesMarkerRefresh() {
+        assertTrue(GgdMapState.taskPathsVisible());
+        GgdMapState.rememberSpawn(100, 1, 2, 3);
+        GgdMapState.rememberEncodedName(100, "ggdmap:game_active:normal");
+        GgdMapState.toggleTaskPaths();
+        assertFalse(GgdMapState.taskPathsVisible());
+        GgdMapState.rememberEncodedName(100, "ggdmap:game_active:normal");
+        GgdMapState.rememberSpawn(101, 1, 2, 3);
+        GgdMapState.rememberEncodedName(101, "ggdmap:game_active:normal");
+        GgdMapState.removeMarkerEntity(100);
+        assertFalse(GgdMapState.taskPathsVisible());
+        GgdMapState.rememberSpawn(102, 1, 2, 3);
+        GgdMapState.rememberEncodedName(102, "ggdmap:reading:normal");
+        assertFalse(GgdMapState.taskPathsVisible());
+        GgdMapState.removeMarkerEntity(101);
+        GgdMapState.rememberSpawn(103, 1, 2, 3);
+        GgdMapState.rememberEncodedName(103, "ggdmap:game_active:normal");
+        assertTrue(GgdMapState.taskPathsVisible());
+    }
+
+    @Test
+    void disconnectResetsTrackingForNextConnection() {
+        GgdMapState.toggleTaskPaths();
+        assertFalse(GgdMapState.taskPathsVisible());
+        GgdMapState.clearCachedMarkers();
+        assertTrue(GgdMapState.taskPathsVisible());
+    }
+
+    @Test
     void encodedNameWithoutSpawnIsIgnored() {
         assertFalse(GgdMapState.rememberEncodedName(7, "ggdmap:reading:normal"));
         assertTrue(GgdMapState.cachedMarkers().isEmpty());

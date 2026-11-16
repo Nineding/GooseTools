@@ -70,7 +70,8 @@ public final class GgdMapElementRenderer
         graphics.pose().scale(textScale, textScale, 1.0F);
         try {
         if (element.kind() == ElementKind.TASK) {
-            drawTaskIcon(graphics, element, info.location == MinimapElementRenderLocation.IN_WORLD ? 10 : 6);
+            drawTaskIcon(graphics, element, info.location == MinimapElementRenderLocation.IN_WORLD ? 10
+                    : info.location == MinimapElementRenderLocation.WORLD_MAP ? 8 : 10);
             if (info.location == MinimapElementRenderLocation.IN_WORLD) {
                 Vec3 eye = minecraft.gameRenderer.mainCamera().position();
                 long distance = Math.round(eye.distanceTo(new Vec3(element.x(), element.y(), element.z())));
@@ -207,7 +208,7 @@ public final class GgdMapElementRenderer
     private static void renderWorldMapElement(GuiGraphicsExtractor graphics, Element element) {
         Minecraft minecraft = Minecraft.getInstance();
         if (element.kind() == ElementKind.TASK) {
-            drawAtlasIcon(graphics, taskSprite(element), 12);
+            drawAtlasIcon(graphics, taskSprite(element), 16);
             return;
         }
 

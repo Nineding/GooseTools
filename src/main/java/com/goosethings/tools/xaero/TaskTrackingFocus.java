@@ -71,7 +71,7 @@ final class TaskTrackingFocus {
     }
 
     static double hitDistance(double mouseX, double mouseY, int x, int y, float markerScale) {
-        double radius = Math.max(5, 6 * markerScale + 2);
+        double radius = Math.max(5, 8 * markerScale + 2);
         double dx = mouseX - x;
         double dy = mouseY - y;
         return Math.abs(dx) <= radius && Math.abs(dy) <= radius

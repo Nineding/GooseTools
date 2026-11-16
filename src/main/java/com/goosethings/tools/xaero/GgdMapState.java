@@ -18,7 +18,7 @@ public final class GgdMapState {
     public static final String LAYOUT_POOLCORE_BASIC = "layout_poolcore_basic";
     public static final String LAYOUT_POOLCORE_ADVANCE = "layout_poolcore_advance";
 
-    private static boolean taskPathsVisible;
+    private static volatile boolean taskPathsVisible = true;
     // Xaero's world map writer also reads these caches. Use the class monitor
     // to keep the marker snapshot, entity ownership and match flag consistent.
     private static boolean gameActiveSticky;
@@ -212,6 +212,7 @@ public final class GgdMapState {
         markerEntityIds.clear();
         pendingMarkerPositions.clear();
         gameActiveSticky = false;
+        taskPathsVisible = true;
     }
 
     private static Marker markerFromEntity(Entity entity) {
@@ -235,6 +236,11 @@ public final class GgdMapState {
     }
 
     private static synchronized void cacheSpecialMarker(int entityId, Marker marker) {
+        // A new match starts with tracking enabled. Marker refreshes and entity
+        // replacements within that match must preserve the player's manual choice.
+        if (GAME_ACTIVE.equals(marker.id()) && !cachedSpecialMarkers.containsKey(GAME_ACTIVE)) {
+            taskPathsVisible = true;
+        }
         Integer previousOwner = markerEntityIds.put(marker.id(), entityId);
         if (previousOwner != null && previousOwner != entityId) {
             cachedSpecialMarkerIds.remove(previousOwner);

@@ -60,6 +60,8 @@ class TaskTrackingFocusTest {
 
     @Test
     void hoverUsesScaledIconAndKeepsNearestOverlapSelectable() {
+        assertTrue(Double.isFinite(TaskTrackingFocus.hitDistance(109, 80, 100, 80, 1F)), "enlarged icon edge remains hoverable");
+        assertTrue(Double.isInfinite(TaskTrackingFocus.hitDistance(111, 80, 100, 80, 1F)));
         assertEquals(0, TaskTrackingFocus.hitDistance(100, 80, 100, 80, 1.25F));
         assertTrue(Double.isInfinite(TaskTrackingFocus.hitDistance(120, 80, 100, 80, 1.25F)));
         assertTrue(TaskTrackingFocus.hitDistance(102, 80, 100, 80, 1.25F)

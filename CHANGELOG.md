@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.17.0+Alpha0.45 - 2026-11-16
+
+- Enlarge task icons on the minimap (6 to 10) and world map (12 to 16), including matching hover bounds.
+- Enable task tracking at each match start while preserving manual toggles during marker updates in the same match.
+
+
 ## 1.17.0+Alpha0.42 - 2026-11-15
 
 - 全部受管理的手持技能图标在倒计时、次数、名称、说明或闪光刷新时直接更新，原版和 Punchy 均不再反复放下、抬起手臂；保留樱花剑蓄力切换的原有平滑刷新。
