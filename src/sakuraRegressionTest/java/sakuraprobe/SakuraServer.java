@@ -30,6 +30,18 @@ public final class SakuraServer implements ModInitializer {
                     player.getInventory().setItem(1, new ItemStack(Items.IRON_SWORD));
                     player.getInventory().setItem(2, SakuraStacks.sword(2, 6, false));
                 }
+                if (Boolean.getBoolean("sakura.skillRefresh")) {
+                    try {
+                        int commands = 0;
+                        for (var player : players) for (String command : Files.readAllLines(root.resolve("skill-refresh-tutorial.txt"))) {
+                            int result = server.getCommands().getDispatcher().execute(command,
+                                    server.createCommandSourceStack().withEntity(player).withSuppressedOutput());
+                            if (result < 1) throw new AssertionError("Tutorial item command failed: " + command);
+                            commands++;
+                        }
+                        write("tutorial-result", "PASS " + commands + " real tutorial item replacements on dedicated server");
+                    } catch (Exception error) { throw new IllegalStateException(error); }
+                }
             }
             for(var player:players) for(int round=0;round<2;round++) {
                 String key=player.getGameProfile().name().substring(6)+"-dash-request-"+round;

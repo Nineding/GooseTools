@@ -7,6 +7,7 @@ import shutil
 import socket
 import subprocess
 import time
+import re
 
 root = Path(__file__).resolve().parents[1] / "build/sakura-native-validation"
 game = root.parents[2]
@@ -19,6 +20,36 @@ with socket.socket() as port_socket:
     port = port_socket.getsockname()[1]
 children = {}
 role_knives = os.environ.get("SAKURA_ROLE_KNIVES") == "true"
+skill_refresh = os.environ.get("SAKURA_SKILL_REFRESH") == "true"
+
+if skill_refresh:
+    pack = game / "GooseGooseDuck"
+    cases = {}
+    commands = []
+    role_models = sorted(p.stem for p in (pack / "resourcepack/assets/ggd/items/role_knife").glob("*.json"))
+    for function in (pack / "datapack/data/ggd/function").rglob("*.mcfunction"):
+        for line in function.read_text(encoding="utf-8", errors="replace").splitlines():
+            match = re.search(r"item replace entity @s hotbar\.(\d|\$\([^)]+\)) with ([a-z_:]+)\[", line)
+            if not match or "ggdManagedHotbar:1b" not in line:
+                continue
+            if "TutorialItem:1b" in line:
+                commands.append(re.sub(r"\$\([^)]+\)", "4", line[match.start():]))
+            if "item.unavailable.cd" not in line:
+                continue
+            model = re.search(r'custom_model_data=\{strings:\["([^"]+)"\]', line)
+            if not model:
+                continue
+            definition = re.search(r'item_model="([^"]+)"', line)
+            definition = definition[1] if definition else ""
+            definitions = ["ggd:role_knife/" + name for name in role_models] if "$(KnifeModel)" in definition else [definition]
+            for actual_definition in definitions:
+                case = dict(item="minecraft:" + match[2] if ":" not in match[2] else match[2], model=model[1],
+                            definition=actual_definition, slot=int(match[1]) if match[1].isdigit() else 4)
+                cases[tuple(case.values())] = case
+    assert cases and len(commands) >= 43
+    (run / "skill-refresh-cases.json").write_text(json.dumps(list(cases.values())), encoding="utf-8")
+    (run / "skill-refresh-tutorial.txt").write_text("\n".join(commands), encoding="utf-8")
+    print(f"Skill refresh: {len(cases)} source-derived cases, {len(commands)} tutorial commands", flush=True)
 
 
 def quote(arg):
@@ -43,6 +74,7 @@ def launch(name, environment, program, mods):
         f"-Dsakura.probe={run}", f"-Dsakura.port={port}", f"-Dsakura.role={name}",
         "-Dsakura.quick="+os.environ.get("SAKURA_QUICK","false"),
         "-Dsakura.roleKnives=" + str(role_knives).lower(),
+        "-Dsakura.skillRefresh=" + str(skill_refresh).lower(),
         "-Droleknife.pack=" + str(game / "GooseGooseDuck/resourcepack"),
         "-Dfabric.addMods=" + os.pathsep.join(map(str, mods)),
         "-classpath", classpath, spec["main"], *spec["program"], *program,
@@ -71,12 +103,14 @@ def prepare_client(name):
     selector["cases"] = [case for case in selector["cases"] if case["when"] in ("sakura_sword", "sakura_sword_charging")]
     assert len(selector["cases"]) == 2
     (items / "carrot_on_a_stick.json").write_text(json.dumps(definition), encoding="utf-8")
-    if role_knives:
+    if role_knives or skill_refresh:
         for relative in ("assets/ggd/items/role_knife", "assets/ggd/models/item/role_knife",
                          "assets/ggd/textures/item/role_knife", "assets/minecraft/models/item",
                          "assets/minecraft/textures/item"):
             shutil.copytree(repo / relative, base / relative, dirs_exist_ok=True)
         shutil.copyfile(repo / "assets/minecraft/items/carrot_on_a_stick.json", items / "carrot_on_a_stick.json")
+        for name in ("yellow_stained_glass_pane", "light_blue_stained_glass_pane"):
+            shutil.copyfile(repo / f"assets/minecraft/items/{name}.json", items / f"{name}.json")
     overlay = root / "iaido-test.zip"
     import zipfile
     with zipfile.ZipFile(overlay,"w",zipfile.ZIP_DEFLATED) as z:
@@ -150,7 +184,7 @@ try:
         if name == "B" and os.environ.get("SAKURA_IRIS") == "true":
             extras += [game / "mods" / name for name in ("iris-fabric-1.11.7+mc26.3.jar", "sodium-fabric-0.9.2+mc26.3.jar")]
         launch(name, "Client", ["--username", "Sakura" + name, "--width", "900", "--height", "560"], extras)
-    deadline = time.monotonic() + (420 if role_knives else 240)
+    deadline = time.monotonic() + (420 if role_knives or skill_refresh else 240)
     reported = set()
     while time.monotonic() < deadline:
         hide_validation_windows()
@@ -159,6 +193,8 @@ try:
             if path.is_file() and key not in reported:
                 print(key, path.read_text(encoding="utf-8"), flush=True)
                 reported.add(key)
+                if not path.read_text(encoding="utf-8").startswith("PASS"):
+                    raise RuntimeError("Regression assertion failed: " + key)
         if len(reported) == 3:
             if any(not (run / key).read_text(encoding="utf-8").startswith("PASS") for key in reported):
                 raise RuntimeError("Regression assertion failed")
