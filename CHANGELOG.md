@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.17.0+Alpha0.47 - 2026-11-16
+
+- Support validated right-click interactions with the Seagull during its fries challenge; the paired data pack controls eligibility and per-player cooldowns.
+
 ## 1.17.0+Alpha0.45 - 2026-11-16
 
 - Enlarge task icons on the minimap (6 to 10) and world map (12 to 16), including matching hover bounds.
