@@ -1,9 +1,10 @@
-## 1.17.0+Alpha0.44 (2026-11-16)
+# Changelog
+
+## 1.17.0+Alpha0.45 - 2026-11-16
 
 - Enlarge task icons on the minimap (6 to 10) and world map (12 to 16), including matching hover bounds.
 - Enable task tracking at each match start while preserving manual toggles during marker updates in the same match.
 
-# Changelog
 
 ## 1.17.0+Alpha0.42 - 2026-11-15
 
