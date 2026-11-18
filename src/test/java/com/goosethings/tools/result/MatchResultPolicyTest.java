@@ -5,6 +5,15 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 class MatchResultPolicyTest {
+    @Test void promotedDuelingDodoUsesItsOwnMottoWithoutChangingOutcome() {
+        assertEquals("info.line.duelingdodowin.subtitle", MatchResultPolicy.reasonKey("dodo", true));
+        assertEquals("info.line.duelingdodowin", MatchResultPolicy.victoryKey("dodo", true));
+        assertEquals("info.line.dodowin.subtitle", MatchResultPolicy.reasonKey("dodo", false));
+        for (String outcome : Set.of("seagull", "lover", "good_objective", "evil", "no_survivors")) {
+            assertEquals(MatchResultPolicy.reasonKey(outcome), MatchResultPolicy.reasonKey(outcome, true));
+            assertEquals(MatchResultPolicy.victoryKey(outcome), MatchResultPolicy.victoryKey(outcome, true));
+        }
+    }
     @Test void noSurvivorsHasGreyThemeAndNoWinnersIncludingChampions() {
         assertTrue(MatchResultPolicy.validOutcome("no_survivors"));
         assertEquals(4, MatchResultPolicy.theme("no_survivors"));

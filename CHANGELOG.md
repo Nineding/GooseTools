@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.17.0+Alpha0.49 - 2026-11-18
+
+- Use a dedicated victory title and motto for promoted Dueling Dodos, based on their original role in the match roster.
+
 ## 1.17.0+Alpha0.47 - 2026-11-16
 
 - Support validated right-click interactions with the Seagull during its fries challenge; the paired data pack controls eligibility and per-player cooldowns.

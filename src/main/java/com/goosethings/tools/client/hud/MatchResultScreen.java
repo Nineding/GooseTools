@@ -65,10 +65,11 @@ public final class MatchResultScreen extends Screen implements ProtectedInputScr
         int theme = MatchResultPolicy.theme(payload.outcome());
         String fallback = theme == 4 ? "No Survivors" : theme == 0 ? "Goose Victory" : theme == 1 ? "Duck Victory"
                 : theme == 3 ? "Lover Victory" : payload.outcome().substring(0, 1).toUpperCase()+payload.outcome().substring(1)+" Victory";
-        Component title = Component.translatableWithFallback(MatchResultPolicy.victoryKey(payload.outcome()), fallback);
+        boolean duelingWinner = winners.stream().anyMatch(p -> "DuelingDodos".equals(p.role()));
+        Component title = Component.translatableWithFallback(MatchResultPolicy.victoryKey(payload.outcome(), duelingWinner), fallback);
         int color = theme == 4 ? 0xFFD0D0D6 : theme == 0 ? 0xFF5EFF36 : theme == 1 ? 0xFFFF9898 : theme == 3 ? 0xFFFFB6D7 : 0xFF000000 | MatchResultPolicy.neutralColor(payload.outcome());
         centered(g, title, width*.5F, (theme == 4 ? height*.45F : height*.305F), Math.min(4.8F*ui(), width*.9F/Math.max(1, font.width(title))), color);
-        Component reason = Component.translatableWithFallback(MatchResultPolicy.reasonKey(payload.outcome()), "");
+        Component reason = Component.translatableWithFallback(MatchResultPolicy.reasonKey(payload.outcome(), duelingWinner), "");
         if (theme != 4) drawReason(g, reason);
         drawGroup(g, winners, height*.53F, height*.96F, height*.175F, 10);
         float cover = com.goosethings.tools.intro.PresentationTransition.resultCoverOpacity(System.nanoTime()-started);
