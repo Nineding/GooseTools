@@ -39,6 +39,15 @@ public final class MatchResultPolicy {
             default -> "info.line." + outcome + "win.subtitle";
         };
     }
+    /** Promotion preserves the original role in the frozen winner roster. */
+    public static String reasonKey(String outcome, boolean duelingDodoWinner) {
+        return "dodo".equals(outcome) && duelingDodoWinner
+                ? "info.line.duelingdodowin.subtitle" : reasonKey(outcome);
+    }
+    public static String victoryKey(String outcome, boolean duelingDodoWinner) {
+        return "dodo".equals(outcome) && duelingDodoWinner
+                ? "info.line.duelingdodowin" : victoryKey(outcome);
+    }
     public static int neutralColor(String outcome) {
         return com.goosethings.tools.intro.RoleIntroCatalog.findByStoredId(outcome)
                 .filter(role -> role.faction() == 2).map(com.goosethings.tools.intro.RoleIntroCatalog.Role::color)
