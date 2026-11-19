@@ -145,6 +145,7 @@ public final class NameTagSync {
         boolean fullBlood = readScore(server, SETTINGS_OBJECTIVE, "FullBloodDLC", 0) == 1;
         int meetingPhase = readScore(server, "ggdSession", "#MeetingPhase", 0);
         int markerGlowsReady = readScore(server, "ggdSession", "#MarkerGlowsReady", 0);
+        int meetingSceneReady = readScore(server, "ggdSession", "#MeetingSceneReady", 0);
         boolean roleVisible = readScore(server, SETTINGS_OBJECTIVE, "DLCRoleVisible", 0) == 1;
         NameTagAttachmentConfig attachmentConfig = ATTACHMENTS.current();
         List<ServerPlayer> onlinePlayers = List.copyOf(server.getPlayerList().getPlayers());
@@ -214,10 +215,13 @@ public final class NameTagSync {
                         viewer.getUUID(), target.getUUID()) ? viewer : target;
                 VisualIdentity identity = identities.get(labelPlayer.getUUID());
                 identity=new VisualIdentity(identity.playerId(),identity.name(),identity.rgb(),identity.serialNumber(),TrainingNameTags.tags(viewer,identity.tags()),identity.seat(),identity.gravyBounty(),identity.heliumLevel());
+                boolean targetCanShowMarker = PlayerMarkerPolicy.showBesideNameTag(
+                        labelPlayer.entityTags(), meetingPhase, markerGlowsReady);
+                int verifiedCode = labelPlayer == target && PlayerMarkerPolicy.showBesideNameTag(
+                        target.entityTags(), meetingPhase, meetingSceneReady)
+                        ? VerifiedPlayerMarkers.code(viewer, markerSeat(server, target), false) : 0;
                 int markerCode = markerCode(server, viewer, labelPlayer, fullBlood);
-                boolean markerNameTagVisible = markerCode != 0
-                        && PlayerMarkerPolicy.showBesideNameTag(
-                                labelPlayer.entityTags(), meetingPhase, markerGlowsReady);
+                boolean markerNameTagVisible = verifiedCode != 0 || markerCode != 0 && targetCanShowMarker;
                 boolean samePlayer = viewer.getUUID().equals(target.getUUID());
                 if (NameTagVisibilityOverrides.isHidden(
                         viewer.getUUID(), target.getUUID())
@@ -235,6 +239,10 @@ public final class NameTagSync {
                 int flags = fullBlood ? attachmentFlags(
                         viewer, labelPlayer, identity, activeLoverCount, spectatorStatusView) : 0;
                 if(fullBlood)flags|=MeetingPetBridge.flags(target);
+                if (verifiedCode != 0) {
+                    markerCode = verifiedCode;
+                    flags |= VerifiedPlayerMarkers.FLAG;
+                }
                 int exchangeTargetId = readScore(server, "ggdExId", target.getScoreboardName(), 0);
                 boolean exchangeMarked = ExchangerNameTagPolicy.visible(
                         viewer.entityTags(), target.entityTags(), exchangeTargetId,
@@ -313,6 +321,7 @@ public final class NameTagSync {
             int seat = NameTagCorpseMarkerPolicy.sourceSeat(label.entityTags());
             int code = marks ? PlayerMarkerPolicy.validCodeOrZero(readScore(server,
                     PlayerMarkerPolicy.objectiveForSeat(seat), viewer.getScoreboardName(), 0)) : 0;
+            int verifiedCode = numbers ? VerifiedPlayerMarkers.code(viewer, seat, true) : 0;
             if (!numbers && code == 0) continue;
             var role = roles.getCompoundOrEmpty("p" + seat);
             UUID source = role.contains("UUID")
@@ -329,7 +338,9 @@ public final class NameTagSync {
                     || aliases.size() >= GooseToolsPayloads.NameTagSnapshotS2C.MAX_ALIASES) break;
             entries.add(new GooseToolsPayloads.NameTagEntry(label.getUUID(), source,
                     "", "", NameTagCorpseMarkerPolicy.BADGE_RGB, numbers ? seat : 0,
-                    NameTagCorpseMarkerPolicy.CORPSE_MARKER_ONLY, code, true, List.of()));
+                    NameTagCorpseMarkerPolicy.CORPSE_MARKER_ONLY
+                            | (verifiedCode == 0 ? 0 : VerifiedPlayerMarkers.FLAG),
+                    verifiedCode == 0 ? code : verifiedCode, true, List.of()));
             aliases.add(new GooseToolsPayloads.NameTagAlias(label.getUUID(), label.getUUID()));
         }
     }
@@ -376,16 +387,17 @@ public final class NameTagSync {
         if (!fullBlood || !PlayerMarkerPolicy.viewerCanSeeMarkers(viewer.entityTags())) {
             return 0;
         }
-        int seat = DisguiseIdentityPolicy.playerSeat(target.entityTags());
-        if (seat <= 0) {
-            seat = RoomOrderManager.orderOf(server, target);
-        }
-        String objective = PlayerMarkerPolicy.objectiveForSeat(seat);
+        String objective = PlayerMarkerPolicy.objectiveForSeat(markerSeat(server, target));
         if (objective.isEmpty()) {
             return 0;
         }
         return PlayerMarkerPolicy.validCodeOrZero(
                 readScore(server, objective, viewer.getScoreboardName(), 0));
+    }
+
+    private static int markerSeat(MinecraftServer server, ServerPlayer target) {
+        int seat = DisguiseIdentityPolicy.playerSeat(target.entityTags());
+        return seat > 0 ? seat : RoomOrderManager.orderOf(server, target);
     }
 
     private static List<UUID> playerIds(Collection<ServerPlayer> players) {

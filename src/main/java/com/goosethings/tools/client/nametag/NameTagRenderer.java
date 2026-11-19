@@ -10,6 +10,7 @@ import com.goosethings.tools.client.voice.GgdSpeakingIcon;
 import com.goosethings.tools.nametag.NameTagSync;
 import com.goosethings.tools.nametag.NameTagCorpseMarkerPolicy;
 import com.goosethings.tools.nametag.MeetingPetLayout;
+import com.goosethings.tools.nametag.VerifiedPlayerMarkers;
 import net.minecraft.world.entity.Display;
 import com.goosethings.tools.network.GooseToolsPayloads;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -193,20 +194,11 @@ public final class NameTagRenderer {
                     opacity<<24 | SerialBadgeStyle.contrastColour(NameTagCorpseMarkerPolicy.BADGE_RGB));
             poses.popPose();
         }
-        if (marker == null) { poses.popPose(); return; }
-        String text = Component.translatableWithFallback(marker.translationKey(), marker.fallback()).getString();
-        Identifier texture = Identifier.tryParse(marker.texture());
-        float left = client.font.width(label.getText())*.5F+GAP;
-        float width = client.font.width(text)+4.0F+(texture==null?0:GAP+ICON_HEIGHT);
-        emitSolidRect(context.submitNodeCollector(),poses,left,-6,width,12,
-                Math.clamp(Math.round(alpha*190),0,255)<<24 | marker.style().cardRgb());
-        float x = left+2;
-        if (texture != null) {
-            emitIcon(context.submitNodeCollector(),poses,texture,x,-ICON_HEIGHT*.5F,ICON_HEIGHT,ICON_HEIGHT,opacity<<24|0xffffff);
-            x+=ICON_HEIGHT+GAP;
+        if (marker != null) {
+            emitMarkerRow(context.submitNodeCollector(), poses, client.font, marker,
+                    (entry.attachmentFlags() & VerifiedPlayerMarkers.FLAG) != 0,
+                    number ? -41.0F : -17.0F, alpha);
         }
-        context.submitNodeCollector().submitText(poses,x,-4.5F,Component.literal(text).getVisualOrderText(),false,
-                Font.DisplayMode.NORMAL,FULL_BRIGHT,opacity<<24|SerialBadgeStyle.contrastColour(marker.style().cardRgb()),0,0);
         poses.popPose();
     }
 
@@ -271,9 +263,6 @@ public final class NameTagRenderer {
         int background = Math.clamp(Math.round(alpha * 64.0F), 0, 255) << 24;
         PlayerMarkerCatalog.Definition marker = entry.markerNameTagVisible()
                 ? PlayerMarkerCatalog.byCode(entry.markerCode()) : null;
-        String markerText = marker == null ? "" : Component.translatableWithFallback(
-                marker.translationKey(), marker.fallback()).getString();
-        Identifier markerTexture = marker == null ? null : Identifier.tryParse(marker.texture());
 
         List<Icon> icons = new ArrayList<>(6 + entry.attachments().size());
         if (NameTagRenderIconPolicy.showWitchDoctorCurse(
@@ -314,13 +303,6 @@ public final class NameTagRenderer {
         for (Icon icon : icons) {
             totalWidth += GAP + icon.width();
         }
-        float markerTextWidth = marker == null ? 0.0F : font.width(markerText);
-        float markerWidth = marker == null ? 0.0F
-                : markerTextWidth + 4.0F
-                + (markerTexture == null ? 0.0F : GAP + ICON_HEIGHT);
-        if (marker != null) {
-            totalWidth += GAP + markerWidth;
-        }
         if (speakingIcon != null) {
             totalWidth += GAP + ICON_HEIGHT;
         }
@@ -350,27 +332,47 @@ public final class NameTagRenderer {
             cursor += GAP;
             emitIcon(destination, poses, speakingIcon, cursor, -ICON_HEIGHT * 0.5F,
                     ICON_HEIGHT, ICON_HEIGHT, alphaByte << 24 | 0xffffff);
-            cursor += ICON_HEIGHT;
         }
         if (marker != null) {
-            cursor += GAP;
-            int markerAlpha = Math.clamp(Math.round(alpha * 190.0F), 0, 255);
-            emitSolidRect(destination, poses, cursor, -6.0F, markerWidth, 12.0F,
-                    markerAlpha << 24 | marker.style().cardRgb());
-            int markerTextColour = alphaByte << 24
-                    | SerialBadgeStyle.contrastColour(marker.style().cardRgb());
-            float markerContentX = cursor + 2.0F;
-            if (markerTexture != null) {
-                emitIcon(destination, poses, markerTexture,
-                        markerContentX, -ICON_HEIGHT * 0.5F,
-                        ICON_HEIGHT, ICON_HEIGHT, alphaByte << 24 | 0xffffff);
-                markerContentX += ICON_HEIGHT + GAP;
-            }
-            destination.submitText(poses, markerContentX, -4.5F,
-                    Component.literal(markerText).getVisualOrderText(), false,
-                    Font.DisplayMode.NORMAL, FULL_BRIGHT, markerTextColour, 0, 0);
+            emitMarkerRow(destination, poses, font, marker,
+                    (flags & VerifiedPlayerMarkers.FLAG) != 0, -15.0F, alpha);
         }
         poses.popPose();
+    }
+
+    private static void emitMarkerRow(SubmitNodeCollector destination, PoseStack poses, Font font,
+                                      PlayerMarkerCatalog.Definition marker, boolean verified,
+                                      float centerY, float alpha) {
+        Component role = Component.translatableWithFallback(marker.translationKey(), marker.fallback());
+        Component check = Component.literal("\u2714");
+        Identifier texture = Identifier.tryParse(marker.texture());
+        float roleWidth = font.width(role);
+        float iconWidth = texture == null ? 0.0F : ICON_HEIGHT + GAP;
+        float width = 5.0F + iconWidth + roleWidth + (verified ? 3.0F + font.width(check) : 0.0F);
+        float left = -width * 0.5F;
+        float top = centerY - 6.0F;
+        int opacity = Math.clamp(Math.round(alpha * 255.0F), 0, 255) << 24;
+        int fill = Math.clamp(Math.round(alpha * 174.0F), 0, 255) << 24;
+        int gold = opacity | 0xffd166;
+        emitSolidRect(destination, poses, left, top, width, 12.0F, fill | 0x161a22);
+        if (verified) {
+            emitSolidRect(destination, poses, left, top - 0.5F, width, 0.5F, gold);
+            emitSolidRect(destination, poses, left, top + 12.0F, width, 0.5F, gold);
+            emitSolidRect(destination, poses, left - 0.5F, top - 0.5F, 0.5F, 13.0F, gold);
+            emitSolidRect(destination, poses, left + width, top - 0.5F, 0.5F, 13.0F, gold);
+        }
+        float x = left + 2.5F;
+        if (texture != null) {
+            emitIcon(destination, poses, texture, x, centerY - ICON_HEIGHT * 0.5F,
+                    ICON_HEIGHT, ICON_HEIGHT, opacity | 0xffffff);
+            x += iconWidth;
+        }
+        destination.submitText(poses, x, centerY - 4.5F, role.getVisualOrderText(), false,
+                Font.DisplayMode.NORMAL, FULL_BRIGHT, opacity | marker.style().cardRgb(), 0, 0);
+        if (verified) {
+            destination.submitText(poses, x + roleWidth + 3.0F, centerY - 4.5F,
+                    check.getVisualOrderText(), false, Font.DisplayMode.NORMAL, FULL_BRIGHT, gold, 0, 0);
+        }
     }
 
     private static void emitSolidRect(SubmitNodeCollector destination,
