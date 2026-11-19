@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.17.0+Alpha0.50 - 2026-11-19
+
+- Fix solid color silhouettes covering players and meeting chairs when Iris shaders are active. The client skips stray entity translucent draws inside the outline pass so the remaining outlines stay in the correct framebuffer.
+- This client fix uses the existing network protocol and resource packs.
+
 ## 1.17.0+Alpha0.49 - 2026-11-18
 
 - Use a dedicated victory title and motto for promoted Dueling Dodos, based on their original role in the match roster.

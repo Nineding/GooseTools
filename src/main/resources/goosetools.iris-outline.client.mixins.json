@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.goosethings.tools.client.shader.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "LevelRendererOutlineMixin",
+    "PreparedRenderTypeOutlineMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
