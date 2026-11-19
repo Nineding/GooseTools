@@ -41,6 +41,10 @@
     },
     "goosetools.aim.mixins.json",
     "goosetools.client.mixins.json",
+    {
+      "config": "goosetools.iris-outline.client.mixins.json",
+      "environment": "client"
+    },
     "goosetools.parasite.mixins.json",
     "goosetools.projection.mixins.json",
     "goosetools.noclip.server.mixins.json",
