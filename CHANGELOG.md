@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.17.0+Alpha0.52 - 2026-11-19
+
+- Move meeting markers above nameplates using the existing icon and localized class name. Skill-confirmed identities receive a gold check mark and stay private to the player who obtained the result.
+- Install the matching MinecraftGooseGooseDuck data and resource packs to enable confirmed role markers and the added Japanese and Traditional Chinese role names. Network protocol 51 is unchanged.
+
 ## 1.17.0+Alpha0.50 - 2026-11-19
 
 - Fix solid color silhouettes covering players and meeting chairs when Iris shaders are active. The client skips stray entity translucent draws inside the outline pass so the remaining outlines stay in the correct framebuffer.

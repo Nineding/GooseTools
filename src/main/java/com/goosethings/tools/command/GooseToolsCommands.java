@@ -4,6 +4,8 @@ import com.goosethings.tools.aim.AimClaimService;
 import com.goosethings.tools.web.ServerWebManager;
 import com.goosethings.tools.map.TaskMarkerSync;
 import com.goosethings.tools.nametag.NameTagSync;
+import com.goosethings.tools.nametag.DisguiseIdentityPolicy;
+import com.goosethings.tools.nametag.VerifiedPlayerMarkers;
 import com.goosethings.tools.movement.AdventureNoClipService;
 import com.goosethings.tools.web.ServerWebRepository;
 import com.goosethings.tools.web.WebBundle;
@@ -28,6 +30,15 @@ import java.util.Collection;
 /** Server commands for managing and opening server-local Web UI pages. */
 public final class GooseToolsCommands {
     private GooseToolsCommands() {
+    }
+
+    private static LiteralArgumentBuilder<CommandSourceStack> verifyMarkerEntity(String command, boolean corpseOnly) {
+        return Commands.literal(command)
+                .then(Commands.argument("target", EntityArgument.entity())
+                        .then(Commands.argument("role", StringArgumentType.word())
+                                .executes(context -> VerifiedPlayerMarkers.remember(context.getSource().getPlayerOrException(),
+                                        DisguiseIdentityPolicy.playerSeat(EntityArgument.getEntity(context, "target").entityTags()),
+                                        StringArgumentType.getString(context, "role"), corpseOnly))));
     }
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
@@ -84,6 +95,17 @@ public final class GooseToolsCommands {
                                         .executes(context -> NameTagSync.clearHidden(
                                                 EntityArgument.getPlayers(context, "viewers"))))))
                 .then(Commands.literal("markers")
+                        .then(Commands.literal("verify")
+                                .then(Commands.argument("seat", StringArgumentType.word())
+                                        .then(Commands.argument("role", StringArgumentType.word())
+                                                .executes(context -> {
+                                                    String seat = StringArgumentType.getString(context, "seat");
+                                                    int number = DisguiseIdentityPolicy.playerSeat(java.util.Set.of(seat));
+                                                    return VerifiedPlayerMarkers.remember(context.getSource().getPlayerOrException(),
+                                                            number, StringArgumentType.getString(context, "role"), false);
+                                                }))))
+                        .then(verifyMarkerEntity("verifyentity", false))
+                        .then(verifyMarkerEntity("verifycorpse", true))
                         .then(Commands.literal("reload")
                                 .executes(context -> reloadMarkers(context.getSource()))))
                 .then(Commands.literal("web")

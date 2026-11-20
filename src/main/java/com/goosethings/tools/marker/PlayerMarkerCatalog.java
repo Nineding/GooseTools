@@ -19,6 +19,13 @@ public final class PlayerMarkerCatalog {
         return List.copyOf(BY_CODE.values());
     }
 
+    public static Definition byRoleKey(String key) {
+        for (Definition definition : BY_CODE.values()) {
+            if (definition.roleSpecific() && definition.translationKey().equals(key)) return definition;
+        }
+        return null;
+    }
+
     private static Map<Integer, Definition> createDefinitions() {
         Map<Integer, Definition> definitions = new LinkedHashMap<>();
         add(definitions, 1, Style.GOOSE, "menu.ggd.marker.additional.goose", "Goose",
@@ -98,6 +105,9 @@ public final class PlayerMarkerCatalog {
         addRole(definitions, 221, Faction.DUCK, "carrier", "Carrier", "carrier");
         addRole(definitions, 222, Faction.DUCK, "parasite", "Parasite", "parasite");
         addRole(definitions, 223, Faction.DUCK, "mime", "Mime", "mime");
+        addRole(definitions, 224, Faction.DUCK, "sineater", "Sin Eater", "sineater");
+        addRole(definitions, 225, Faction.DUCK, "exchanger", "Exchanger", "exchanger");
+        addRole(definitions, 226, Faction.DUCK, "swordman", "Swordsman", "swordsman");
 
         addRole(definitions, 301, Faction.BIRD, "dodo", "Dodo", "dodo");
         addRole(definitions, 302, Faction.BIRD, "duelingdodos", "Dueling Dodos", "dueling_dodo");
