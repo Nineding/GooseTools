@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.17.0+Alpha0.53 - 2026-11-20
+
+- Keep all seven skin layers enabled in Skin Customization, including when loading older client settings. Players can still choose their main hand.
+- Update GooseTools on both the client and server. Network protocol 51 is unchanged.
+
 ## 1.17.0+Alpha0.52 - 2026-11-19
 
 - Move meeting markers above nameplates using the existing icon and localized class name. Skill-confirmed identities receive a gold check mark and stay private to the player who obtained the result.

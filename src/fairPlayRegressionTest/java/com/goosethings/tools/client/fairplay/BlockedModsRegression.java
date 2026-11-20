@@ -6,13 +6,22 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
+import net.minecraft.client.gui.components.CycleButton;
+import net.minecraft.client.gui.components.OptionsList;
+import net.minecraft.client.gui.components.events.ContainerEventHandler;
 import net.minecraft.client.gui.screens.ConnectScreen;
 import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.client.gui.screens.options.SkinCustomizationScreen;
 import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.multiplayer.resolver.ServerAddress;
+import net.minecraft.world.entity.HumanoidArm;
+import net.minecraft.world.entity.player.PlayerModelPart;
 
 import java.nio.file.Files;
+import java.util.List;
 
 /** Runs with a harmless test-only mod whose real Fabric ID is freecam. */
 public final class BlockedModsRegression implements ClientModInitializer {
@@ -32,6 +41,7 @@ public final class BlockedModsRegression implements ClientModInitializer {
                 mc.options.pauseOnLostFocus = false;
             }
             if (mc.gui.overlay() != null || ++ticks < 20) return;
+            if (ticks == 20) verifySkinCustomization(mc);
             require(ClientFairPlayGuard.blocksGame(), "loaded Fabric fixture not detected");
             require(ClientFairPlayGuard.detectedMods().getFirst().id().equals("freecam"), "wrong blocked ID");
             require(mc.gui.screen() instanceof BlockedModsScreen, "startup screen not locked");
@@ -58,12 +68,47 @@ public final class BlockedModsRegression implements ClientModInitializer {
                     saved = true;
                 } catch (Exception error) { throw new RuntimeException(error); }
             });
-            if (saved) finish(mc, "PASS actual Fabric inventory, renamed fixture, startup modal, Esc/close/Gui/Minecraft screen lock, direct connection, QuickPlay, local world open/create; blocked-mods.png");
+            if (saved) finish(mc, "PASS locked skin parts, editable main hand, actual Fabric inventory, renamed fixture, startup modal, Esc/close/Gui/Minecraft screen lock, direct connection, QuickPlay, local world open/create; blocked-mods.png");
             if (ticks > 200) throw new AssertionError("screenshot timeout");
         } catch (Throwable error) {
             GooseTools.LOGGER.error("Blocked mods regression failed", error);
             finish(mc, "FAIL " + error);
         }
+    }
+
+    private static void verifySkinCustomization(Minecraft mc) {
+        var skinScreen = new SkinCustomizationScreen(new TitleScreen(), mc.options);
+        skinScreen.init(520, 360);
+        var options = skinScreen.children().stream()
+                .filter(OptionsList.class::isInstance).map(OptionsList.class::cast)
+                .findFirst().orElseThrow();
+        List<? extends ContainerEventHandler> rows = options.children();
+        var buttons = rows.stream().flatMap(row -> row.children().stream())
+                .filter(widget -> widget instanceof CycleButton<?>).map(widget -> (CycleButton<?>) widget).toList();
+
+        int expectedMask = 0;
+        for (PlayerModelPart part : PlayerModelPart.values()) {
+            expectedMask |= part.getMask();
+            require(mc.options.isModelPartEnabled(part), "old setting disabled " + part);
+        }
+        var partButtons = buttons.stream().filter(button -> button.getValue() instanceof Boolean).toList();
+        require(partButtons.size() == PlayerModelPart.values().length, "skin part controls missing");
+        for (var button : partButtons) {
+            require(Boolean.TRUE.equals(button.getValue()) && !button.isActive(), "skin part is not locked on");
+            require(!button.mouseClicked(click(button), false), "locked skin part accepted a click");
+        }
+        require(mc.options.buildPlayerInformation().modelCustomisation() == expectedMask, "incorrect skin part mask");
+
+        var mainHand = buttons.stream().filter(button -> button.getValue() instanceof HumanoidArm)
+                .findFirst().orElseThrow();
+        require(mainHand.getValue() == HumanoidArm.LEFT && mainHand.isActive(), "saved main hand was not preserved");
+        require(mainHand.mouseClicked(click(mainHand), false), "main hand did not accept a click");
+        require(mc.options.buildPlayerInformation().mainHand() == HumanoidArm.RIGHT, "main hand did not switch");
+    }
+
+    private static MouseButtonEvent click(CycleButton<?> button) {
+        return new MouseButtonEvent(button.getX() + 1, button.getY() + 1,
+                new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0));
     }
 
     private static void require(boolean result, String reason) {
