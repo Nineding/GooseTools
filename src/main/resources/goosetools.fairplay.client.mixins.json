@@ -9,7 +9,9 @@
     "FairPlayQuickPlayMixin",
     "FairPlayWorldOpenMixin",
     "FairPlayKeyboardMixin",
-    "FairPlayHitboxMixin"
+    "FairPlayHitboxMixin",
+    "SkinPartsOptionsMixin",
+    "SkinCustomizationScreenMixin"
   ],
   "injectors": {"defaultRequire": 1}
 }

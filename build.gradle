@@ -527,7 +527,19 @@ tasks.named('runFairPlayRegressionTest') {
     doFirst {
         def directory = file('build/fairplay-regression-test'); directory.mkdirs()
         new File(directory, 'result.txt').delete()
-        new File(directory, 'options.txt').text = 'lang:zh_cn\nguiScale:2\npauseOnLostFocus:false\ntutorialStep:none\n'
+        new File(directory, 'options.txt').text = '''lang:zh_cn
+guiScale:2
+pauseOnLostFocus:false
+tutorialStep:none
+mainHand:"left"
+modelPart_cape:false
+modelPart_jacket:false
+modelPart_left_sleeve:false
+modelPart_right_sleeve:false
+modelPart_left_pants_leg:false
+modelPart_right_pants_leg:false
+modelPart_hat:false
+'''
     }
     doLast {
         def result = file('build/fairplay-regression-test/result.txt')
