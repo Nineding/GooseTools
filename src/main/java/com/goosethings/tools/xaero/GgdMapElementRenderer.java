@@ -254,7 +254,9 @@ public final class GgdMapElementRenderer
     static String taskSprite(Element element) {
         return switch (taskCategory(element)) {
             case "gold", "artisan" -> "item/artisan";
-            case "duck", "emergency" -> "item/task_evil";
+            case "duck" -> "item/task_evil";
+            case "emergency" -> "item/task_emergency";
+            case "series" -> "item/task_series";
             default -> "item/task_good";
         };
     }
@@ -313,9 +315,7 @@ public final class GgdMapElementRenderer
     }
 
     private static void drawAtlasIcon(MinimapElementGraphics graphics, String spritePath, int x, int y, int size) {
-        var atlas = Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(AtlasIds.ITEMS);
-        TextureAtlasSprite sprite = atlas.getSprite(Identifier.withDefaultNamespace(spritePath));
-        graphics.blit(sprite, x, y, size, size, RenderPipelines.GUI_TEXTURED);
+        graphics.blit(atlasSprite(spritePath), x, y, size, size, RenderPipelines.GUI_TEXTURED);
     }
 
     private static void drawAtlasIcon(GuiGraphicsExtractor graphics, String spritePath) {
@@ -327,9 +327,21 @@ public final class GgdMapElementRenderer
     }
 
     private static void drawAtlasIcon(GuiGraphicsExtractor graphics, String spritePath, int x, int y, int size) {
+        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, atlasSprite(spritePath), x, y, size, size);
+    }
+
+    private static TextureAtlasSprite atlasSprite(String spritePath) {
         var atlas = Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(AtlasIds.ITEMS);
         TextureAtlasSprite sprite = atlas.getSprite(Identifier.withDefaultNamespace(spritePath));
-        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, x, y, size, size);
+        if (sprite != atlas.missingSprite()) {
+            return sprite;
+        }
+        // Older Whoiskiller resource packs contain only the original task sprites.
+        return switch (spritePath) {
+            case "item/task_series" -> atlas.getSprite(Identifier.withDefaultNamespace("item/task_good"));
+            case "item/task_emergency" -> atlas.getSprite(Identifier.withDefaultNamespace("item/task_evil"));
+            default -> sprite;
+        };
     }
 
     record Element(String textKey, double x, double y, double z,

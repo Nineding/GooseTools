@@ -574,6 +574,46 @@
       "fallback": "Wipe Glass: Secret Laboratory",
       "category": "series"
     },
+    "eagleton_gourmet_restaurant": {
+      "translation_key": "item.task.eagleton_gourmet_restaurant.available",
+      "fallback": "Town Gourmet: Restaurant",
+      "category": "series"
+    },
+    "eagleton_gourmet_school": {
+      "translation_key": "item.task.eagleton_gourmet_school.available",
+      "fallback": "Town Gourmet: School",
+      "category": "series"
+    },
+    "eagleton_poop_school_1": {
+      "translation_key": "item.task.eagleton_poop_school_1.available",
+      "fallback": "Poop King: School I",
+      "category": "series"
+    },
+    "eagleton_poop_school_2": {
+      "translation_key": "item.task.eagleton_poop_school_2.available",
+      "fallback": "Poop King: School II",
+      "category": "series"
+    },
+    "eagleton_poop_lab": {
+      "translation_key": "item.task.eagleton_poop_lab.available",
+      "fallback": "Poop King: Secret Laboratory",
+      "category": "series"
+    },
+    "eagleton_poop_police": {
+      "translation_key": "item.task.eagleton_poop_police.available",
+      "fallback": "Poop King: Police Station",
+      "category": "series"
+    },
+    "eagleton_poop_restaurant": {
+      "translation_key": "item.task.eagleton_poop_restaurant.available",
+      "fallback": "Poop King: Restaurant",
+      "category": "series"
+    },
+    "eagleton_poop_arcade": {
+      "translation_key": "item.task.eagleton_poop_arcade.available",
+      "fallback": "Poop King: Arcade",
+      "category": "series"
+    },
     "keepgreen": {
       "translation_key": "item.task.keepgreen.available",
       "fallback": "Keep the Lights Green",
