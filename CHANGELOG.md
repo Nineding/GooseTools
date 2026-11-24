@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.17.0+Alpha0.54 - 2026-11-24
+
+- Distinguish ordinary tasks, series tasks, Duck sabotage and emergency tasks on the minimap and world map with matching Whoiskiller resource pack icons.
+- Update GooseTools on both the client and server and use the matching Whoiskiller resource pack for the new artwork. Network protocol 51 is unchanged.
+
 ## 1.17.0+Alpha0.53 - 2026-11-20
 
 - Keep all seven skin layers enabled in Skin Customization, including when loading older client settings. Players can still choose their main hand.
