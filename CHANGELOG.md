@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.17.0+Alpha0.57 - 2026-11-25
+
+- Fix a Minecraft 26.3 client startup crash by creating the Broodkeeper chick's model items when first rendered.
+- Use with GooseThings 1.17.0+Alpha0.24 and the matching Whoiskiller data and resource pack. Protocol remains 52.
+
 ## 1.17.0+Alpha0.56 - 2026-11-25
 
 - Register and animate the dedicated Broodkeeper chick. Carried chicks render relative to the carrier every frame.
