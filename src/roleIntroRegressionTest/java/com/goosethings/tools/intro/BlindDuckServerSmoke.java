@@ -42,7 +42,7 @@ public final class BlindDuckServerSmoke implements DedicatedServerModInitializer
             done = true;
             String result;
             try {
-                check(com.goosethings.tools.GooseTools.PROTOCOL_VERSION == 51, "protocol");
+                check(com.goosethings.tools.GooseTools.PROTOCOL_VERSION == 52, "protocol");
                 for (String id : new String[]{"lobby:invreplace/toggle/blind_duck_mode",
                         "lobby:invreplace/menu_main", "lobby:settings_display/ggd/update",
                         "lobby:settings_display/ggd/apply", "lobby:settings_display/ggd/apply_turn",
