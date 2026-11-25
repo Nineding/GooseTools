@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.17.0+Alpha0.56 - 2026-11-25
+
+- Register and animate the dedicated Broodkeeper chick. Carried chicks render relative to the carrier every frame.
+- Require protocol 52 and the paired Broodkeeper resource pack on Minecraft 26.3.
+
+## 1.17.0+Alpha0.55 - 2026-11-25
+
+- Render Broodkeeper chick carrying in first and third person and register its role portrait.
+- Use with the paired Whoiskiller Broodkeeper data and resource pack on Minecraft 26.3.
+
 ## 1.17.0+Alpha0.54 - 2026-11-24
 
 - Distinguish ordinary tasks, series tasks, Duck sabotage and emergency tasks on the minimap and world map with matching Whoiskiller resource pack icons.

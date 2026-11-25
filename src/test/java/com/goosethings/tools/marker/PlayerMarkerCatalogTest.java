@@ -19,12 +19,13 @@ class PlayerMarkerCatalogTest {
                 .map(PlayerMarkerCatalog.Definition::code)
                 .collect(Collectors.toSet());
 
-        assertEquals(80, definitions.size());
+        assertEquals(81, definitions.size());
         assertEquals(224, PlayerMarkerCatalog.byRoleKey("role.evil.sineater").code());
         assertEquals(225, PlayerMarkerCatalog.byRoleKey("role.evil.exchanger").code());
         assertEquals(226, PlayerMarkerCatalog.byRoleKey("role.evil.swordman").code());
         assertNull(PlayerMarkerCatalog.byRoleKey("menu.ggd.marker.additional.group_one"));
         assertEquals("role.neutral.sparrow", PlayerMarkerCatalog.byCode(312).translationKey());
+        assertEquals("role.neutral.broodkeeper", PlayerMarkerCatalog.byCode(313).translationKey());
         assertEquals(definitions.size(), codes.size());
         assertFalse(PlayerMarkerCatalog.byCode(1).roleSpecific());
         assertEquals("menu.ggd.marker.additional.goose",

@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 
 public final class GooseTools implements ModInitializer {
     public static final String MOD_ID = "goosetools";
-    public static final int PROTOCOL_VERSION = 51;
+    public static final int PROTOCOL_VERSION = 52;
     public static final String VERSION = FabricLoader.getInstance()
             .getModContainer(MOD_ID)
             .map(container -> container.getMetadata().getVersion().getFriendlyString())
@@ -37,6 +37,7 @@ public final class GooseTools implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        com.goosethings.tools.broodkeeper.BroodkeeperChick.register();
         GooseToolsPayloads.registerTypes();
         com.goosethings.tools.seagull.SeagullFriesInteraction.register();
         com.goosethings.tools.regions.RegionDataServer.register();
