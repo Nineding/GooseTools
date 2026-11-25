@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class SpectatorGlowPaletteTest {
  @Test void everyNeutralMatchesIntroAndItsMeetingMarker() {
   var roles=RoleIntroCatalog.roles().stream().filter(r->r.faction()==2).toList();
-  assertEquals(12,roles.size());
+  assertEquals(13,roles.size());
   for(var r:roles) {
    assertEquals(r.color(),SpectatorGlowPalette.player(Set.of("neutral",r.tag()),true),r.tag());
    assertEquals(0x55ffff,SpectatorGlowPalette.player(Set.of("neutral",r.tag()),false));

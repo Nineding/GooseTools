@@ -594,6 +594,15 @@
     "faction": 2
   },
   {
+    "tag": "Broodkeeper",
+    "key": "role.neutral.broodkeeper",
+    "fallback": "Broodkeeper",
+    "descriptionKey": "role.neutral.broodkeeper.subtitle",
+    "descriptionFallback": "Escort your chicks to safety",
+    "color": 10337243,
+    "faction": 2
+  },
+  {
     "tag": "SinEater",
     "key": "role.evil.sineater",
     "fallback": "Sin Eater",

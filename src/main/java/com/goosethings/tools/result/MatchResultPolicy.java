@@ -5,7 +5,7 @@ import java.util.Set;
 /** Same faction and explicit personal-win rules as the datapack, including dead teammates. */
 public final class MatchResultPolicy {
     private static final Set<String> NEUTRAL = Set.of("dodo", "falcon", "pelican", "pigeon", "vulture",
-            "raven", "cuckoo", "phoenix", "magpie", "seagull", "sparrow");
+            "raven", "cuckoo", "phoenix", "magpie", "seagull", "sparrow", "broodkeeper");
     private MatchResultPolicy() {}
     public static boolean validOutcome(String outcome) {
         return outcome != null && (outcome.startsWith("good_")

@@ -5,8 +5,12 @@ import javax.imageio.ImageIO;
 import static org.junit.jupiter.api.Assertions.*;
 
 class RoleIntroArtworkTest {
-    @Test void allRealRolesAndOrdinaryDuckHaveReadableBundledArtwork() throws Exception {
-        for (var role : RoleIntroCatalog.roles()) assertArtwork(role.tag());
+    @Test void packIndependentRolesAndOrdinaryDuckHaveReadableBundledArtwork() throws Exception {
+        for (var role : RoleIntroCatalog.roles()) {
+            // Broodkeeper artwork belongs to the required Whoiskiller resource pack.
+            if (!role.tag().equals("Broodkeeper")) assertArtwork(role.tag());
+        }
+        assertEquals("broodkeeper", RoleIntroArtwork.sprite("Broodkeeper").orElseThrow());
         assertArtwork("Duck");
         assertEquals("dueling_dodo", RoleIntroArtwork.sprite("DuelingDodos").orElseThrow());
         assertEquals("witch_doctor", RoleIntroArtwork.sprite("WitchDoctor").orElseThrow());

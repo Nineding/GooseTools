@@ -1,6 +1,7 @@
 package com.goosethings.tools.client.animation.mixin;
 
 import com.goosethings.tools.client.animation.PlayerArmAnimationContinuity;
+import com.goosethings.tools.client.animation.BroodkeeperPose;
 import com.goosethings.tools.client.dream.DreamStandInClient;
 import com.goosethings.tools.client.projection.ProjectionBodyClient;
 import com.goosethings.tools.client.pet.PetAttachmentRenderer;
@@ -22,7 +23,8 @@ public abstract class EntityRenderDispatcherMixin {
     private <E extends Entity> void goosetools$suppressNewerStandInVisual(
             E entity, Frustum frustum, double cameraX, double cameraY, double cameraZ, float partialTick,
             CallbackInfoReturnable<Boolean> cir) {
-        if (DreamStandInClient.shouldSuppressStandIn(entity)
+        if (BroodkeeperPose.hideLocalChick(entity)
+                || DreamStandInClient.shouldSuppressStandIn(entity)
                 || ProjectionBodyClient.shouldSuppressBody(entity)
                 || ProjectionBodyClient.shouldSuppressSource(entity)
                 || PlayerArmAnimationContinuity.shouldSuppressRender(entity)
