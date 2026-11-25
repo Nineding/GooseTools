@@ -12,6 +12,8 @@ import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
@@ -23,12 +25,6 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 public final class BroodkeeperChickRenderer extends EntityRenderer<BroodkeeperChick, BroodkeeperChickRenderer.State> {
-    private static final ItemStack BODY = part("body");
-    private static final ItemStack TAIL = part("tail");
-    private static final ItemStack LEFT_WING = part("left_wing");
-    private static final ItemStack RIGHT_WING = part("right_wing");
-    private static final ItemStack LEFT_LEG = part("left_leg");
-    private static final ItemStack RIGHT_LEG = part("right_leg");
     private static final float[] IDLE_BOB = {0, -0.2f};
     private static final float[] IDLE_TAIL = {0, 8, 0, -5};
     private static final float[] STEP_LEG = {0, -35, 0, 35};
@@ -132,19 +128,30 @@ public final class BroodkeeperChickRenderer extends EntityRenderer<BroodkeeperCh
     }
 
     private static ItemStack part(String name) {
-        ItemStack item = new ItemStack(Items.PAPER);
-        item.set(DataComponents.ITEM_MODEL, Identifier.parse("ggd:broodkeeper/parts/" + name));
-        return item;
+        var components = DataComponentMap.builder()
+                .set(DataComponents.ITEM_MODEL, Identifier.parse("ggd:broodkeeper/parts/" + name))
+                .build();
+        return new ItemStack(Holder.direct(Items.PAPER, components));
+    }
+
+    // Initialize these client-only model stacks on first use, after renderer registration.
+    private static final class Parts {
+        static final ItemStack BODY = part("body");
+        static final ItemStack TAIL = part("tail");
+        static final ItemStack LEFT_WING = part("left_wing");
+        static final ItemStack RIGHT_WING = part("right_wing");
+        static final ItemStack LEFT_LEG = part("left_leg");
+        static final ItemStack RIGHT_LEG = part("right_leg");
     }
 
     private static void updateModels(BroodkeeperChick chick, State state) {
         var models = Minecraft.getInstance().getItemModelResolver();
-        models.updateForNonLiving(state.body, BODY, ItemDisplayContext.FIXED, chick);
-        models.updateForNonLiving(state.tail, TAIL, ItemDisplayContext.FIXED, chick);
-        models.updateForNonLiving(state.leftWing, LEFT_WING, ItemDisplayContext.FIXED, chick);
-        models.updateForNonLiving(state.rightWing, RIGHT_WING, ItemDisplayContext.FIXED, chick);
-        models.updateForNonLiving(state.leftLeg, LEFT_LEG, ItemDisplayContext.FIXED, chick);
-        models.updateForNonLiving(state.rightLeg, RIGHT_LEG, ItemDisplayContext.FIXED, chick);
+        models.updateForNonLiving(state.body, Parts.BODY, ItemDisplayContext.FIXED, chick);
+        models.updateForNonLiving(state.tail, Parts.TAIL, ItemDisplayContext.FIXED, chick);
+        models.updateForNonLiving(state.leftWing, Parts.LEFT_WING, ItemDisplayContext.FIXED, chick);
+        models.updateForNonLiving(state.rightWing, Parts.RIGHT_WING, ItemDisplayContext.FIXED, chick);
+        models.updateForNonLiving(state.leftLeg, Parts.LEFT_LEG, ItemDisplayContext.FIXED, chick);
+        models.updateForNonLiving(state.rightLeg, Parts.RIGHT_LEG, ItemDisplayContext.FIXED, chick);
     }
 
     private static void draw(State state, PoseStack poses, SubmitNodeCollector collector) {
